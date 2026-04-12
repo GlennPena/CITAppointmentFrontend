@@ -91,19 +91,21 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
       setBookedSlots([]);
       api.get(`appointments/busy-slots/${formData.doctor}/?date=${selectedDate}`)
         .then(res => {
-          // Normalize API times to a simple "HH:MM AM/PM" format
           const booked = res.data.map(app => {
             const dt = new Date(app);
             let hours = dt.getHours();
             const minutes = String(dt.getMinutes()).padStart(2, '0');
             const ampm = hours >= 12 ? 'PM' : 'AM';
             hours = hours % 12;
-            hours = hours ? hours : 12; // the hour '0' should be '12'
+            hours = hours ? hours : 12; 
             return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
           });
           setBookedSlots(booked);
         })
-        .catch(err => console.log("Error fetching slots", err));
+        .catch(err => {
+          setError("Could not load available times.");
+          setBookedSlots([]);
+        }); 
     }
   }, [formData.doctor, selectedDate, isVisible]);
 
@@ -131,7 +133,6 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
 
   // Handles final submission of the booking form
   const handleFinish = async () => {
-    console.log("Sending Data:", formData);
     setLoading(true);
     setAlert({ message: "", type: "" });
 
@@ -149,7 +150,6 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
       }, 100); 
 
     } catch (e) {
-      console.log("SERVER ERROR DETAILS:", e.response?.data);
       const msg = e.response?.data ? JSON.stringify(e.response.data) : "Failed to book.";
       setAlert({ message: msg, type: "error" });
     } finally {
@@ -355,7 +355,6 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
     );
   };
 
-
   return (
     <Modal visible={isVisible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -375,7 +374,6 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
               {step === 5 && renderStep5()}
           </ScrollView>
 
-          {/* THE FOOTER */}
           <View style={styles.footer}>
             {step > 1 ? (
               <Pressable style={styles.backButton} onPress={() => setStep(step - 1)}>
@@ -427,15 +425,64 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'column'
   },
-  modalTitle: { ...Typography.title, fontSize: 22, fontWeight: '800', marginBottom: 20, textAlign: 'center', color: '#002366' },
-  card: { padding: 15, borderWidth: 1.5, borderColor: '#E2E8F0', borderRadius: 12, marginBottom: 10, backgroundColor: '#FFF'},
-  selected: { backgroundColor: '#002366', borderColor: '#002366' },
-  cardText: { ...Typography.body, fontSize: 16, color: '#1E293B'},
-  dateBtn: { width: 60, height: 70, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginRight: 10, borderRadius: 10, borderColor: '#DDD' },
-  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  timeBtn: { width: '48%', padding: 15, borderWidth: 1, borderColor: '#DDD', borderRadius: 10, marginBottom: 10, alignItems: 'center' },
-  booked: { backgroundColor: '#002366', borderColor: '#E2E8F0', opacity: 0.5},
-  bold: { fontWeight: 'bold', fontSize: 18 },
+  modalTitle: { 
+    ...Typography.title, 
+    fontSize: 22, 
+    fontWeight: '800', 
+    marginBottom: 20, 
+    textAlign: 'center', 
+    color: '#002366' 
+  },
+  card: { 
+    padding: 15, 
+    borderWidth: 1.5, 
+    borderColor: '#E2E8F0', 
+    borderRadius: 12, 
+    marginBottom: 10, 
+    backgroundColor: '#FFF'
+  },
+  selected: { 
+    backgroundColor: '#002366', 
+    borderColor: '#002366' 
+  },
+  cardText: { 
+    ...Typography.body, 
+    fontSize: 16, 
+    color: '#1E293B'
+  },
+  dateBtn: { 
+    width: 60, 
+    height: 70, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderWidth: 1, 
+    marginRight: 10, 
+    borderRadius: 10, 
+    borderColor: '#DDD' 
+  },
+  timeGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between' 
+  },
+  timeBtn: { 
+    width: '48%', 
+    padding: 15, 
+    borderWidth: 1, 
+    borderColor: '#DDD', 
+    borderRadius: 10, 
+    marginBottom: 10, 
+    alignItems: 'center' 
+  },
+  booked: { 
+    backgroundColor: '#002366', 
+    borderColor: '#E2E8F0', 
+    opacity: 0.5
+  },
+  bold: { 
+    fontWeight: 'bold', 
+    fontSize: 18 
+  },
   input: { 
     borderWidth: 1.5, 
     borderColor: '#E2E8F0', 
@@ -444,81 +491,115 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#002366',
     backgroundColor: '#F8FAFC'
-
   },
   inputMultiline: { 
-  borderWidth: 1.5, 
-  borderColor: '#E2E8F0', 
-  borderRadius: 10, 
-  padding: 12, 
-  fontSize: 16,
-  color: '#002366',
-  backgroundColor: '#F8FAFC',
-  
-  minHeight: 120,
-  textAlignVertical: 'top',
-  paddingTop: 12, 
-},
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 12 },
-  backButton: { backgroundColor: '#fff', padding: 10, borderRadius: 10, alignItems: 'center', color: '#002366', width: 80, textAlign: 'center', borderWidth: 1.5, borderColor: '#002366'},
-  nextBtn: { backgroundColor: '#002366', padding: 10, borderRadius: 10, alignItems: 'center', color: '#fff', width: 80, textAlign: 'center'},
-  submitBtn: { backgroundColor: '#002366', padding: 15, borderRadius: 10, marginTop: 20, alignItems: 'center' },
-  reviewBox: { backgroundColor: '#F9F9F9', padding: 15, borderRadius: 10 },
-  closeBtn: { padding: 20, alignItems: 'center' },
-summaryLabel: {
-  ...Typography.body,
-  fontSize: 14,
-  fontWeight: '600',
-  color: '#64748B',            
-  flex: 1,            
-  },         
-summaryValue: {
-  ...Typography.body,
-  fontSize: 15,
-  fontWeight: '700',
-  color: '#0F172A',             
-  flex: 2,                 
-  textAlign: 'right',          
-},
-summaryContainer: {
-  backgroundColor: '#F8FAFC',      
-  padding: 16,
-  borderRadius: 16,
-  borderWidth: 1,
-  borderColor: '#E2E8F0',
-},
-headerRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  paddingHorizontal: 20,
-  paddingVertical: 15,
-  borderBottomWidth: 1,
-  borderBottomColor: '#F3F4F6',
-},
-progressContainer: {
-  flexDirection: 'row',
-  gap: 6,
-},
-progressSegment: {
-  height: 6,
-  width: 35,
-  borderRadius: 3,
-},
-segmentActive: {
-  backgroundColor: '#002366',
-},
-segmentInactive: {
-  backgroundColor: '#E5E7EB',
-},
-dateGrid: {
+    borderWidth: 1.5, 
+    borderColor: '#E2E8F0', 
+    borderRadius: 10, 
+    padding: 12, 
+    fontSize: 16,
+    color: '#002366',
+    backgroundColor: '#F8FAFC',
+    
+    minHeight: 120,
+    textAlignVertical: 'top',
+    paddingTop: 12, 
+  },
+  row: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-start', 
+    paddingVertical: 12 
+  },
+  backButton: { 
+    backgroundColor: '#fff', 
+    padding: 10, 
+    borderRadius: 10, 
+    alignItems: 'center', 
+    color: '#002366', 
+    width: 80, 
+    textAlign: 'center', 
+    borderWidth: 1.5, 
+    borderColor: '#002366'
+  },
+  nextBtn: { 
+    backgroundColor: '#002366', 
+    padding: 10, 
+    borderRadius: 10, 
+    alignItems: 'center', 
+    color: '#fff', 
+    width: 80, 
+    textAlign: 'center'
+  },
+  submitBtn: { 
+    backgroundColor: '#002366', 
+    padding: 15, 
+    borderRadius: 10, 
+    marginTop: 20, 
+    alignItems: 'center' 
+  },
+  reviewBox: { 
+    backgroundColor: '#F9F9F9', 
+    padding: 15, 
+    borderRadius: 10 
+  },
+  closeBtn: { 
+    padding: 20, 
+    alignItems: 'center' 
+  },
+  summaryLabel: {
+    ...Typography.body,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',            
+    flex: 1,            
+    },         
+  summaryValue: {
+    ...Typography.body,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',             
+    flex: 2,                 
+    textAlign: 'right',          
+  },
+  summaryContainer: {
+    backgroundColor: '#F8FAFC',      
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  progressSegment: {
+    height: 6,
+    width: 35,
+    borderRadius: 3,
+  },
+  segmentActive: {
+    backgroundColor: '#002366',
+  },
+  segmentInactive: {
+    backgroundColor: '#E5E7EB',
+  },
+  dateGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between', 
     rowGap: 10,  
     marginBottom: 20,
   },
-
   dateBtnGrid: {
     width: '13%',  
     aspectRatio: 0.85, 
@@ -529,19 +610,16 @@ dateGrid: {
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
   },
-
   selected: {
     backgroundColor: '#002366',
     borderColor: '#002366',
   },
-
   dayText: {
     ...Typography.body,
     fontSize: 12,  
     fontWeight: '700',
     color: '#64748B',
   },
-
   dateNumText: {
     ...Typography.body,
     fontSize:18,
@@ -550,13 +628,18 @@ dateGrid: {
     marginTop: 2,
   },
   serviceNextBtn: {
-    backgroundColor: '#002366', padding: 10, borderRadius: 10, alignItems: 'center', color: '#fff', width: 80, textAlign: 'center',
-    
+    backgroundColor: '#002366', 
+    padding: 10, 
+    borderRadius: 10, 
+    alignItems: 'center', 
+    color: '#fff', 
+    width: 80, 
+    textAlign: 'center',
     alignSelf: 'flex-end', 
     marginTop: 15,
   },
   scrollViewContent: {
-    flex: 1, // This allows the scroll area to take up all space EXCEPT the header and footer
+    flex: 1, 
   },
   footer: {
     flexDirection: 'row',
@@ -565,7 +648,7 @@ dateGrid: {
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6', // Subtle line above buttons
+    borderTopColor: '#F3F4F6', 
     backgroundColor: '#FFF',
   },
   divider: {

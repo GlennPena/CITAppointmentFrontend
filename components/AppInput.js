@@ -1,12 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  TextInput, 
-  Animated, 
-  StyleSheet, 
-  Pressable 
-} from 'react-native';
+/* 
+  Responsible for creating input field with animated floating label, validation handling, and optional password visibility toggle.
+*/
+
+import { useState, useRef, useEffect } from 'react';
+import { View, TextInput, Animated, StyleSheet, Pressable } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
+
 import { Typography } from "../styles/theme";
 
 export const AppInput = ({ 
@@ -59,7 +58,6 @@ export const AppInput = ({
   return (
     <View style={styles.container}>
       <Animated.Text style={labelStyle} pointerEvents="none">
-        {/* 2. Conditional Label Text */}
         {label === "Date of Birth" && showHint 
           ? "Date of Birth (YYYY-MM-DD)" 
         : label === "Course" && showHint

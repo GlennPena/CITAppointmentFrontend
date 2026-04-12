@@ -1,13 +1,17 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+/* 
+  Responsible for displaying a single appointment entry in the admin dashboard.
+*/
+
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import StatusBadge from './StatusBadge';
-import { useWindowDimensions } from 'react-native';
 
 
 export default function AdminAppointmentRow({ item, onDelete, onViewDetails }) {
+  
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-
   const styles = getStyles(isMobile, width);
 
   const dt = new Date(item.date_time);
@@ -81,8 +85,27 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'center' 
   },
-  primaryText: { fontSize: isMobile ? 12 : 14, fontWeight: '700', color: '#1E293B' },
-  secondaryText: { fontSize: isMobile ? 10 : 12, color: '#64748B', marginTop: 4 },
-  linkText: { fontSize: isMobile ? 11 : 13, color: '#0052FF', marginTop: 8, fontWeight: '600' },
-  delBtn: { backgroundColor: '#EF4444', padding: 10, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }
+  primaryText: { 
+    fontSize: isMobile ? 12 : 14, 
+    fontWeight: '700', 
+    color: '#1E293B' 
+  },
+  secondaryText: { 
+    fontSize: isMobile ? 10 : 12, 
+    color: '#64748B', 
+    marginTop: 4 
+  },
+  linkText: { 
+    fontSize: isMobile ? 11 : 13, 
+    color: '#002366', 
+    marginTop: 8, 
+    fontWeight: '600' 
+  },
+  delBtn: { 
+    backgroundColor: '#EF4444', 
+    padding: 10, 
+    borderRadius: 10, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  }
 });

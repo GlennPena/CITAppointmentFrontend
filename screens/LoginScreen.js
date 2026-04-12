@@ -8,16 +8,19 @@ import {
   ActivityIndicator,
   ImageBackground, 
   Image, 
+  useWindowDimensions
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useWindowDimensions } from "react-native";
 
-import api from "../utils/api";
 import InlineAlert from "../components/InlineAlert";
 import { AppInput } from "../components/AppInput";
+
+import api from "../utils/api";
 import { Typography } from "../styles/theme";
 
+
 export default function LoginScreen({ navigation }) {
+  
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 

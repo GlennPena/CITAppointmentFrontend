@@ -1,4 +1,8 @@
-import React from 'react';
+/*  
+  Responsible for displaying a patient history summary card including avatar, 
+  patient info, visit count, and a button to view detailed history.
+*/
+
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Avatar from './Avatar';
@@ -9,7 +13,6 @@ export default function PatientHistoryCard({ patient, onPress }) {
     <View style={styles.wrapper}>
       <Pressable style={styles.card} android_ripple={{ color: '#E2E8F0' }}>
 
-        {/* HEADER */}
         <View style={styles.headerRow}>
           <Avatar 
             name={patient.name} 
@@ -28,13 +31,10 @@ export default function PatientHistoryCard({ patient, onPress }) {
           </View>
         </View>
 
-        {/* DIVIDER */}
         <View style={styles.divider} />
 
-        {/* FOOTER */}
         <View style={styles.footer}>
 
-          {/* Visits */}
           <View style={styles.visitBadge}>
             <View style={styles.iconCircle}>
               <MaterialCommunityIcons name="calendar-check" size={16} color="#64748B" />
@@ -44,7 +44,6 @@ export default function PatientHistoryCard({ patient, onPress }) {
             </Text>
           </View>
 
-          {/* CTA BUTTON */}
           <Pressable onPress={onPress} style={styles.viewBtn}>
             <Text style={styles.viewHistoryText}>View Details</Text>
           </Pressable>
@@ -62,46 +61,38 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 14,
   },
-
   card: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 18,
-
     borderWidth: 1,
     borderColor: '#E2E8F0',
-
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
   },
-
   headerRow: { 
     flexDirection: 'row', 
     alignItems: 'center' 
   },
-
   info: { 
     marginLeft: 14, 
     flex: 1,
   },
-
   name: { 
     ...Typography.title,
     fontSize: 17, 
     fontWeight: '600', 
     color: '#002366' 
   },
-
   subRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
   },
-
   role: { 
     ...Typography.body,
     fontSize: 13, 
@@ -109,30 +100,25 @@ const styles = StyleSheet.create({
     marginRight: 8,
     lineHeight: 16,
   },
-
   divider: { 
     height: 1, 
     backgroundColor: '#82a5e4', 
     marginVertical: 16, 
   },
-
   footer: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center' 
   },
-
   visitBadge: { 
     flexDirection: 'row', 
     alignItems: 'center' 
   },
-
   iconCircle: {
     padding: 6,
     borderRadius: 999,
     marginRight: 3,
   },
-
   visitCount: { 
     ...Typography.body,
     fontSize: 13, 
@@ -140,7 +126,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 14,
   },
-
   viewBtn: { 
     flexDirection: 'row', 
     alignItems: 'center',
@@ -148,7 +133,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-
   viewHistoryText: { 
     ...Typography.body,
     fontSize: 14, 

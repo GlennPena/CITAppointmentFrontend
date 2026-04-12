@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+/*  
+  Responsible for displaying a modal that allows doctors to finalize an appointment by adding outcome and consultation notes.
+*/
+
+import { useState } from 'react';
 import { Modal, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+
 import { Typography } from "../styles/theme";
+
 
 export default function CompleteAppointmentModal({ visible, onClose, onConfirm }) {
   const [outcome, setOutcome] = useState("");
@@ -133,7 +139,11 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 4
   },
-  confirmText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  confirmText: { 
+    color: '#FFFFFF', 
+    fontWeight: '700', 
+    fontSize: 15 
+  },
   cancelBtn: { 
     flex: 1, 
     paddingVertical: 14, 
@@ -144,5 +154,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0'
   },
-  cancelText: { color: '#002366', fontWeight: '700', fontSize: 15 }
+  cancelText: { 
+    color: '#002366', 
+    fontWeight: '700', 
+    fontSize: 15 
+  }
 });

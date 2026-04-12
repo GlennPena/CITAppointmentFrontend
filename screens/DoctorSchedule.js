@@ -1,18 +1,20 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { View, FlatList, StyleSheet, Text, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions} from "react-native";
-import api from "../utils/api";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import AppointmentRow from "../components/AppointmentTable";
 import PatientDetailModal from "../components/PatientDetailModal";
 import CompleteAppointmentModal from "../components/CompleteAppointmentModal";
+
+import api from "../utils/api";
 import { Typography } from "../styles/theme";
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 
 export default function DoctorSchedule() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isDesktop = width >= 1200;
   const styles = getStyles(isMobile, isDesktop);
-
 
   const [appointments, setAppointments] = useState([]);
   const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
@@ -55,27 +57,24 @@ export default function DoctorSchedule() {
       await api.patch(`appointments/${id}/`, { status: newStatus });
       loadData();
     } catch (err) {
-      console.error("Failed to update status:", err.response?.data);
       alert("Error: " + (err.response?.data?.detail || "Action failed"));
     }
   };
 
   const handleOpenCompleteModal = (item) => {
-    console.log("Button clicked for patient:", item.patient_name);
     setSelectedItem(item);
     setIsCompleteModalVisible(true);
   };
 
   const handleConfirmCompletion = async (data) => {
     try {
-      // Hits your @action(detail=True, methods=['post']) endpoint
       await api.post(`appointments/${selectedItem.id}/complete_appointment/`, {
         outcome: data.outcome,
         consultation_notes: data.consultation_notes,
       });
       
       setIsCompleteModalVisible(false);
-      loadData(); // Refresh list to show 'Completed' status
+      loadData(); 
     } catch (err) {
       console.error("Completion error:", err);
       alert("Failed to save consultation records.");
@@ -174,8 +173,8 @@ export default function DoctorSchedule() {
           </View>
         </View>
       
-        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-          <View style={{ minWidth: isDesktop ? '100%' : 1000 }}>
+        <ScrollView horizontal={!isDesktop} showsHorizontalScrollIndicator={!isDesktop}>
+          <View style={{ width: '100%' }}>
             {loading ? (
               <ActivityIndicator size="large" color="#0052FF" style={{ marginTop: 40 }} />
             ) : (
@@ -228,7 +227,6 @@ export default function DoctorSchedule() {
 const getStyles = (isMobile, isDesktop) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
   },
   container: {
     flex: 1,
@@ -373,5 +371,8 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
   },
+  mainWrapper: {
+    width: '100%',
+  }
 });
 

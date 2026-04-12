@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, Pressable, ScrollView, ImageBackground } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions} from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import api from "../utils/api";
 
-// Import your new feedback components
 import AdminAppointmentRow from "../components/AdminAppointmentTable";
 import PatientDetailModal from "../components/PatientDetailModal";
+import StatBox from "../components/StatBox";
+import InlineAlert from "../components/InlineAlert";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { Toast } from "../components/Toast";
-import InlineAlert from "../components/InlineAlert";
-import StatBox from "../components/StatBox";
 import { StatusFilter } from "../components/StatusFilter";
-import { useWindowDimensions } from "react-native";
+
+import api from "../utils/api";
 import { Typography } from "../styles/theme";
+
 
 export default function AdminDashboard({ navigation }) {
   const { width } = useWindowDimensions();
@@ -25,12 +25,10 @@ export default function AdminDashboard({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Feedback State
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
   const [confirmDelete, setConfirmDelete] = useState({ visible: false, id: null });
 
-  // Modal State
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [detailVisible, setDetailVisible] = useState(false);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0 });
@@ -159,13 +157,9 @@ export default function AdminDashboard({ navigation }) {
         contact_number: personnelForm.contact,
       };
 
-      console.log("SENDING:", payload);
-
       const response = await api.post("/admin/add-personnel/", payload);
 
-      console.log("SUCCESS:", response.data);
-
-      // Optional: reset form after success
+      // Reset form after success
       setPersonnelForm({
         username: "",
         firstName: "",
@@ -501,8 +495,6 @@ export default function AdminDashboard({ navigation }) {
                     </View>
                   </View>
                   
-
-                  {/* THIS */}
                   <View style={styles.filter}> 
                     <StatusFilter
                       options={accountFilterOptions}
@@ -884,7 +876,6 @@ const getStyles = (isMobile) => StyleSheet.create({
     color: '#64748B',
     fontWeight: '500'
   },
-  // Personnel styles
   personnelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -974,7 +965,6 @@ const getStyles = (isMobile) => StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF'
   },
-  // Modal styles
   modalOverlay: {
     position: 'absolute',
     top: 0,

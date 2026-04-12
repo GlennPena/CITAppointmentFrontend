@@ -17,7 +17,6 @@ export const Toast = ({ message, visible, onHide, type = 'success' }) => {
       translateY.setValue(-20);
       
       Animated.sequence([
-        // Fade In
         Animated.timing(opacity, { 
           toValue: 1, 
           duration: 400, 
@@ -25,10 +24,8 @@ export const Toast = ({ message, visible, onHide, type = 'success' }) => {
         }),
         Animated.timing(translateY, { toValue: 0, duration: 400, useNativeDriver: true }),
 
-        // Wait
         Animated.delay(2500),
 
-        // Fade Out
         Animated.parallel([
           Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }),
           Animated.timing(translateY, { toValue: -20, duration: 400, useNativeDriver: true }),
@@ -71,15 +68,18 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
     gap: 12, 
-    
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 10,
   },
-  success: { backgroundColor: '#002366' },
-  error: { backgroundColor: '#991b1b' },
+  success: { 
+    backgroundColor: '#002366' 
+  },
+  error: { 
+    backgroundColor: '#991b1b' 
+  },
   text: { 
     color: '#FFF', 
     fontWeight: '700', 

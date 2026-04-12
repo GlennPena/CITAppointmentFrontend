@@ -19,6 +19,7 @@ const STATUS_COLORS = {
   'checked-in': { bg: '#DCFCE7', text: '#15803D', icon: 'account-check' },
 };
 
+
 export default function StatusBadge({ status, dateTime }) {
   if (!status) return null;
 

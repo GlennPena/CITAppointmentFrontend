@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { View, TextInput, FlatList, StyleSheet, ActivityIndicator, ScrollView, ImageBackground, useWindowDimensions} from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import api from "../utils/api";
+
 import PatientHistoryCard from "../components/PatientHistoryCard";
 import MedicalHistoryModal from "../components/PatientHistoryModal";
 
 export default function PatientHistory() {
+
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isDesktop = width >= 1200;
@@ -17,7 +20,6 @@ export default function PatientHistory() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Modal State
   const [medicalModalVisible, setMedicalModalVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientAppointments, setPatientAppointments] = useState([]);
@@ -33,8 +35,6 @@ export default function PatientHistory() {
         ? `appointments/?status=Completed&search=${query}` 
         : `appointments/?status=Completed`;
       const res = await api.get(url);
-
-      console.log("RAW DATA FROM DATABASE:", res.data[0]);
       setPatients(groupPatients(res.data));
     } catch (err) {
       console.error(err);
@@ -73,16 +73,12 @@ export default function PatientHistory() {
   const handleOpenMedicalHistory = async (patient) => {
     setSelectedPatient(patient);
     setMedicalModalVisible(true);
-    setPatientAppointments([]); // Clear old data immediately
+    setPatientAppointments([]);
 
     try {
-      // 1. Try to fetch from the server
       const res = await api.get(`appointments/?patient=${patient.id}&status=Completed`);
-      
-      // 2. SAFETY FILTER: Even if the server sends everyone, 
-      // we only keep the appointments for this specific patient ID.
       const specificData = res.data.filter(appt => appt.patient === patient.id);
-      
+    
       setPatientAppointments(specificData);
     } catch (err) {
       console.error("Error fetching specific history:", err);
@@ -106,7 +102,7 @@ export default function PatientHistory() {
               value={searchQuery}
               onChangeText={(text) => {
                 setSearchQuery(text);
-                if (text.length > 2 || text.length === 0) loadPatients(text);
+                if (text.length >= 1 || text.length === 0) loadPatients(text);
               }}
             />
           </View>

@@ -1,3 +1,7 @@
+/* 
+  Responsible for displaying full appointment details
+*/
+
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -11,7 +15,6 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
   const isMobile = width < 768;
   const styles = getStyles(isMobile);
 
-  // Convert appointment datetime into readable formats
   const dt = new Date(item.date_time);
   
   const dateString = dt.toLocaleDateString(undefined, { 
@@ -118,26 +121,22 @@ const getStyles = (isMobile) => StyleSheet.create({
       android: { elevation: 1 },
     }),
   },
-
   cardPressed: {
     transform: [{ scale: 0.98 }],
     backgroundColor: '#F8FAFC',
   },
-
   hover: {
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 4,
     borderColor: '#DBEAFE'
   },
-
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 0
   },
-
   serviceHeader: {
     ...Typography.title,
     fontSize: isMobile ? 16 : 20,
@@ -147,22 +146,20 @@ const getStyles = (isMobile) => StyleSheet.create({
     letterSpacing: -0.5,
     flex: 1
   },
-
   divider: {
     height: 1,
     backgroundColor: '#E2E8F0',
     marginBottom: 10,
     marginTop: 0
   },
-
   infoRow: {
     flexDirection: 'row',
     marginBottom: 6,
     alignItems: 'center'
   },
-
-  icons: { marginRight: 10},
-
+  icons: { 
+    marginRight: 10
+  },
   label: {
     ...Typography.body,
     width: 72,
@@ -178,26 +175,22 @@ const getStyles = (isMobile) => StyleSheet.create({
     color: '#0F172A',
     lineHeight: 18
   },
-
   value: {
     ...Typography.body,
     fontSize: isMobile ? 13: 15,
     color: '#334155'
   },
-
   conditionBox: {
     marginTop: 8,
     padding: 10,
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
   },
-
   noteLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
   },
-
   patientNoteLabel: {
     ...Typography.body,
     color: '#64748B',
@@ -205,25 +198,45 @@ const getStyles = (isMobile) => StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-
   conditionText: {
     fontSize: 15,
     color: '#475569',
     fontStyle: 'italic',
     marginTop: 4,
   },
-
   actions: {
     ...Typography.label,
     marginTop: 12,
   },
-
-  historySection: { marginTop: 8 },
-  labelTiny: { fontSize: 10, fontWeight: '800', color: '#94A3B8', marginTop: 8 },
-  outcomeText: { fontSize: 14, fontWeight: 'bold', color: '#0F172A', marginTop: 2, lineHeight: 18 },
-  noteBox: { backgroundColor: '#F8FAFC', padding: 10, borderRadius: 8, marginTop: 4, borderLeftWidth: 3, borderLeftColor: '#0052FF' },  
-  noteText: { fontSize: 13, color: '#475569', fontStyle: 'italic' },
-  
+  historySection: { 
+    marginTop: 8 
+  },
+  labelTiny: { 
+    fontSize: 10, 
+    fontWeight: '800', 
+    color: '#94A3B8', 
+    marginTop: 8 
+  },
+  outcomeText: { 
+    fontSize: 14, 
+    fontWeight: 'bold', 
+    color: '#0F172A', 
+    marginTop: 2, 
+    lineHeight: 18 
+  },
+  noteBox: { 
+    backgroundColor: '#F8FAFC', 
+    padding: 10, 
+    borderRadius: 8,
+    marginTop: 4, 
+    borderLeftWidth: 3, 
+    borderLeftColor: '#0052FF' 
+  },  
+  noteText: { 
+    fontSize: 13, 
+    color: '#475569', 
+    fontStyle: 'italic' 
+  },
 });
 
 export default AppointmentCard;

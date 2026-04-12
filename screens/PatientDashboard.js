@@ -8,19 +8,21 @@ import {
   ActivityIndicator, 
   ImageBackground,
   Platform, 
-  ScrollView
+  ScrollView,
+  useWindowDimensions
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useWindowDimensions } from "react-native";
 
-import api from "../utils/api";
 import BookingModal from "../components/BookingModal";
 import AppointmentCard from "../components/AppointmentCard";
 import { StatusFilter } from "../components/StatusFilter";
 import { Toast } from "../components/Toast";
-import { Typography } from "../styles/theme";
 import { ConfirmModal } from "../components/ConfirmModal";
+
+import { Typography } from "../styles/theme";
+import api from "../utils/api";
+
 
 const GUTTER = 16;
 
@@ -35,6 +37,7 @@ const THEME = {
   blue50: '#eff6ff',
   glassWhite: 'rgba(255, 255, 255, 0.12)',
 };
+
 
 export default function PatientDashboard() {
   const { width } = useWindowDimensions();
@@ -124,7 +127,7 @@ export default function PatientDashboard() {
       <View style={styles.cardWrapper}>
         <AppointmentCard item={item} userRole="patient">
 
-          {/* ✅ PENDING → Cancel button */}
+          {/* PENDING → Cancel button */}
           {status === "Pending" && (
             <Pressable
               style={{ backgroundColor: '#F87171', padding: 10, borderRadius: 8 }}
@@ -136,7 +139,7 @@ export default function PatientDashboard() {
             </Pressable>
           )}
 
-          {/* ✅ REJECTED / CANCELLED / COMPLETED / EXPIRED → Delete */}
+          {/* REJECTED / CANCELLED / COMPLETED / EXPIRED → Delete */}
           {["Rejected", "Cancelled", "Completed", "Expired"].includes(status) && (
             <Pressable
               style={{ backgroundColor: '#002366', padding: 10, borderRadius: 8 }}
@@ -148,7 +151,7 @@ export default function PatientDashboard() {
             </Pressable>
           )}
 
-          {/* ✅ APPROVED → Display only */}
+          {/* APPROVED → Display only */}
           {status === "Approved" && (
             <View style={{ padding: 10 }}>
               <Text style={{ textAlign: 'center', color: '#10B981', fontWeight: 'bold' }}>

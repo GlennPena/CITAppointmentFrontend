@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+/* 
+  Responsible for displaying appointment data in a table format with integrated status 
+  handling and dynamic action controls (approve, reject, cancel, complete, delete).
+*/
+
+import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import StatusBadge from './StatusBadge';
 import { ConfirmModal } from './ConfirmModal';
 import { Typography } from '../styles/theme';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 
 export default function AppointmentRow({ item, onAction, onViewDetails, onCompletePress, onDelete }) {
@@ -186,7 +191,6 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 18,
     elevation: 3,
-    width: '100%',
   },
   cell: { 
     paddingHorizontal: 5,

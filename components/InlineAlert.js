@@ -7,13 +7,10 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 
 const InlineAlert = ({ message, type, onClose }) => {
-  // Do not render anything if no message is provided
   if (!message) return null;
 
-  // Determine whether alert is error or success
   const isError = type === 'error';
   
-  // Dynamic styling based on alert type
   const containerStyle = isError 
   ? styles.errorContainer 
   : styles.successContainer;
@@ -28,7 +25,6 @@ const InlineAlert = ({ message, type, onClose }) => {
         <Text style={[styles.baseText, textStyle]}>{message}</Text>
       </View>
       
-      {/* Close Button */}
       {onClose && (
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Text style={textStyle}>✕</Text>

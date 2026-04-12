@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, ImageBackground, useWindowDimensions} from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import api from "../utils/api";
 import { Typography } from "../styles/theme";
@@ -12,7 +13,7 @@ export default function DoctorDashboard({ navigation }) {
   const isDesktop = width >= 1200;
   const styles = getStyles(isMobile, isDesktop);
 
-  const numColumns = isDesktop ? 2 : 1;
+  const [doctorName, setDoctorName] = useState("Doctor");
 
   const [stats, setStats] = useState({ today: 0, pending: 0, completed: 0, remaining: 0, total: 0});
   const [nextPatient, setNextPatient] = useState(null);
@@ -27,14 +28,28 @@ export default function DoctorDashboard({ navigation }) {
 
   const loadData = async () => {
     try {
+      const savedName = await AsyncStorage.getItem('first_name');
+      
+      if (savedName) {
+        const formattedName = savedName.charAt(0).toUpperCase() + savedName.slice(1);
+        setDoctorName(formattedName);
+      } else {
+        const userData = await AsyncStorage.getItem("user");
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          const rawName = parsedUser.first_name || parsedUser.username || "Doctor";
+          setDoctorName(rawName.charAt(0).toUpperCase() + rawName.slice(1));
+        }
+      }
+
       const res = await api.get("appointments/");
       const data = res.data;
       const now = new Date();
       const todayStr = now.toDateString();
       
-      // 1. Calculate Stats (Your existing logic)
       const todayApps = data.filter(a => new Date(a.date_time).toDateString() === todayStr);
       const completedToday = todayApps.filter(a => a.status.toLowerCase() === 'completed').length;
+
       setStats({
         today: todayApps.length,
         pending: data.filter(a => a.status.toLowerCase() === 'pending').length,
@@ -43,8 +58,6 @@ export default function DoctorDashboard({ navigation }) {
         total: data.length
       });
 
-      // 2. Find "Next Patient" Logic
-      // Filter for today, status NOT completed/rejected, and time is in the future or current
       const upcoming = todayApps
         .filter(a => a.status === 'Approved')
         .sort((a, b) => new Date(a.date_time) - new Date(b.date_time));
@@ -87,7 +100,9 @@ export default function DoctorDashboard({ navigation }) {
 
         <View style={styles.mainWrapper} contentContainerStyle={{ padding: 25 }}>
           <View style={styles.header}>
-            <Text style={styles.pageTitle}>Doctor Dashboard</Text>
+            <Text style={styles.pageTitle} numberOfLines={1} ellipsizeMode="tail">
+              Welcome, Dr. {doctorName}
+            </Text>
 
             <Text style={styles.dateSubtext}>
               {new Date().toLocaleDateString('en-US', {
@@ -229,7 +244,6 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     borderRadius: 75,
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
-
   statsGrid: { 
     flexDirection: 'row', 
     flexWrap: 'wrap',
@@ -266,7 +280,6 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     lineHeight: isDesktop ? 36 : 32,
     fontWeight: '800' 
   },
-
   sectionWrapper: {
     marginTop: 50
   },
@@ -317,15 +330,66 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     marginBottom: 30,
     fontStyle: 'italic',
   },
-  nextPatientCard: { width: '100%', backgroundColor: '#FFF', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, },
-  nextInfo: { flex: 1, marginLeft: 15 },
-  nextName: { ...Typography.title, fontSize: 20, fontWeight: '800', color: '#1E293B' },
-  nextService: { ...Typography.body, fontSize: 14, color: '#64748B' },
-  timeBadge: { backgroundColor: '#002366', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
-  timeText: { ...Typography.title, color: '#fff', fontWeight: '800', fontSize: 14 },
-  actionBtn: { backgroundColor: '#002366', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, borderRadius: 16, gap: 10 },
-  actionBtnText: { ...Typography.title, color: '#FFF', fontWeight: '700', fontSize: 16 },
+  nextPatientCard: { 
+    width: '100%', 
+    backgroundColor: '#FFF', 
+    padding: 20, 
+    borderRadius: 24, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0', 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.05, 
+    shadowRadius: 10, 
+    elevation: 2 
+  },
+  cardHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 20, 
+  },
+  nextInfo: { 
+    flex: 1, 
+    marginLeft: 15 
+  },
+  nextName: { 
+    ...Typography.title, 
+    fontSize: isMobile ? 16 : 20, 
+    fontWeight: '800', 
+    color: '#1E293B' 
+  },
+  nextService: { 
+    ...Typography.body, 
+    fontSize: isMobile ? 12 : 14, 
+    color: '#64748B' 
+  },
+  timeBadge: { 
+    backgroundColor: '#002366', 
+    paddingVertical: 6, 
+    paddingHorizontal: 12, 
+    borderRadius: 10 
+  },
+  timeText: { 
+    ...Typography.title, 
+    color: '#fff', 
+    fontWeight: '800', 
+    fontSize: isMobile ? 12 : 14 
+  },
+  actionBtn: { 
+    backgroundColor: '#002366', 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 15, 
+    borderRadius: 16, 
+    gap: 10 
+  },
+  actionBtnText: { 
+    ...Typography.title, 
+    color: '#FFF', 
+    fontWeight: '700', 
+    fontSize: isMobile ? 14 : 16 
+  },
   requestCard: {
     backgroundColor: '#FFF',
     width: 230,
@@ -340,7 +404,6 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
-
   emptyCard: { 
     padding: isDesktop ? 80 : 60, 
     alignItems: 'center', 
@@ -358,5 +421,4 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     marginTop: 10,
     textAlign: 'center'
   },
-
 });

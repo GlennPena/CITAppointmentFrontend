@@ -1,4 +1,3 @@
-import React from 'react';
 import { useWindowDimensions } from "react-native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,7 +8,9 @@ import DoctorDashboard from './DoctorDashboard';
 import DoctorSchedule from './DoctorSchedule';
 import PatientHistory from './PatientHistory';
 
+
 const Tab = createBottomTabNavigator();
+
 
 export default function DoctorTabs() {
   const { width } = useWindowDimensions();

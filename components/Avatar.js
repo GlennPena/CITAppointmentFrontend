@@ -1,4 +1,7 @@
-import React from 'react';
+/*
+  Responsible for displaying user profile image with generated initials avatar and optional online status indicator.
+*/
+
 import { View, Text, StyleSheet, Image } from 'react-native';
 
 export default function Avatar({
@@ -91,28 +94,22 @@ const styles = StyleSheet.create({
   circle: {
     justifyContent: 'center',
     alignItems: 'center',
-
     borderWidth: 2,
     borderColor: '#FFFFFF',
-
-    // Soft modern shadow
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
   },
-
   image: {
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-
   text: {
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-
   statusDot: {
     position: 'absolute',
     borderWidth: 2,

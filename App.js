@@ -1,33 +1,26 @@
 import { useEffect, useState } from "react";
-import { Image, View, Button, Pressable, Text, StyleSheet } from "react-native";
+import { Image, Pressable, Text, StyleSheet, useWindowDimensions } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useWindowDimensions } from "react-native";
 
-import { 
-  useFonts, 
-  Inter_900Black, 
-  Inter_700Bold, 
-  Inter_500Medium 
-} from '@expo-google-fonts/inter';
+import { useFonts, Inter_900Black, Inter_700Bold, Inter_500Medium } from '@expo-google-fonts/inter';
 import { Roboto_400Regular } from '@expo-google-fonts/roboto';
 
 import { handleLogout } from "./utils/auth";
+import { Typography } from "./styles/theme";
 
 import LoginScreen from "./screens/LoginScreen";
 import RegistrationScreen from "./screens/RegistrationScreen";
 import PatientDashboard from "./screens/PatientDashboard";
 import AdminDashboard from "./screens/AdminDashboard";
-
-// Doctor Screens
 import DoctorNavigation from "./screens/DoctorNavigation";
-import { Typography } from "./styles/theme";
+
 
 const Stack = createNativeStackNavigator();
 
-// Custom Logout Button Component
+// Logout Button Component
 const LogoutButton = ({ navigation, isMobile }) => (
   <Pressable
     style={({ pressed }) => [
@@ -42,6 +35,7 @@ const LogoutButton = ({ navigation, isMobile }) => (
   </Pressable>
 );
 
+
 export default function App() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -55,14 +49,13 @@ export default function App() {
     'Roboto_400Regular': Roboto_400Regular,
   });
 
+  // Check authentication status on app start
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
         const accessToken = await AsyncStorage.getItem('access_token');
         const rememberMe = await AsyncStorage.getItem('remember_me');
         const role = await AsyncStorage.getItem('user_role');
-
-        console.log("Startup Check - Token:", !!accessToken, "Remember:", rememberMe);
 
         if (accessToken && rememberMe === 'true' && role) {
           if (role === 'admin') setInitialRoute("AdminDashboard");
@@ -168,7 +161,6 @@ export default function App() {
           })}
         />
       
-
       </Stack.Navigator>
     </NavigationContainer>
   );

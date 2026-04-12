@@ -1,6 +1,6 @@
 /* 
-	Displays a reusable confirmation dialog for user actions 
-  such as delete, cancel, or submit, with optional destructive styling.
+	Displays a reusable confirmation dialog for user actions such as 
+  delete, cancel, or submit, with optional destructive styling.
 */
 
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
@@ -32,9 +32,13 @@ export const ConfirmModal = ({ visible, title, message, onConfirm, onCancel, con
   );
 };
 
-
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  overlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 20 },
   alertBox: { 
     backgroundColor: 'white', 
     borderRadius: 16, 
@@ -49,11 +53,33 @@ const styles = StyleSheet.create({
     marginBottom: 10, 
     color: '#0F172A' 
   },
-  message: { fontSize: 14, color: '#64748B', marginBottom: 20 },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
-  cancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  cancelText: { color: '#64748B', fontWeight: '600' },
-  confirmBtn: { backgroundColor: '#002366', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
-  confirmText: { color: 'white', fontWeight: '700' },
+  message: { 
+    fontSize: 14, 
+    color: '#64748B', 
+    marginBottom: 20 
+  },
+  buttonContainer: { 
+    flexDirection: 'row', 
+    justifyContent: 'flex-end', 
+    gap: 12 
+  },
+  cancelBtn: { 
+    paddingVertical: 10, 
+    paddingHorizontal: 16 
+  },
+  cancelText: { 
+    color: '#64748B', 
+    fontWeight: '600' 
+  },
+  confirmBtn: { 
+    backgroundColor: '#002366', 
+    paddingVertical: 10, 
+    paddingHorizontal: 20, 
+    borderRadius: 8 
+  },
+  confirmText: { 
+    color: 'white', 
+    fontWeight: '700' 
+  },
 });
 

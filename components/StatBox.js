@@ -1,7 +1,11 @@
-import React from 'react';
+/*
+  Responsible for displaying a statistical summary card for dashboard analytics and metrics overview.
+*/
+
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useWindowDimensions } from 'react-native';
+
 
 const StatBox = ({ label, value, color = "#3B82F6", icon = "chart-box" }) => {
   const { width } = useWindowDimensions();
@@ -46,7 +50,6 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     width: isMobile ? (width / 2) - 20 : 210,
     minHeight: isMobile ? 110 : 138,
   },
-
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -54,7 +57,6 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     gap: isMobile ? 6 : 12,
     marginBottom: isMobile ? 8 : 12,
   },
-
   label: {
     fontSize: isMobile ? 11 : 12,
     fontWeight: '700',
@@ -62,7 +64,6 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-
   value: {
     fontSize: isMobile ? 22 : 34,
     fontWeight: '900',
@@ -70,7 +71,6 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     letterSpacing: -0.75,
     marginTop: 8,
   },
-
   trend: {
     fontSize: isMobile ? 10 : 12,
     fontWeight: '500',
@@ -79,15 +79,12 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     gap: 6,
     marginTop: 10,
   },
-
   trendPositive: {
     color: '#16A34A',
   },
-
   trendNegative: {
     color: '#DC2626',
   },
-
   iconContainer: {
     padding: isMobile ? 6 : 10,
     borderRadius: 14,
@@ -95,7 +92,6 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-
   bar: {
     height: isMobile ? 4 : 5,
     borderRadius: 99,

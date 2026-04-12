@@ -1,3 +1,8 @@
+/* 
+  Responsible for displaying detailed patient information inside a modal, including patient profile 
+  data, appointment details, and action buttons for approving or rejecting pending appointments. 
+*/
+
 import { View, Text, StyleSheet, Modal, Pressable, useWindowDimensions, ScrollView } from 'react-native';
 import StatusBadge from './StatusBadge';
 import { Typography } from "../styles/theme";
@@ -72,7 +77,13 @@ const DetailItem = ({ label, value, styles }) => (
 );
 
 const getStyles = (isMobile) => StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  overlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.6)', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 20 
+  },
   modalCard: { 
     backgroundColor: '#FFF', 
     borderRadius: 24, 
@@ -157,9 +168,20 @@ const getStyles = (isMobile) => StyleSheet.create({
 		elevation: 3,
     justifyContent: 'center',
 	},
-	approve: { backgroundColor: '#10B981' },
-  reject: { backgroundColor: '#ED5757' },
-  btnText: { ...Typography.label, lineHeight: 14, color: '#FFF', fontWeight: '700', fontSize: isMobile ? 10 : 16, textAlign: 'center',},
+	approve: { 
+    backgroundColor: '#10B981' 
+  },
+  reject: { 
+    backgroundColor: '#ED5757' 
+  },
+  btnText: { 
+    ...Typography.label, 
+    lineHeight: 14, 
+    color: '#FFF', 
+    fontWeight: '700', 
+    fontSize: isMobile ? 10 : 16, 
+    textAlign: 'center',
+  },
   closeBtn: { 
     paddingVertical: 14, 
     paddingHorizontal: 24, 
@@ -168,5 +190,10 @@ const getStyles = (isMobile) => StyleSheet.create({
     borderRadius: 12,
     marginTop: 8
   },
-  closeText: { ...Typography.label, color: '#fff', fontWeight: '600', fontSize: isMobile ? 12 : 16 }
+  closeText: { 
+    ...Typography.label, 
+    color: '#fff', 
+    fontWeight: '600', 
+    fontSize: isMobile ? 12 : 16 
+  }
 });

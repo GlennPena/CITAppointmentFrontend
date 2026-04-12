@@ -1,15 +1,21 @@
-import React from 'react';
+/*
+  responsible for displaying a full medical history modal of a patient,
+  including personal information and a scrollable list of past consultations.
+*/
+
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import Avatar from './Avatar';
 import { Typography } from "../styles/theme";
 
+
 const { height } = Dimensions.get('window');
+
 
 export default function MedicalHistoryModal({ visible, onClose, patient, appointments }) {
   if (!patient) return null;
 
-  // Get the most recent visit date from the appointments array
   const lastVisitDate = appointments.length > 0 
     ? new Date(appointments[0].date_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) 
     : "No record";
@@ -19,13 +25,12 @@ export default function MedicalHistoryModal({ visible, onClose, patient, appoint
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
             
-            {/* STICKY HEADER */}
+            {/* HEADER */}
             <View style={styles.header}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Avatar name={patient.name} size={50} />
                 <View style={{ marginLeft: 15 }}>
                   <Text style={styles.patientName}>{patient.name}</Text>
-                  {/* Dynamically use patient email and ID */}
                   <Text style={styles.patientSub}>{patient.email || 'No email'}</Text>
                 </View>
               </View>
@@ -52,17 +57,14 @@ export default function MedicalHistoryModal({ visible, onClose, patient, appoint
                 </View>
                 <View style={styles.gridBox}>
                   <Text style={styles.labelCaps}>GENDER</Text>
-                  {/* Changed from .gender to .sex */}
                   <Text style={styles.dataText}>{patient.sex || "Not set"}</Text>
                 </View>
                 <View style={styles.gridBox}>
                   <Text style={styles.labelCaps}>PHONE</Text>
-                  {/* Changed from .phone_number to .contact_number */}
                   <Text style={styles.dataText}>{patient.contact_number || "No contact"}</Text>
                 </View>
                 <View style={styles.gridBox}>
                   <Text style={styles.labelCaps}>COURSE/YEAR/SECTION</Text>
-                  {/* Using your Academic fields */}
                   <Text style={styles.dataText}>{patient.patient_course} {patient.year} - {patient.section || "N/A"}</Text>
                 </View>
               </View>
@@ -107,11 +109,11 @@ export default function MedicalHistoryModal({ visible, onClose, patient, appoint
                   </Text>
                 </View>
                 
-                {/* NEW: OUTCOME SECTION */}
+                {/* OUTCOME SECTION */}
                 <Text style={styles.labelTiny}>OUTCOME</Text>
                 <Text style={styles.outcomeMain}>{appt.outcome || "No outcome provided."}</Text>
 
-                {/* NEW: DOCTOR'S CONSULTATION NOTES */}
+                {/* DOCTOR'S CONSULTATION NOTES */}
                 <Text style={styles.labelTiny}>DOCTOR'S NOTES</Text>
                 <View style={styles.noteBackground}>
                   <Text style={styles.noteContent}>

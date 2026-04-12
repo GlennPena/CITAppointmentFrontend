@@ -28,7 +28,6 @@ export const handleLogout = async (navigation) => {
     
   } catch (error) {
     console.error("Error during logout:", error);
-
     navigation.navigate("Login");
   }
 };

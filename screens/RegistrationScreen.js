@@ -7,16 +7,18 @@ import {
   ScrollView,
   Alert,
   ImageBackground, 
-  Image
+  Image,
+  useWindowDimensions
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useWindowDimensions } from "react-native";
 
 import { AppInput } from "../components/AppInput";
 import InlineAlert from "../components/InlineAlert";
 import { Toast } from "../components/Toast";
+
 import api from "../utils/api";
 import { Typography } from "../styles/theme";
+
 
 export default function RegistrationScreen({ navigation }) {
   const { width } = useWindowDimensions();
@@ -74,7 +76,6 @@ export default function RegistrationScreen({ navigation }) {
       const { confirmPassword, ...dataToSend } = formData;
 
       const response = await api.post("register/", dataToSend);
-      console.log("Registration successful:", response.data);
 
       const { tokens, user } = response.data;
       const { access, refresh } = tokens;
@@ -86,18 +87,15 @@ export default function RegistrationScreen({ navigation }) {
       await AsyncStorage.setItem("first_name", first_name || "");
       await AsyncStorage.setItem("last_name", last_name || "");
 
-      console.log("Setting toast with message: Account created successfully!");
       setToast({ visible: true, message: "Account created successfully!", type: "success" });
 
-      // Show alert dialog for guaranteed visibility
       Alert.alert(
-        "✅ Success!",
+        "Success!",
         "Your account has been created successfully. You will be redirected shortly.",
         [{ text: "OK" }]
       );
 
       setTimeout(() => {
-        console.log("Redirecting with role:", role);
         if (role === "admin") navigation.replace("AdminDashboard");
         else if (role === "doctor") navigation.replace("DoctorHome");
         else navigation.replace("PatientDashboard");
@@ -271,7 +269,6 @@ export default function RegistrationScreen({ navigation }) {
 }
 
 const getStyles = (isMobile, isTablet) => StyleSheet.create({
-  // Global styles moved locally
   screenWrapper: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -356,7 +353,7 @@ const getStyles = (isMobile, isTablet) => StyleSheet.create({
     height: isMobile ? 70 : 120,
     marginBottom: 30,
   },
-
+  
   card: {
     width: '100%',
     maxWidth: isMobile ? 448 : 650,
