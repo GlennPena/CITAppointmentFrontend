@@ -197,28 +197,29 @@ export default function AdminDashboard({ navigation }) {
     }
   };
 
-  const filteredAppointments = appointments.filter(item => {
-    const matchesSearch =
-      item.patient_name?.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredAppointments = Array.isArray(appointments) 
+  ? appointments.filter(item => {
+      const matchesSearch = item.patient_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const now = new Date();
-    const appointmentDate = item.dateTime ? new Date(item.dateTime) : null;
+      const now = new Date();
+      const appointmentDate = item.date_time ? new Date(item.date_time) : null;
 
-    const isOngoing =
-      item.status === "Approved" && appointmentDate && appointmentDate <= now;
+      const isOngoing =
+        item.status === "Approved" && appointmentDate && appointmentDate <= now;
 
-    let matchesStatus = false;
+      let matchesStatus = false;
 
-    if (activeFilter === "All") {
-      matchesStatus = true;
-    } else if (activeFilter === "Ongoing") {
-      matchesStatus = isOngoing;
-    } else {
-      matchesStatus = item.status === activeFilter;
-    }
+      if (activeFilter === "All") {
+        matchesStatus = true;
+      } else if (activeFilter === "Ongoing") {
+        matchesStatus = isOngoing;
+      } else {
+        matchesStatus = item.status?.toLowerCase() === activeFilter.toLowerCase();
+      }
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    })
+  : [];
 
   const filteredPersonnel = personnel.filter(p => {
     const matchesSearch =
