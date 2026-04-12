@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   gridBox: { width: '50%', marginBottom: 15 },
   fullWidthBox: { width: '100%', marginBottom: 15 },
   dataText: { ...Typography.body, fontSize: 14, color: '#1E293B', fontWeight: '400' },
-  consultationCard: { padding: 16, borderRadius: 12, borderWidth: 1.5, borderColor: '#1E293B'},
+  consultationCard: { padding: 16, borderRadius: 12, borderWidth: 1.5, borderColor: '#1E293B', margin: 10},
   cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 10},
   iconDateRow: { flexDirection: 'row', alignItems: 'center' },
   cardDateText: { ...Typography.header, fontSize: 15, fontWeight: '800', color: '#1E293B', marginLeft: 6 },
