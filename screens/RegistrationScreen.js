@@ -101,7 +101,7 @@ export default function RegistrationScreen({ navigation }) {
         if (role === "admin") navigation.replace("AdminDashboard");
         else if (role === "doctor") navigation.replace("DoctorHome");
         else navigation.replace("PatientDashboard");
-      }, 2500);
+      }, 2000);
 
     } catch (error) {
       console.error("Registration error:", error);

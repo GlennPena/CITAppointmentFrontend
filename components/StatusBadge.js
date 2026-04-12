@@ -24,8 +24,9 @@ export default function StatusBadge({ status, dateTime }) {
 
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const isDesktop = width >= 1200;
   
-  const styles = getStyles(isMobile);
+  const styles = getStyles(isMobile, isDesktop);
 
   const lowerStatus = status?.toLowerCase();
 
@@ -70,7 +71,7 @@ export default function StatusBadge({ status, dateTime }) {
   );
 }
 
-const getStyles = (isMobile) => StyleSheet.create({
+const getStyles = (isMobile, isDesktop) => StyleSheet.create({
   badge: { 
     flexDirection: 'row',
     alignItems: 'center',
@@ -83,7 +84,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     fontSize: isMobile ? 10 : 12, 
     fontWeight: 'bold',
     textTransform: 'uppercase',
-    letterSpacing: 1
+    letterSpacing: isDesktop ? 1 : isMobile ? 1 : 0.1
   },
   ongoingBadge: { 
     backgroundColor: '#E0F2FE', 

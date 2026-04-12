@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Avatar from './Avatar';
+import { Typography } from "../styles/theme";
 
 export default function PatientHistoryCard({ patient, onPress }) {
   return (
@@ -13,7 +14,7 @@ export default function PatientHistoryCard({ patient, onPress }) {
           <Avatar 
             name={patient.name} 
             size={50} 
-            backgroundColor="#2563EB" 
+            backgroundColor="#002366" 
           />
 
           <View style={styles.info}>
@@ -23,11 +24,6 @@ export default function PatientHistoryCard({ patient, onPress }) {
 
             <View style={styles.subRow}>
               <Text style={styles.role}>Patient</Text>
-
-              {/* Status Badge */}
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Active</Text>
-              </View>
             </View>
           </View>
         </View>
@@ -41,7 +37,7 @@ export default function PatientHistoryCard({ patient, onPress }) {
           {/* Visits */}
           <View style={styles.visitBadge}>
             <View style={styles.iconCircle}>
-              <MaterialCommunityIcons name="calendar-check" size={14} color="#2563EB" />
+              <MaterialCommunityIcons name="calendar-check" size={16} color="#64748B" />
             </View>
             <Text style={styles.visitCount}>
               {patient.visitCount} visits
@@ -50,8 +46,7 @@ export default function PatientHistoryCard({ patient, onPress }) {
 
           {/* CTA BUTTON */}
           <Pressable onPress={onPress} style={styles.viewBtn}>
-            <Text style={styles.viewHistoryText}>View</Text>
-            <MaterialCommunityIcons name="arrow-right" size={16} color="#FFFFFF" />
+            <Text style={styles.viewHistoryText}>View Details</Text>
           </Pressable>
 
         </View>
@@ -63,15 +58,13 @@ export default function PatientHistoryCard({ patient, onPress }) {
 
 const styles = StyleSheet.create({
   wrapper: {
+    flex: 1,
     width: '100%',
-    alignItems: 'center',
     marginBottom: 14,
   },
 
   card: {
-    width: '95%',
-    maxWidth: 1500,
-
+    flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 18,
@@ -97,9 +90,10 @@ const styles = StyleSheet.create({
   },
 
   name: { 
+    ...Typography.title,
     fontSize: 17, 
-    fontWeight: '800', 
-    color: '#0F172A' 
+    fontWeight: '600', 
+    color: '#002366' 
   },
 
   subRow: {
@@ -109,28 +103,17 @@ const styles = StyleSheet.create({
   },
 
   role: { 
+    ...Typography.body,
     fontSize: 13, 
     color: '#64748B', 
     marginRight: 8,
-  },
-
-  badge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-
-  badgeText: {
-    fontSize: 11,
-    color: '#16A34A',
-    fontWeight: '700',
+    lineHeight: 16,
   },
 
   divider: { 
     height: 1, 
-    backgroundColor: '#F1F5F9', 
-    marginVertical: 16 
+    backgroundColor: '#82a5e4', 
+    marginVertical: 16, 
   },
 
   footer: { 
@@ -145,31 +128,33 @@ const styles = StyleSheet.create({
   },
 
   iconCircle: {
-    backgroundColor: '#EFF6FF',
     padding: 6,
     borderRadius: 999,
-    marginRight: 6,
+    marginRight: 3,
   },
 
   visitCount: { 
+    ...Typography.body,
     fontSize: 13, 
-    color: '#475569', 
-    fontWeight: '600' 
+    color: '#64748B', 
+    fontWeight: '600',
+    lineHeight: 14,
   },
 
   viewBtn: { 
     flexDirection: 'row', 
     alignItems: 'center',
-    backgroundColor: '#2563EB',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
   },
 
   viewHistoryText: { 
-    fontSize: 13, 
-    color: '#FFFFFF', 
+    ...Typography.body,
+    fontSize: 14, 
+    color: '#002366', 
     fontWeight: '700', 
-    marginRight: 4 
+    marginRight: 4, 
+    lineHeight: 14,
   }
 });

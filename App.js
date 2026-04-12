@@ -97,7 +97,7 @@ export default function App() {
         <Stack.Screen 
           name="AdminDashboard" 
           component={AdminDashboard} 
-          options={({}) => ({
+          options={({ navigation }) => ({
             headerTitle: () => (
               <Image 
                 resizeMode="contain"

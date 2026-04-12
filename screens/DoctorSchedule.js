@@ -1,35 +1,47 @@
 import React, { useState, useEffect } from "react";
-import { View, FlatList, StyleSheet, Text, ActivityIndicator } from "react-native";
+import { View, FlatList, StyleSheet, Text, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions} from "react-native";
 import api from "../utils/api";
 import AppointmentRow from "../components/AppointmentTable";
 import PatientDetailModal from "../components/PatientDetailModal";
 import CompleteAppointmentModal from "../components/CompleteAppointmentModal";
-import { useWindowDimensions, ScrollView } from "react-native";
+import { Typography } from "../styles/theme";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function DoctorSchedule() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-
-  const styles = getStyles(isMobile);
+  const isDesktop = width >= 1200;
+  const styles = getStyles(isMobile, isDesktop);
 
 
   const [appointments, setAppointments] = useState([]);
   const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
 
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false); 
   const [selectedItem, setSelectedItem] = useState(null);
 
   const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
 
+  const [sortOrder, setSortOrder] = useState('newest');
+
   useEffect(() => {
     loadData();
-  }, [dateStr]);
+  }, [dateStr, sortOrder]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const res = await api.get(`appointments/?date=${dateStr}`);
+      
+      let data = res.data;
+
+      data.sort((a, b) => {
+        const timeA = new Date(a.date_time);
+        const timeB = new Date(b.date_time);
+        return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+      });
+
       setAppointments(res.data);
     } catch (err) {
       console.error(err);
@@ -82,182 +94,281 @@ export default function DoctorSchedule() {
 
   const TableHeader = () => (
     <View style={styles.headerRow}>
-      <Text style={[styles.headerCell, { flex: 1 }]}>Date</Text>
-      <Text style={[styles.headerCell, { flex: 1 }]}>Time</Text>
-      <Text style={[styles.headerCell, { flex: 2 }]}>Patient</Text>
-      <Text style={[styles.headerCell, { flex: 2 }]}>Service</Text>
-      <Text style={[styles.headerCell, { flex: 1.5 }]}>Status</Text>
-      <Text style={[styles.headerCell, { flex: 2, textAlign: 'right' }]}>Actions</Text>
-    </View>
+
+      <View style={{ flex: 1.5 }}>
+        <Text style={styles.headerCell}>Date</Text>
+      </View>
+
+      <View style={{ flex: 1.5 }}>
+        <Text style={styles.headerCell}>Time</Text>
+      </View>
+
+      <View style={{ flex: 2 }}>
+        <Text style={styles.headerCell}>Patient</Text>
+      </View>
+
+      <View style={{ flex: 2 }}>
+        <Text style={styles.headerCell}>Service</Text>
+      </View>
+
+      <View style={{ flex: 2 }}>
+        <Text style={styles.headerCell}>Condition</Text>
+      </View>
+
+      <View style={{ flex: 1.5 }}>
+        <Text style={styles.headerCell}>Status</Text>
+      </View>
+
+      <View style={{ flex: 2 }}>
+        <Text style={[styles.headerCell, {textAlign: 'right', paddingRight:10 }]}>Actions</Text>
+      </View>
+  </View>
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-      {/* 🔵 HEADER CARD */}
-      <View style={styles.headerCard}>
-        <View>
-          <Text style={styles.title}>Doctor Schedule</Text>
-          <Text style={styles.subtitle}>
-            {new Date().toDateString()}
-          </Text>
+      <ImageBackground 
+        source={require('../assets/redox-01.png')} 
+        style={[styles.container]}
+        resizeMode="repeat"
+      >
+
+      <View style={styles.mainWrapper} contentContainerStyle={{ padding: 25 }}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.pageTitle}>Today's Schedule</Text>
+
+            <Text style={styles.dateSubtext}>
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </Text>
+          </View>
+          <View style={styles.glassAccent} />
         </View>
-
-        {/* DATE PICKER */}
-        <View style={styles.datePickerBox}>
-          <Text style={styles.datePickerLabel}>Change Date</Text>
-          <input
-            type="date"
-            value={dateStr}
-            onChange={(e) => setDateStr(e.target.value)}
-            style={styles.dateInput}
-          />
-        </View>
-      </View>
-
-      {/* 🔄 LOADING */}
-      {loading ? (
-        <ActivityIndicator size="large" color="#0052FF" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={appointments}
-          keyExtractor={(item) => item.id.toString()}
-          ListHeaderComponent={isMobile ? null : TableHeader}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          renderItem={({ item }) => (
-            <AppointmentRow
-              item={item}
-              onViewDetails={() => handleViewDetails(item)}
-              onAction={handleAction}
-              onCompletePress={handleOpenCompleteModal}
-              onDelete={handleDelete}
-            />
-          )}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>No Appointments</Text>
-              <Text style={styles.emptyText}>
-                There are no scheduled appointments for this date.
-              </Text>
+        
+        <View style={styles.filterRow}>
+          <View style={styles.filterGroup}>
+            <View style={styles.datePickerBox}>
+              <input
+                type="date"
+                value={dateStr}
+                onChange={(e) => setDateStr(e.target.value)}
+                style={styles.dateInput}
+              />
             </View>
-          }
+
+            <Pressable 
+              style={styles.sortBtn} 
+              onPress={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+            >
+              <MaterialCommunityIcons 
+                name={sortOrder === 'newest' ? "sort-calendar-descending" : "sort-calendar-ascending"} 
+                size={22} 
+                color="#000000" 
+              />
+            </Pressable>
+          </View>
+        </View>
+      
+        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+          <View style={{ minWidth: isDesktop ? '100%' : 1000 }}>
+            {loading ? (
+              <ActivityIndicator size="large" color="#0052FF" style={{ marginTop: 40 }} />
+            ) : (
+              <FlatList
+                data={appointments}
+                keyExtractor={(item) => item.id.toString()}
+                ListHeaderComponent={TableHeader}
+                contentContainerStyle={{ paddingBottom: 40 }}
+                renderItem={({ item }) => (
+                  <AppointmentRow
+                    item={item}
+                    onViewDetails={() => handleViewDetails(item)}
+                    onAction={handleAction}
+                    onCompletePress={handleOpenCompleteModal}
+                    onDelete={handleDelete}
+                  />
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyTitle}>No Appointments</Text>
+                    <Text style={styles.emptyText}>
+                      There are no scheduled appointments for this date.
+                    </Text>
+                  </View>
+                }
+              />
+            )}
+          </View>
+        </ScrollView>
+
+        <PatientDetailModal 
+          visible={isModalVisible} 
+          item={selectedItem} 
+          onClose={() => setIsModalVisible(false)} 
+          onAction={handleAction}
         />
-      )}
 
-      {/* MODALS */}
-      <PatientDetailModal 
-        visible={isModalVisible} 
-        item={selectedItem} 
-        onClose={() => setIsModalVisible(false)} 
-        onAction={handleAction}
-      />
-
-      <CompleteAppointmentModal
-        visible={isCompleteModalVisible}
-        patientName={selectedItem?.patient_name}
-        onClose={() => setIsCompleteModalVisible(false)}
-        onConfirm={handleConfirmCompletion}
-      />
-    </View>
+        <CompleteAppointmentModal
+          visible={isCompleteModalVisible}
+          patientName={selectedItem?.patient_name}
+          onClose={() => setIsCompleteModalVisible(false)}
+          onConfirm={handleConfirmCompletion}
+        />
+        </View>
+      </ImageBackground>
+    </ScrollView>
   );
 }
 
-const getStyles = (isMobile) => StyleSheet.create({
+const getStyles = (isMobile, isDesktop) => StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F4F7FB',
-    padding: isMobile ? 10 : 16,
+    backgroundColor: '#F8FAFC',
+    width: '100%',
+    height: '100%', 
+    paddingHorizontal: isMobile ? 12 : 50, 
+    paddingTop: 16
   },
-
-  /* HEADER CARD */
-  headerCard: {
+  header: {
+    marginBottom: 24,
+    marginTop: 16,
+    padding: isMobile ? 30 : 36,
+    borderRadius: 28,
     backgroundColor: '#002366',
-    padding: isMobile ? 14 : 20,
-    borderRadius: 20,
-    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
+    elevation: 8,
+    width: '100%',
+
     flexDirection: isMobile ? 'column' : 'row',
     justifyContent: 'space-between',
     alignItems: isMobile ? 'flex-start' : 'center',
     gap: isMobile ? 10 : 0,
-
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 6,
+  },
+  pageTitle: {
+    ...Typography.header,
+    fontSize: isMobile ? 24 : 36,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  dateSubtext: {
+    ...Typography.title,
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 18,
+    fontWeight: '600'
+  },
+  glassAccent: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 180,
+    height: 180,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
 
-  title: {
-    color: '#FFFFFF',
-    fontSize: isMobile ? 18 : 24,
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  filterGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  datePickerBox: {
+    flexDirection: 'row', 
+    alignItems: 'center',
+    marginVertical: 20,
+    gap: 12
+  },
+  datePickerLabel: {
+    ...Typography.title,
+    color: '#002366',
+    fontSize: 18,
     fontWeight: '800',
   },
-
-  subtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
-    fontSize: isMobile ? 11 : 13,
-    fontWeight: '500',
-  },
-
-  /* DATE PICKER */
-  datePickerBox: {
-    alignItems: isMobile ? 'stretch' : 'flex-end',
-    width: isMobile ? '100%' : 'auto',
-  },
-
-  datePickerLabel: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 11,
-    marginBottom: 6,
-    fontWeight: '600',
-  },
-
   dateInput: {
+    ...Typography.body,
+    fontWeight: '600',
     padding: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#CBD5F5',
+    borderColor: '#ffffff',
     backgroundColor: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
+    lineHeight: 1,
+    outlineStyle: 'none',
+    width: 105,
+    paddingRight: 8,
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: '#ffffff',
+    padding: 6,
+    paddingHorizontal: 12
+
+  },
+  sortBtnText: {
+    ...Typography.body,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
   },
 
-  /* TABLE HEADER */
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#ffffff',
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    width: '100%',
+    width: isDesktop ? '100%' : 1000,
   },
-
   headerCell: {
-    fontSize: isMobile ? 10 : 11,
+    ...Typography.label,
+    fontSize: isMobile ? 10 : 12,
     fontWeight: '800',
     color: '#475569',
     textTransform: 'uppercase',
+    paddingLeft: 20
   },
 
-  /* EMPTY STATE */
   emptyContainer: {
     marginTop: 60,
     alignItems: 'center',
     padding: 20,
   },
-
   emptyTitle: {
+    ...Typography.body,
     fontSize: isMobile ? 16 : 18,
     fontWeight: '700',
     color: '#334155',
     marginBottom: 6,
   },
-
   emptyText: {
+    ...Typography.body,
     fontSize: isMobile ? 12 : 14,
     color: '#94A3B8',
     textAlign: 'center',

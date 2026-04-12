@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { Typography } from "../styles/theme";
 
 export default function CompleteAppointmentModal({ visible, onClose, onConfirm }) {
   const [outcome, setOutcome] = useState("");
@@ -35,6 +36,7 @@ export default function CompleteAppointmentModal({ visible, onClose, onConfirm }
             style={[styles.input, { height: 80 }]} 
             multiline 
             placeholder="Add specific medical notes here..."
+            placeholderTextColor="#94A3B8"
             value={notes}
             onChangeText={setNotes}
           />
@@ -74,25 +76,27 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0'
   },
   title: { 
-    fontSize: 20, 
+    ...Typography.header,
+    fontSize: 24, 
     fontWeight: '800', 
-    color: '#0F172A', 
+    color: '#002366', 
     textAlign: 'center', 
-    marginBottom: 8 
   },
   subtitle: {
+    ...Typography.caption,
     fontSize: 14,
-    lineHeight: 20,
-    color: '#475569',
+    lineHeight: 16,
+    color: '#97a1af',
     textAlign: 'center',
     marginBottom: 20,
     paddingHorizontal: 4
   },
   label: { 
+    ...Typography.title,
     fontSize: 14, 
+    lineHeight: 14,
     fontWeight: '700', 
-    color: '#475569', 
-    marginBottom: 8, 
+    color: '#002366', 
     textAlign: 'left' 
   },
   input: { 
@@ -105,8 +109,9 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#F8FAFC',
     fontSize: 15,
-    color: '#0F172A',
-    minHeight: 52
+    color: 'rgb(10, 10, 10)',
+    minHeight: 52,
+    fontStyle: 'italic'
   },
   buttonRow: { 
     flexDirection: 'row', 
@@ -117,12 +122,12 @@ const styles = StyleSheet.create({
   },
   confirmBtn: { 
     flex: 1, 
-    backgroundColor: '#2563EB', 
+    backgroundColor: '#002366', 
     paddingVertical: 14, 
     borderRadius: 14, 
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#2563EB',
+    shadowColor: '#002366',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 18,
@@ -139,5 +144,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0'
   },
-  cancelText: { color: '#475569', fontWeight: '700', fontSize: 15 }
+  cancelText: { color: '#002366', fontWeight: '700', fontSize: 15 }
 });

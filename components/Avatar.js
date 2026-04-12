@@ -4,10 +4,10 @@ import { View, Text, StyleSheet, Image } from 'react-native';
 export default function Avatar({
   name,
   size = 44,
-  backgroundColor = '#2563EB',
+  backgroundColor = '#002366',
   textColor = '#FFFFFF',
-  source, // ✅ optional image
-  status, // ✅ 'online', 'offline', etc.
+  source, 
+  status, 
   style
 }) {
 

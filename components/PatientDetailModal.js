@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Modal, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, useWindowDimensions, ScrollView } from 'react-native';
 import StatusBadge from './StatusBadge';
 import { Typography } from "../styles/theme";
 
@@ -19,19 +19,28 @@ export default function PatientDetailModal({ visible, item, onClose, onAction })
         <View style={styles.modalCard}>
           <Text style={styles.title}>Patient Details</Text>
           
-          <View style={styles.infoGrid}>
-            <DetailItem label="Name" value={item.patient_name} styles={styles}/>
-            <DetailItem label="Service" value={item.service} styles={styles}/>
-            <DetailItem label="Condition" value={item.condition || "No condition specified"} styles={styles}/>
-            <DetailItem label="Course" value={`${item.patient_course} ${item.patient_year}-${item.patient_section}`} styles={styles} />
-            <DetailItem label="Status" value={<StatusBadge status={item.status}/>} styles={styles} />
-          </View>
+          <ScrollView 
+            style={styles.scrollArea} 
+            contentContainerStyle={styles.infoGrid}
+            showsVerticalScrollIndicator={false}
+          >
+              <DetailItem label="Name" value={item.patient_name} styles={styles}/>
+              <DetailItem label="Status" value={<StatusBadge status={item.status}/>} styles={styles} />
+              <DetailItem label="Service" value={item.service} styles={styles}/>
+              <DetailItem label="Condition" value={item.condition || "No condition specified"} styles={styles}/>
+              <DetailItem label="Date of Birth" value={item.patient_dob} styles={styles}/>
+              <DetailItem label="Sex" value={item.patient_sex} styles={styles}/>
+              <DetailItem label="Course" value={`${item.patient_course} ${item.patient_year}-${item.patient_section}`} styles={styles} />
+              <DetailItem label="Email" value={item.patient_email} styles={styles}/>
+              <DetailItem label="Address" value={item.patient_address} styles={styles}/>
+              <DetailItem label="Phone" value={item.patient_phone} styles={styles}/>
+          </ScrollView>
 
           <View style={styles.footer}>
             {item.status?.toLowerCase() === 'pending' && !isPast ? (
               <View style={styles.actionRow}>
                 <Pressable style={[styles.btn, styles.approve]} onPress={() => { onAction(item.id, 'Approved'); onClose(); }}>
-                  <Text style={styles.btnText}>Approve Appointment</Text>
+                  <Text style={styles.btnText}>Approve</Text>
                 </Pressable>
                 <Pressable style={[styles.btn, styles.reject]} onPress={() => { onAction(item.id, 'Rejected'); onClose(); }}>
                   <Text style={styles.btnText}>Reject</Text>
@@ -74,7 +83,11 @@ const getStyles = (isMobile) => StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
-    elevation: 10
+    elevation: 10,
+    maxHeight: '80%',
+  },
+  scrollArea: {
+    marginVertical: 10,
   },
   title: { 
     ...Typography.header,
@@ -87,7 +100,8 @@ const getStyles = (isMobile) => StyleSheet.create({
   infoGrid: { 
     flexDirection: 'row', 
     flexWrap: 'wrap', 
-    gap: isMobile ? 5 : 20 
+    gap: isMobile ? 5 : 10,
+    justifyContent: 'space-between',
   },
   detailBox: {
     minWidth: 140,
@@ -116,7 +130,7 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   value: { 
     ...Typography.body,
-    fontSize: isMobile ? 14 : 16, 
+    fontSize: isMobile ? 12 : 14, 
     color: '#1E293B', 
     fontWeight: '500', 
     lineHeight: isMobile ? 14 : 22 
@@ -143,7 +157,7 @@ const getStyles = (isMobile) => StyleSheet.create({
 		elevation: 3,
     justifyContent: 'center',
 	},
-	approve: { backgroundColor: '#77DD77' },
+	approve: { backgroundColor: '#10B981' },
   reject: { backgroundColor: '#ED5757' },
   btnText: { ...Typography.label, lineHeight: 14, color: '#FFF', fontWeight: '700', fontSize: isMobile ? 10 : 16, textAlign: 'center',},
   closeBtn: { 

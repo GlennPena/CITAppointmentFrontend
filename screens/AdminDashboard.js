@@ -39,6 +39,7 @@ export default function AdminDashboard({ navigation }) {
   const [personnel, setPersonnel] = useState([]);
   const [showAddPersonnelModal, setShowAddPersonnelModal] = useState(false);
   const [personnelForm, setPersonnelForm] = useState({
+    username: "",
     firstName: "",
     lastName: "",
     email: "",
@@ -149,7 +150,7 @@ export default function AdminDashboard({ navigation }) {
   const handleAddPersonnel = async () => {
     try {
       const payload = {
-        username: `${personnelForm.firstName} ${personnelForm.lastName}`, // combine name
+        username: personnelForm.username,
         email: personnelForm.email,
         password: personnelForm.password,
         role: personnelForm.role.toLowerCase(),
@@ -166,6 +167,7 @@ export default function AdminDashboard({ navigation }) {
 
       // Optional: reset form after success
       setPersonnelForm({
+        username: "",
         firstName: "",
         lastName: "",
         email: "",
@@ -175,9 +177,14 @@ export default function AdminDashboard({ navigation }) {
       });
 
       setShowAddPersonnelModal(false);
-      loadPersonnel(); // refresh list
+      loadPersonnel();
+      setToast({ visible: true, message: "Account created successfully", type: "success" });
     } catch (error) {
-      console.log("ERROR:", error.response?.data || error.message);
+      setToast({ 
+        visible: true, 
+        message: error.response?.data?.username || "Failed to create account", 
+        type: "error" 
+      });
     }
   };
 
@@ -260,7 +267,7 @@ export default function AdminDashboard({ navigation }) {
             <Text style={styles.sidebarTitle}>Admin Menu</Text>
           )}
 
-          <View style={{ flexDirection: isMobile ? 'row' : 'column', flex: 1 }}>
+          <View style={{ flexDirection: isMobile ? 'row' : 'column'}}>
           <Pressable
             onPress={() => setSidebarSelection('Overview')}
             style={({ pressed, hovered }) => [
@@ -310,7 +317,7 @@ export default function AdminDashboard({ navigation }) {
             <View style={styles.sidebarItemRow}>
               <MaterialCommunityIcons
                 name="account-circle"
-                size={isMobile ? 14 : 22}
+                size={isMobile ? 12 : 22}
                 color={sidebarSelection === 'Personnel' ? '#FFFFFF' : '#64748B'}
               />
               <Text style={[styles.sidebarItemText, sidebarSelection === 'Personnel' && styles.sidebarItemTextActive]}>Accounts</Text>
@@ -577,6 +584,15 @@ export default function AdminDashboard({ navigation }) {
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={true}>
+              <Text style={styles.inputLabel}>Username *</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter username"
+                value={personnelForm.username}
+                onChangeText={(text) => setPersonnelForm({ ...personnelForm, username: text })}
+                autoCapitalize="none"
+              />
+
               <Text style={styles.inputLabel}>First Name *</Text>
               <TextInput
                 style={styles.modalInput}
@@ -783,7 +799,7 @@ const getStyles = (isMobile) => StyleSheet.create({
   sidebarItemText: {
     ...Typography.title,
     marginLeft: isMobile ? 0 : 14,
-    fontSize: isMobile ? 13 : 15,
+    fontSize: isMobile ? 11 : 15,
     fontWeight: '600',
     color: '#334155'
   },
@@ -1026,8 +1042,8 @@ const getStyles = (isMobile) => StyleSheet.create({
     alignItems: 'center'
   },
   roleOptionActive: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A'
+    backgroundColor: '#002366',
+    borderColor: '#002366'
   },
   roleOptionText: {
     fontSize: isMobile ? 12 : 14,
@@ -1061,11 +1077,11 @@ const getStyles = (isMobile) => StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#002366',
     alignItems: 'center'
   },
   confirmButtonText: {
-    fontSize: 1,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF'
   },
