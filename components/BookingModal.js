@@ -16,17 +16,26 @@ import { Typography } from "../styles/theme";
 const generateDates = () => {
   const dateArray = [];
   const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  for (let i = 0; i < 14; i++) {
+
+  let i = 0;
+
+  while (dateArray.length < 12) { 
     const d = new Date();
     d.setDate(d.getDate() + i);
 
-    const localFullDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (d.getDay() !== 0) {
+      const localFullDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    dateArray.push({ 
-      fullDate: localFullDate, 
-      dayName: days[d.getDay()], 
-      dateNum: d.getDate().toString() });
+      dateArray.push({ 
+        fullDate: localFullDate, 
+        dayName: days[d.getDay()], 
+        dateNum: d.getDate().toString()
+      });
+    }
+
+    i++;
   }
+
   return dateArray;
 };
 
@@ -601,7 +610,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   dateBtnGrid: {
-    width: '13%',  
+    width: '15.5%',  
     aspectRatio: 0.85, 
     alignItems: 'center',
     justifyContent: 'center',

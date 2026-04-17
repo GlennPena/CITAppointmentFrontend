@@ -75,9 +75,18 @@ export default function DoctorTabs() {
         },
       })}
     >
-      <Tab.Screen name="Dashboard" component={DoctorDashboard} />
-      <Tab.Screen name="Schedule" component={DoctorSchedule} />
-      <Tab.Screen name="Patients" component={PatientHistory} />
+      <Tab.Screen 
+        name="Dashboard" 
+        component={DoctorDashboard} 
+      />
+      <Tab.Screen 
+        name="Schedule" 
+        component={DoctorSchedule} 
+      />
+      <Tab.Screen 
+        name="Patients" 
+        component={PatientHistory} 
+      />
     </Tab.Navigator>
   );
 }
