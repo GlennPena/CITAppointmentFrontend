@@ -24,7 +24,7 @@ import { Typography } from "../styles/theme";
 
 if (Platform.OS !== 'web') {
   GoogleSignin.configure({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, 
+    webClientId: GOOGLE_WEB_CLIENT_ID, 
     offlineAccess: true,
   });
 }
