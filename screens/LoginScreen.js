@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,16 +8,26 @@ import {
   ActivityIndicator,
   ImageBackground, 
   Image, 
-  useWindowDimensions
+  useWindowDimensions,
+  Platform
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import InlineAlert from "../components/InlineAlert";
 import { AppInput } from "../components/AppInput";
 
-import api from "../utils/api";
+import api, { GOOGLE_WEB_CLIENT_ID } from "../utils/api";
 import { Typography } from "../styles/theme";
 
+
+if (Platform.OS !== 'web') {
+  GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, 
+    offlineAccess: true,
+  });
+}
 
 export default function LoginScreen({ navigation }) {
   
@@ -31,6 +41,8 @@ export default function LoginScreen({ navigation }) {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const [alertConfig, setAlertConfig] = useState({ message: "", type: "" });
 
@@ -73,6 +85,118 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const handleBackendResponse = async (data) => {
+    const { action, tokens, user, google_info } = data;
+
+    if (action === "login") {
+      // Save tokens and user info
+      await AsyncStorage.setItem('access_token', tokens.access);
+      await AsyncStorage.setItem('user_role', user.role);
+      await AsyncStorage.setItem('first_name', user.first_name);
+      await AsyncStorage.setItem('last_name', user.last_name);
+
+      setAlertConfig({ message: "Welcome back!", type: "success" });
+
+      setTimeout(() => {
+        if (user.role === "admin") navigation.replace("AdminDashboard");
+        else if (user.role === "doctor") navigation.replace("DoctorHome");
+        else navigation.replace("PatientDashboard");
+      }, 800);
+
+    } else if (action === "register") {
+      setAlertConfig({ message: "Almost there! Please complete your profile.", type: "success" });
+
+      setTimeout(() => {
+        navigation.navigate("Register", { 
+          isGoogle: true, 
+          googleData: google_info 
+        });
+      }, 1000);
+    }
+  };
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const initializeGoogle = () => {
+        if (window.google) {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_WEB_CLIENT_ID,
+            callback: handleWebGoogleResponse, 
+            use_fedcm_for_prompt: true,
+          });
+        }
+      };
+
+      if (window.google) {
+        initializeGoogle();
+      } else {
+        const interval = setInterval(() => {
+          if (window.google) {
+            initializeGoogle();
+            clearInterval(interval);
+          }
+        }, 1000);
+      }
+    }
+  }, []);
+
+  const handleWebGoogleResponse = async (response) => {
+    console.log("Full Google Response:", response); 
+    setGoogleLoading(true);
+    
+    try {
+      const backendRes = await api.post("google-auth/", { 
+        id_token: response.credential 
+      });
+      
+      console.log("Backend response received:", backendRes.data);
+      handleBackendResponse(backendRes.data);
+    } catch (err) {
+      console.error("Backend Auth Error:", err);
+      setAlertConfig({ message: "Verification failed with server.", type: "error" });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setAlertConfig({ message: "", type: "" });
+
+    if (Platform.OS === 'web') {
+      if (window.google) {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          setAlertConfig({ 
+            message: "Please allow third-party sign-in in your browser settings.", 
+            type: "error" 
+          });
+        }
+      });
+    }
+    } else {
+      setGoogleLoading(true);
+      try {
+        await GoogleSignin.hasPlayServices();
+        const userInfo = await GoogleSignin.signIn();
+        const email = userInfo.user.email;
+
+        if (!email.toLowerCase().endsWith("@ua.edu.ph")) {
+          await GoogleSignin.signOut();
+          setAlertConfig({ message: "Only @ua.edu.ph emails are allowed.", type: "error" });
+          return;
+        }
+
+        const response = await api.post("google-auth/", { id_token: userInfo.idToken });
+        handleBackendResponse(response.data);
+      } catch (error) {
+        console.error("Google Sign-In Error:", error);
+        setAlertConfig({ message: "Sign-in failed", type: "error" });
+      } finally {
+        setGoogleLoading(false);
+      }
+    }
+  };
+
   return (
     <ImageBackground 
       source={require('../assets/redox-01.png')} 
@@ -90,7 +214,6 @@ export default function LoginScreen({ navigation }) {
       {/* CARD */}
       <View style={styles.card}>
 
-        
         <Text style={styles.header}>Welcome Back</Text>
         <Text style={styles.subtitle}>Sign in to your UA Clinic account</Text>
 
@@ -138,6 +261,32 @@ export default function LoginScreen({ navigation }) {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.buttonText}>Sign In</Text>
+          )}
+        </TouchableOpacity>
+        
+        {/* DIVIDER */}
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.divider} />
+        </View>
+        
+        {/* GOOGLE SIGN IN */}
+        <TouchableOpacity 
+          style={styles.googleButton} 
+          onPress={handleGoogleLogin}
+          disabled={googleLoading}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color="#444" />
+          ) : (
+            <View style={styles.googleContent}>
+              <Image 
+                source={require('../assets/google-logo.png')} 
+                style={{ width: 23, height: 23 }} 
+              />
+              <Text style={styles.googleButtonText}>Continue with UA Email</Text>
+            </View>
           )}
         </TouchableOpacity>
 
@@ -197,6 +346,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     fontWeight: '1000',
     textAlign: 'center',
     color: '#002366',
+    letterSpacing: 0.5,
   },
   subtitle: {
     ...Typography.caption,
@@ -219,7 +369,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: isMobile ? 20 : 50,
+    marginBottom: isMobile ? 20 : 30,
   },
   checkbox: {
     width: 18,
@@ -267,8 +417,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     color: '#999',
-    marginTop: 10,
-    marginBottom: 20
+    marginBottom: 10
   },
   registerText: {
     ...Typography.body,
@@ -280,5 +429,42 @@ const getStyles = (isMobile) => StyleSheet.create({
   link: {
     fontWeight: '600',
     color: '#002366',
-  }
+  },
+
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: isMobile ? 12 : 14,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  googleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  googleButtonText: {
+    marginLeft: 10,
+    fontSize:  isMobile ? 12 : 15,
+    color: '#475569',
+    fontFamily: 'Inter_500Medium',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: isMobile ? 14: 16,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: '#94A3B8',
+    fontSize: 12,
+  },
 });

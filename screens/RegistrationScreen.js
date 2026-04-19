@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -20,13 +20,14 @@ import api from "../utils/api";
 import { Typography } from "../styles/theme";
 
 
-export default function RegistrationScreen({ navigation }) {
+export default function RegistrationScreen({ navigation, route }) {
   const { width } = useWindowDimensions();
-
   const isMobile = width < 480;
   const isTablet = width >= 480 && width < 1024;
-
   const styles = getStyles(isMobile, isTablet);
+
+  const googleData = route.params?.googleData;
+  const isGoogle = route.params?.isGoogle || false;
 
   const [formData, setFormData] = useState({
     username: "",
@@ -48,6 +49,24 @@ export default function RegistrationScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
 
+  useEffect(() => {
+    if (isGoogle && googleData) {
+      setFormData((prev) => ({
+        ...prev,
+        first_name: googleData.first_name || "", 
+        last_name: googleData.last_name || "",
+        email: googleData.email || "",
+      }));
+
+      if (googleData.email && !googleData.email.endsWith("@ua.edu.ph")) {
+        setAlertConfig({ 
+          message: "Registration restricted to @ua.edu.ph accounts.", 
+          type: "error" 
+        });
+      }
+    }
+  }, [isGoogle, googleData]);
+
   const updateField = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
@@ -58,9 +77,16 @@ export default function RegistrationScreen({ navigation }) {
       date_of_birth, sex, contact_number, address, course, year, section
     } = formData;
 
-    if (!username || !email || !password || !first_name || !last_name || !course ||
-      !year || !section || !date_of_birth || !sex || !contact_number || !address || !confirmPassword) {
+    const requiredFields = Object.keys(formData);
+    const hasEmpty = requiredFields.some(field => !formData[field]);
+
+    if (hasEmpty) {
       setAlertConfig({ message: "Please fill in all fields.", type: "error" });
+      return;
+    }
+
+    if (!email.toLowerCase().endsWith("@ua.edu.ph")) {
+      setAlertConfig({ message: "Please use your official UA email address.", type: "error" });
       return;
     }
 
@@ -75,7 +101,9 @@ export default function RegistrationScreen({ navigation }) {
     try {
       const { confirmPassword, ...dataToSend } = formData;
 
-      const response = await api.post("register/", dataToSend);
+      const payload = isGoogle ? { ...dataToSend, is_google: true } : dataToSend;
+
+      const response = await api.post("register/", payload);
 
       const { tokens, user } = response.data;
       const { access, refresh } = tokens;
@@ -106,7 +134,6 @@ export default function RegistrationScreen({ navigation }) {
       const backendError = error.response?.data
         ? Object.values(error.response.data)[0]
         : "Registration failed.";
-
       console.log("Setting error alert:", String(backendError));
       setAlertConfig({ message: String(backendError), type: "error" });
     } finally {
@@ -143,7 +170,9 @@ export default function RegistrationScreen({ navigation }) {
           {/* HEADER */}
           <View style={styles.hero}>
             <Text style={styles.heroTitle}>Create Account</Text>
-            <Text style={styles.heroSubtitle}>Join UA Clinic Appointment System</Text>
+            <Text style={styles.heroSubtitle}>
+              {isGoogle ? "Complete your UA Google Profile" : "Join UA Clinic Appointment System"}
+            </Text>
           </View>
 
           <InlineAlert message={alertConfig.message} type={alertConfig.type} />
@@ -156,12 +185,16 @@ export default function RegistrationScreen({ navigation }) {
               <AppInput 
                 label="First Name" 
                 value={formData.first_name} 
+                editable={!isGoogle}
+                style={isGoogle ? styles.readOnlyInput : null}
                 onChangeText={(v) => updateField("first_name", v)} />
             </View>
             <View style={[styles.flex]}>
               <AppInput 
                 label="Last Name" 
                 value={formData.last_name} 
+                editable={!isGoogle}
+                style={isGoogle ? styles.readOnlyInput : null}
                 onChangeText={(v) => updateField("last_name", v)} />
             </View>
           </View>
@@ -205,6 +238,8 @@ export default function RegistrationScreen({ navigation }) {
           <AppInput 
             label="Email"
             value={formData.email} 
+            editable={!isGoogle}
+            style={isGoogle ? styles.readOnlyInput : null}
             onChangeText={(v) => updateField("email", v)} />
 
           <AppInput 
@@ -468,5 +503,11 @@ const getStyles = (isMobile, isTablet) => StyleSheet.create({
   },
   input: {
     fontSize: isMobile ? 14 : 16,
+  },
+
+  readOnlyInput: {
+    backgroundColor: '#F1F5F9',
+    color: '#64748B', 
+    borderColor: '#E2E8F0',
   },
 });

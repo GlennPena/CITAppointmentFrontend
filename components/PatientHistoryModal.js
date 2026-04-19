@@ -1,24 +1,46 @@
 /*
-  responsible for displaying a full medical history modal of a patient,
+  Responsible for displaying a full medical history modal of a patient,
   including personal information and a scrollable list of past consultations.
 */
-
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Dimensions, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import DismissalSlipModal from './DismissalSlipModal';
 import Avatar from './Avatar';
 import { Typography } from "../styles/theme";
+import StatusBadge from '../components/StatusBadge';
 
 
 const { height } = Dimensions.get('window');
 
 
 export default function MedicalHistoryModal({ visible, onClose, patient, appointments }) {
+  const [slipVisible, setSlipVisible] = useState(false);
+  const [selectedAppt, setSelectedAppt] = useState(null);
+
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const styles = getStyles(isMobile);
+
+
   if (!patient) return null;
 
   const lastVisitDate = appointments.length > 0 
     ? new Date(appointments[0].date_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) 
     : "No record";
+
+  const handleOpenSlip = (appt) => {
+    setSelectedAppt({
+      ...patient,
+      first_name: patient.name.split(' ')[0], 
+      last_name: patient.name.split(' ').slice(1).join(' '),
+      course: patient.patient_course,
+      reason: appt.condition,
+      ...appt
+    });
+    setSlipVisible(true);
+  };
 
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
@@ -74,7 +96,7 @@ export default function MedicalHistoryModal({ visible, onClose, patient, appoint
                 <Text style={styles.dataText}>{patient.address || "No address provided"}</Text>
               </View>
 
-              {/* PAST VISITS SECTION */}
+              {/* CONSULTATION HISTORY */}
               <View style={[styles.sectionTitleContainer]}>
                 <MaterialCommunityIcons name="history" size={20} color="#002366" />
                 <Text style={styles.sectionTitleText}>Consultation History</Text>
@@ -95,9 +117,16 @@ export default function MedicalHistoryModal({ visible, onClose, patient, appoint
                         {new Date(appt.date_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                       </Text>
                     </View>
-                  <View style={styles.serviceTag}>
-                    <Text style={styles.serviceTagText}>{appt.service}</Text>
-                  </View>
+                    <View style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: 8 }}>
+                      <StatusBadge 
+                        status={appt.status} 
+                        dateTime={appt.date_time} 
+                      />
+                    
+                      <View style={styles.serviceTag}>
+                        <Text style={styles.serviceTagText}>{appt.service}</Text>
+                      </View>
+                    </View>
                 </View>
                 
                 <Text style={styles.doctorSubText}>Attended by <Text style={{fontWeight: '800'}}>Dr. {appt.doctor_name}</Text></Text>
@@ -108,7 +137,7 @@ export default function MedicalHistoryModal({ visible, onClose, patient, appoint
                     {appt.condition}
                   </Text>
                 </View>
-                
+
                 {/* OUTCOME SECTION */}
                 <Text style={styles.labelTiny}>OUTCOME</Text>
                 <Text style={styles.outcomeMain}>{appt.outcome || "No outcome provided."}</Text>
@@ -120,6 +149,17 @@ export default function MedicalHistoryModal({ visible, onClose, patient, appoint
                     "{appt.consultation_notes || "No specific notes recorded."}"
                   </Text>
                 </View>
+                
+                {/* DISMISSAL SLIP */}
+                {appt.status === "Completed" && (
+                  <Pressable 
+                    style={styles.slipButton} 
+                    onPress={() => handleOpenSlip(appt)}
+                  >
+                    <MaterialCommunityIcons name="file-pdf-box" size={20} color="#002366" />
+                    <Text style={styles.slipButtonText}>Generate Dismissal Slip</Text>
+                  </Pressable>
+                )}
               </View>
             ))
           )}
@@ -135,11 +175,16 @@ export default function MedicalHistoryModal({ visible, onClose, patient, appoint
 
         </View>
       </View>
+      <DismissalSlipModal 
+        visible={slipVisible} 
+        onClose={() => setSlipVisible(false)} 
+        data={selectedAppt} 
+      />
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (isMobile) => StyleSheet.create({
   overlay: { 
     flex: 1, 
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
@@ -204,4 +249,23 @@ const styles = StyleSheet.create({
   primaryActionBtn: {  backgroundColor: '#002366', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10,},
   primaryActionText: { ...Typography.label, color: '#FFF', fontWeight: '800', fontSize: 14, lineHeight: 14,  letterSpacing: 0.1,  },
   emptyMsg: { textAlign: 'center', color: '#94A3B8', marginTop: 20 },
+  slipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#002366',
+    borderStyle: 'dashed',
+  },
+  slipButtonText: {
+    ...Typography.title,
+    color: '#002366',
+    fontSize: 13,
+    fontWeight: '800',
+    marginLeft: 8,
+  },
 });

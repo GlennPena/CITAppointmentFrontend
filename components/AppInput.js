@@ -15,6 +15,7 @@ export const AppInput = ({
   setError, 
   secureTextEntry, 
   style, 
+  editable,
   ...props 
 }) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -69,12 +70,15 @@ export const AppInput = ({
 
       <TextInput
         {...props}
+        editable={editable}
         placeholderTextColor="#94A3B8"
         style={[
           styles.defaultInput,
           style,
           isFocused && styles.focus,
+          editable === false && { backgroundColor: '#ffffff', color: '#64748B' },
           (secureTextEntry && value?.length > 0) && { paddingRight: 56 }
+          
         ]}
         secureTextEntry={isSecure}
         value={value}

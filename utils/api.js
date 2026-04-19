@@ -6,6 +6,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 const api = axios.create({
