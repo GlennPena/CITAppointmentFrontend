@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppInput } from "../components/AppInput";
 import InlineAlert from "../components/InlineAlert";
 import { Toast } from "../components/Toast";
+import PrivacyPolicyModal from "../components/PrivacyPolicyModal";
 
 import api from "../utils/api";
 import { Typography } from "../styles/theme";
@@ -45,6 +46,9 @@ export default function RegistrationScreen({ navigation, route }) {
     confirmPassword: "",
   });
 
+  const [isStaff, setIsStaff] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ message: "", type: "" });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
@@ -77,7 +81,11 @@ export default function RegistrationScreen({ navigation, route }) {
       date_of_birth, sex, contact_number, address, course, year, section
     } = formData;
 
-    const requiredFields = Object.keys(formData);
+    const academicFields = ["course", "year", "section"];
+    const requiredFields = Object.keys(formData).filter((field) => {
+      if (isStaff && academicFields.includes(field)) return false;
+      return true;
+    });
     const hasEmpty = requiredFields.some(field => !formData[field]);
 
     if (hasEmpty) {
@@ -100,6 +108,13 @@ export default function RegistrationScreen({ navigation, route }) {
 
     try {
       const { confirmPassword, ...dataToSend } = formData;
+
+      // Send "N/A" for academic fields when registering as Staff/Employee
+      if (isStaff) {
+        dataToSend.course = "N/A";
+        dataToSend.year = "N/A";
+        dataToSend.section = "N/A";
+      }
 
       const payload = isGoogle ? { ...dataToSend, is_google: true } : dataToSend;
 
@@ -148,6 +163,11 @@ export default function RegistrationScreen({ navigation, route }) {
         message={toast.message} 
         type={toast.type}
         onHide={() => setToast({ ...toast, visible: false })}
+      />
+
+      <PrivacyPolicyModal
+        visible={privacyModalVisible}
+        onClose={() => setPrivacyModalVisible(false)}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -251,23 +271,42 @@ export default function RegistrationScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>Academic Information</Text>
           <AppInput 
             label="Course"
-            value={formData.course}
+            value={isStaff ? "" : formData.course}
+            editable={!isStaff}
+            disabledStyleOverride={styles.disabledInput}
             onChangeText={(v) => updateField("course", v)} />
 
           <View style={styles.row}>
             <View style={styles.flex}>
               <AppInput 
                 label="Year" 
-                value={formData.year}
+                value={isStaff ? "" : formData.year}
+                editable={!isStaff}
+                disabledStyleOverride={styles.disabledInput}
                 onChangeText={(v) => updateField("year", v)} />
             </View>
             <View style={[styles.flex]}>
               <AppInput 
                 label="Section"
-                value={formData.section}
+                value={isStaff ? "" : formData.section}
+                editable={!isStaff}
+                disabledStyleOverride={styles.disabledInput}
                 onChangeText={(v) => updateField("section", v)} />
             </View>
           </View>
+
+          {/* ROLE TOGGLE */}
+          <Pressable
+            style={styles.checkboxRowRight}
+            onPress={() => setIsStaff(!isStaff)}
+          >
+            <View style={[styles.checkbox, isStaff && styles.checkboxChecked]}>
+              {isStaff && <Text style={styles.checkboxMark}>✓</Text>}
+            </View>
+            <Text style={styles.checkboxLabel}>
+              I am an Employee.
+            </Text>
+          </Pressable>
 
           {/* PASSWORD */}
           <Text style={styles.sectionTitle}>Account Information</Text>
@@ -278,11 +317,40 @@ export default function RegistrationScreen({ navigation, route }) {
           <AppInput label="Password" value={formData.password} secureTextEntry onChangeText={(v) => updateField("password", v)} />
           <AppInput label="Confirm Password" value={formData.confirmPassword} secureTextEntry onChangeText={(v) => updateField("confirmPassword", v)} />
 
+          {/* DATA PRIVACY CONSENT */}
+          <View style={styles.consentBox}>
+            <Pressable
+              style={styles.consentRow}
+              onPress={() => setConsentGiven(!consentGiven)}
+            >
+              <View style={[styles.checkbox, consentGiven && styles.checkboxChecked]}>
+                {consentGiven && <Text style={styles.checkboxMark}>✓</Text>}
+              </View>
+              <Text style={styles.consentText}>
+                I have read and agree to the collection, storage, and processing of my personal
+                and health-related information by the UA Clinic Appointment System, in accordance
+                with the Data Privacy Act of 2012 (RA 10173), solely for the purpose of managing
+                and scheduling clinic appointments and related health services within the
+                university.{" "}
+                <Text
+                  style={styles.consentLink}
+                  onPress={() => setPrivacyModalVisible(true)}
+                >
+                  Read full Privacy Policy
+                </Text>
+              </Text>
+            </Pressable>
+          </View>
+
           {/* BUTTON */}
           <Pressable
-            style={[styles.button, styles.buttonPrimary, loading && { opacity: 0.7 }]}
+            style={[
+              styles.button, 
+              styles.buttonPrimary, 
+              (loading || !consentGiven) && { opacity: 0.5 }
+            ]}
             onPress={handleRegister}
-            disabled={loading}
+            disabled={loading || !consentGiven}
           >
             <Text style={styles.buttonPrimaryText}>
               {loading ? "Creating Account..." : "Create Account"}
@@ -509,5 +577,74 @@ const getStyles = (isMobile, isTablet) => StyleSheet.create({
     backgroundColor: '#F1F5F9',
     color: '#64748B', 
     borderColor: '#E2E8F0',
+  },
+
+  disabledInput: {
+    backgroundColor: '#E5E7EB',
+    color: '#9CA3AF',
+    borderColor: '#D1D5DB',
+  },
+
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 24,
+    gap: 10,
+  },
+  checkboxRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    gap: 10,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#002366',
+    borderColor: '#002366',
+  },
+  checkboxMark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    ...Typography.body,
+    fontSize: isMobile ? 13 : 15,
+    color: '#334155',
+  },
+
+  consentBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    marginTop: 24,
+  },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  consentText: {
+    ...Typography.body,
+    flex: 1,
+    fontSize: isMobile ? 12 : 13,
+    lineHeight: isMobile ? 18 : 20,
+    color: '#475569',
+    textAlign: 'justify',
+  },
+  consentLink: {
+    color: '#002366',
+    fontWeight: 'bold',
   },
 });

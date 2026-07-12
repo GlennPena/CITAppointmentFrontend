@@ -16,20 +16,40 @@ export const AppInput = ({
   secureTextEntry, 
   style, 
   editable,
+  disabledStyleOverride,
+  disabledLabelBg,
   ...props 
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  // Only forces the "default/unfocused" look when this input is explicitly
+  // marked disabled via disabledStyleOverride (e.g. Academic Info in
+  // RegistrationScreen). Other screens using editable={false} without this
+  // prop keep their existing floating-label behavior untouched.
+  const isForcedDisabledLook = editable === false && !!disabledStyleOverride;
+
+  // Auto-pull the backgroundColor from disabledStyleOverride so the label
+  // always matches the field, without needing a second prop kept in sync.
+  const flattenedDisabledStyle = disabledStyleOverride
+    ? StyleSheet.flatten(disabledStyleOverride)
+    : null;
+  const resolvedDisabledLabelBg =
+    disabledLabelBg || flattenedDisabledStyle?.backgroundColor || '#ffffff';
   
   const animatedIsFocused = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
+    const toValue = isForcedDisabledLook
+      ? 0
+      : (isFocused || (value && value.length > 0)) ? 1 : 0;
+
     Animated.timing(animatedIsFocused, {
-      toValue: (isFocused || (value && value.length > 0)) ? 1 : 0,
+      toValue,
       duration: 200,
       useNativeDriver: false, 
     }).start();
-  }, [isFocused, value]);
+  }, [isFocused, value, isForcedDisabledLook]);
 
   const isSecure = secureTextEntry && !isPasswordVisible;
 
@@ -49,12 +69,12 @@ export const AppInput = ({
       inputRange: [0, 1],
       outputRange: ['#94A3B8', '#0F172A'], 
     }),
-    backgroundColor: '#ffffff', 
+    backgroundColor: isForcedDisabledLook ? resolvedDisabledLabelBg : '#ffffff', 
     paddingHorizontal: 6,
     zIndex: 2,
   };
 
-  const showHint = isFocused || (value && value.length > 0);
+  const showHint = !isForcedDisabledLook && (isFocused || (value && value.length > 0));
   
   return (
     <View style={styles.container}>
@@ -74,9 +94,10 @@ export const AppInput = ({
         placeholderTextColor="#94A3B8"
         style={[
           styles.defaultInput,
-          style,
-          isFocused && styles.focus,
+          isFocused && !isForcedDisabledLook && styles.focus,
           editable === false && { backgroundColor: '#ffffff', color: '#64748B' },
+          editable === false && disabledStyleOverride,
+          style,
           (secureTextEntry && value?.length > 0) && { paddingRight: 56 }
           
         ]}
