@@ -1,56 +1,76 @@
 /*
-  Displays a temporary animated notification (success or error)
-  that fades in, stays visible briefly, then fades out automatically.
+  Toast — slides up from the bottom, displays a message with icon,
+  auto-dismisses after 3s with a progress bar indicator.
 */
 
 import { useEffect, useRef } from 'react';
-import { Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+const DURATION = 3000;
+
 export const Toast = ({ message, visible, onHide, type = 'success' }) => {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(-20)).current;
-  
+  const translateY = useRef(new Animated.Value(120)).current;
+  const opacity    = useRef(new Animated.Value(0)).current;
+  const progress   = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     if (visible) {
+      progress.setValue(1);
+      translateY.setValue(120);
       opacity.setValue(0);
-      translateY.setValue(-20);
-      
-      Animated.sequence([
-        Animated.timing(opacity, { 
-          toValue: 1, 
-          duration: 400, 
-          useNativeDriver: true 
-        }),
-        Animated.timing(translateY, { toValue: 0, duration: 400, useNativeDriver: true }),
 
-        Animated.delay(2500),
+      Animated.parallel([
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
+        Animated.timing(opacity,    { toValue: 1, duration: 250, useNativeDriver: true }),
+      ]).start();
 
+      Animated.timing(progress, {
+        toValue: 0,
+        duration: DURATION,
+        useNativeDriver: false,
+      }).start();
+
+      const timer = setTimeout(() => {
         Animated.parallel([
-          Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }),
-          Animated.timing(translateY, { toValue: -20, duration: 400, useNativeDriver: true }),
-        ]),
+          Animated.timing(translateY, { toValue: 120, duration: 300, useNativeDriver: true }),
+          Animated.timing(opacity,    { toValue: 0,   duration: 300, useNativeDriver: true }),
+        ]).start(() => onHide());
+      }, DURATION);
 
-      ]).start(() => {
-        onHide();
-      });
+      return () => clearTimeout(timer);
     }
   }, [visible]);
 
   if (!visible) return null;
 
-  const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
+  const config = type === 'error'
+    ? { icon: 'alert-circle-outline', accent: '#EF4444', bg: '#1E293B' }
+    : type === 'warning'
+    ? { icon: 'alert-outline',         accent: '#F59E0B', bg: '#1E293B' }
+    : { icon: 'check-circle-outline',  accent: '#10B981', bg: '#002366' };
 
   return (
     <Animated.View style={[
-      styles.container, 
-      { opacity, transform: [{ translateY }] },
-      type === 'error' ? styles.error : styles.success
+      styles.container,
+      { backgroundColor: config.bg, opacity, transform: [{ translateY }] }
     ]}>
+      {/* Left accent bar */}
+      <View style={[styles.accentBar, { backgroundColor: config.accent }]} />
 
-      <MaterialCommunityIcons name={iconName} size={24} color="#FFF" />
-      <Text style={styles.text}>{message}</Text>
+      {/* Icon */}
+      <View style={[styles.iconWrap, { backgroundColor: config.accent + '22' }]}>
+        <MaterialCommunityIcons name={config.icon} size={22} color={config.accent} />
+      </View>
 
+      {/* Message */}
+      <Text style={styles.text} numberOfLines={2}>{message}</Text>
+
+      {/* Progress bar */}
+      <Animated.View style={[
+        styles.progressBar,
+        { backgroundColor: config.accent, width: progress.interpolate({ inputRange: [0,1], outputRange: ['0%', '100%'] }) }
+      ]} />
     </Animated.View>
   );
 };
@@ -58,41 +78,54 @@ export const Toast = ({ message, visible, onHide, type = 'success' }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
+    bottom: 24,
+    left: 16,
+    right: 16,
     zIndex: 9999,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     borderRadius: 16,
-    gap: 12, 
+    overflow: 'hidden',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 14,
   },
-  success: { 
-    backgroundColor: '#002366' 
+  accentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
-  error: { 
-    backgroundColor: '#991b1b' 
+  iconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
-  text: { 
-    color: '#FFF', 
-    fontWeight: '700', 
+  text: {
+    flex: 1,
+    color: '#FFFFFF',
     fontSize: 14,
-    flex: 1, 
-    letterSpacing: 0.5, 
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    lineHeight: 20,
   },
-  progress: {
+  progressBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    height: 4,
-    backgroundColor: '#3B82F6',
-    borderRadius: 2
-  }
+    height: 3,
+    borderRadius: 2,
+    opacity: 0.6,
+  },
 });

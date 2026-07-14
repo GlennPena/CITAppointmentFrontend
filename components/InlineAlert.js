@@ -1,33 +1,38 @@
 /* 
-  Displays a small inline success or error message inside the UI.
-  Supports optional manual dismiss via close button.
+  InlineAlert — Left-border accent alert with icon and message.
+  Supports success, error, warning, and info types.
 */
 
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+const CONFIGS = {
+  error:   { bg: '#FEF2F2', border: '#FCA5A5', accent: '#DC2626', icon: 'alert-circle-outline'     },
+  success: { bg: '#F0FDF4', border: '#86EFAC', accent: '#16A34A', icon: 'check-circle-outline'     },
+  warning: { bg: '#FFFBEB', border: '#FCD34D', accent: '#D97706', icon: 'alert-outline'             },
+  info:    { bg: '#EFF6FF', border: '#93C5FD', accent: '#2563EB', icon: 'information-outline'      },
+};
 
-const InlineAlert = ({ message, type, onClose }) => {
+const InlineAlert = ({ message, type = 'info', onClose }) => {
   if (!message) return null;
 
-  const isError = type === 'error';
-  
-  const containerStyle = isError 
-  ? styles.errorContainer 
-  : styles.successContainer;
-
-  const textStyle = isError 
-  ? styles.errorText 
-  : styles.successText;
+  const cfg = CONFIGS[type] || CONFIGS.info;
 
   return (
-    <View style={[styles.baseContainer, containerStyle]}>
-      <View style={styles.messageWrapper}>
-        <Text style={[styles.baseText, textStyle]}>{message}</Text>
-      </View>
-      
+    <View style={[styles.container, {
+      backgroundColor: cfg.bg,
+      borderColor: cfg.border,
+      borderLeftColor: cfg.accent,
+    }]}>
+      <MaterialCommunityIcons name={cfg.icon} size={18} color={cfg.accent} style={styles.icon} />
+
+      <Text style={[styles.text, { color: cfg.accent }]} numberOfLines={4}>
+        {message}
+      </Text>
+
       {onClose && (
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Text style={textStyle}>✕</Text>
+        <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <MaterialCommunityIcons name="close" size={16} color={cfg.accent} />
         </TouchableOpacity>
       )}
     </View>
@@ -35,45 +40,30 @@ const InlineAlert = ({ message, type, onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  baseContainer: {
+  container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    padding: 16,
-    borderRadius: 16,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    marginVertical: 20,
+    borderLeftWidth: 4,
+    marginVertical: 8,
   },
-  messageWrapper: {
-    flex: 1,
-  },
-  baseText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  errorContainer: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-    marginTop: '0'
-  },
-  errorText: {
-    color: '#DC2626',
-  },
-  successContainer: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#DBEAFE',
-  },
-  successText: {
-    color: '#1E40AF',
-  },
-  closeButton: {
-    marginLeft: 10,
-    padding: 4,
+  icon: {
+    marginTop: 1,
     flexShrink: 0,
-    height: 20,
-    width: 20,
-    alignItems: 'center',
-    justifyContent: 'center'
+  },
+  text: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  closeBtn: {
+    flexShrink: 0,
+    marginTop: 2,
   },
 });
 

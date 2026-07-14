@@ -51,7 +51,12 @@ export default function AdminDashboard({ navigation }) {
   const filterOptions = ["All", "Completed", "Cancelled", "Rejected"];
 
   const [accountFilter, setAccountFilter] = useState("All");
-  const accountFilterOptions = ["All", "Student", "Faculty", "Admin"];
+  const accountFilterOptions = ["All", "Student", "Faculty", "Dean", "Admin"];
+
+  // Password Reset State
+  const [selectedUserForReset, setSelectedUserForReset] = useState(null);
+  const [resetPasswordForm, setResetPasswordForm] = useState({ password: "", confirmPassword: "" });
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -191,6 +196,31 @@ export default function AdminDashboard({ navigation }) {
     }
   };
 
+  const requestPasswordReset = (user) => {
+    setSelectedUserForReset(user);
+    setResetPasswordForm({ password: "", confirmPassword: "" });
+    setShowResetPasswordModal(true);
+  };
+
+  const handleResetPassword = async () => {
+    const { password, confirmPassword } = resetPasswordForm;
+    if (!password) {
+      setToast({ visible: true, message: "Password cannot be empty", type: "error" });
+      return;
+    }
+    if (password !== confirmPassword) {
+      setToast({ visible: true, message: "Passwords do not match", type: "error" });
+      return;
+    }
+    try {
+      await api.patch(`users/${selectedUserForReset.id}/`, { password });
+      setToast({ visible: true, message: "Password reset successfully", type: "success" });
+      setShowResetPasswordModal(false);
+    } catch (err) {
+      setToast({ visible: true, message: "Failed to reset password", type: "error" });
+    }
+  };
+
   const filteredAppointments = Array.isArray(appointments) 
   ? appointments.filter(item => {
       const matchesSearch = item.student_name?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -238,6 +268,197 @@ export default function AdminDashboard({ navigation }) {
     );
   }
 
+  const renderAnalyticsView = () => {
+    // 1. Calculations
+    const totalAppointments = appointments.length;
+    const completedCount = appointments.filter(a => a.status === 'Completed').length;
+    const pendingCount = appointments.filter(a => a.status === 'Pending').length;
+    const cancelledOrRejectedCount = appointments.filter(a => a.status === 'Cancelled' || a.status === 'Rejected').length;
+
+    // Faculty stats
+    const facultyStatsMap = {};
+    appointments.forEach(appt => {
+      if (appt.faculty_name) {
+        if (!facultyStatsMap[appt.faculty_name]) {
+          facultyStatsMap[appt.faculty_name] = { name: appt.faculty_name, total: 0, completed: 0 };
+        }
+        facultyStatsMap[appt.faculty_name].total += 1;
+        if (appt.status === 'Completed') facultyStatsMap[appt.faculty_name].completed += 1;
+      }
+    });
+    const topFaculty = Object.values(facultyStatsMap)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    // Student stats
+    const studentStatsMap = {};
+    appointments.forEach(appt => {
+      if (appt.student_name) {
+        if (!studentStatsMap[appt.student_name]) {
+          studentStatsMap[appt.student_name] = { name: appt.student_name, email: appt.student_email || "N/A", total: 0 };
+        }
+        studentStatsMap[appt.student_name].total += 1;
+      }
+    });
+    const topStudents = Object.values(studentStatsMap)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    // Service stats
+    const serviceStatsMap = {};
+    appointments.forEach(appt => {
+      const service = appt.service || 'General Consultation';
+      serviceStatsMap[service] = (serviceStatsMap[service] || 0) + 1;
+    });
+    const topServices = Object.entries(serviceStatsMap)
+      .map(([service, count]) => ({ service, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Status breakdown with percentages
+    const statusChoices = ['Pending', 'Approved', 'Rejected', 'Completed', 'Cancelled', 'Expired'];
+    const statusStats = statusChoices.map(status => {
+      const count = appointments.filter(a => a.status === status).length;
+      const percentage = totalAppointments > 0 ? ((count / totalAppointments) * 100).toFixed(0) : 0;
+      return { status, count, percentage };
+    });
+
+    return (
+      <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={[styles.title, styles.pageTitle]}>Reports & Analytics</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 4 }}>
+            Real-time consultation metrics and leaderboard statistics
+          </Text>
+          <View style={styles.glassAccent} />
+        </View>
+
+        {/* METRICS ROW */}
+        <View style={[styles.statsRow, isMobile && { gap: 10 }]}>
+          <StatBox label="Total Consultations" value={totalAppointments} color="#0F172A" icon="file-document-outline" />
+          <StatBox label="Completed" value={completedCount} color="#10B981" icon="check-circle-outline" />
+          <StatBox label="Pending" value={pendingCount} color="#F59E0B" icon="clock-outline" />
+          <StatBox label="Cancelled/Rejected" value={cancelledOrRejectedCount} color="#EF4444" icon="close-circle-outline" />
+        </View>
+
+        {/* LEADERBOARDS SIDE-BY-SIDE */}
+        <View style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }]}>
+          {/* TOP FACULTY */}
+          <View style={[styles.analyticsCard, { flex: 1 }]}>
+            <View style={styles.analyticsCardHeader}>
+              <MaterialCommunityIcons name="trophy-outline" size={20} color="#F59E0B" />
+              <Text style={styles.analyticsCardTitle}>Top Faculty (Most Consultations)</Text>
+            </View>
+            <View style={styles.analyticsCardBody}>
+              {topFaculty.length === 0 ? (
+                <Text style={styles.emptyText}>No consultation data available.</Text>
+              ) : (
+                topFaculty.map((item, index) => (
+                  <View key={item.name} style={styles.leaderboardRow}>
+                    <View style={styles.leaderboardRankContainer}>
+                      <Text style={styles.leaderboardRankText}>#{index + 1}</Text>
+                    </View>
+                    <View style={styles.leaderboardInfo}>
+                      <Text style={styles.leaderboardName}>{item.name}</Text>
+                      <Text style={styles.leaderboardSub}>Completed: {item.completed} / Total: {item.total}</Text>
+                    </View>
+                    <Text style={styles.leaderboardCount}>{item.total}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+
+          {/* TOP STUDENTS */}
+          <View style={[styles.analyticsCard, { flex: 1 }]}>
+            <View style={styles.analyticsCardHeader}>
+              <MaterialCommunityIcons name="account-star-outline" size={20} color="#0052FF" />
+              <Text style={styles.analyticsCardTitle}>Top Students (Most Consultations)</Text>
+            </View>
+            <View style={styles.analyticsCardBody}>
+              {topStudents.length === 0 ? (
+                <Text style={styles.emptyText}>No student data available.</Text>
+              ) : (
+                topStudents.map((item, index) => (
+                  <View key={item.name} style={styles.leaderboardRow}>
+                    <View style={[styles.leaderboardRankContainer, { backgroundColor: '#E0F2FE' }]}>
+                      <Text style={[styles.leaderboardRankText, { color: '#0369A1' }]}>#{index + 1}</Text>
+                    </View>
+                    <View style={styles.leaderboardInfo}>
+                      <Text style={styles.leaderboardName}>{item.name}</Text>
+                      <Text style={styles.leaderboardSub}>{item.email}</Text>
+                    </View>
+                    <Text style={styles.leaderboardCount}>{item.total}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* SERVICE AND STATUS BREAKDOWNS */}
+        <View style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }, { marginTop: 20 }]}>
+          {/* SERVICE BREAKDOWN */}
+          <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
+            <View style={styles.analyticsCardHeader}>
+              <MaterialCommunityIcons name="medical-bag" size={20} color="#10B981" />
+              <Text style={styles.analyticsCardTitle}>Service Distribution</Text>
+            </View>
+            <View style={styles.analyticsCardBody}>
+              {topServices.length === 0 ? (
+                <Text style={styles.emptyText}>No services logged.</Text>
+              ) : (
+                topServices.map((item) => {
+                  const percentage = totalAppointments > 0 ? ((item.count / totalAppointments) * 100).toFixed(0) : 0;
+                  return (
+                    <View key={item.service} style={styles.distributionRow}>
+                      <View style={styles.distributionLabelRow}>
+                        <Text style={styles.distributionLabel}>{item.service}</Text>
+                        <Text style={styles.distributionValue}>{item.count} ({percentage}%)</Text>
+                      </View>
+                      <View style={styles.progressBarBg}>
+                        <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: '#10B981' }]} />
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          </View>
+
+          {/* STATUS DISTRIBUTION */}
+          <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
+            <View style={styles.analyticsCardHeader}>
+              <MaterialCommunityIcons name="chart-pie" size={20} color="#7C3AED" />
+              <Text style={styles.analyticsCardTitle}>Status Breakdown</Text>
+            </View>
+            <View style={styles.analyticsCardBody}>
+              {statusStats.map(item => {
+                let barColor = '#64748B'; // Default
+                if (item.status === 'Completed') barColor = '#10B981';
+                else if (item.status === 'Approved') barColor = '#059669';
+                else if (item.status === 'Pending') barColor = '#F59E0B';
+                else if (item.status === 'Cancelled' || item.status === 'Rejected') barColor = '#EF4444';
+                else if (item.status === 'Expired') barColor = '#94A3B8';
+
+                return (
+                  <View key={item.status} style={styles.distributionRow}>
+                    <View style={styles.distributionLabelRow}>
+                      <Text style={styles.distributionLabel}>{item.status}</Text>
+                      <Text style={styles.distributionValue}>{item.count} ({item.percentage}%)</Text>
+                    </View>
+                    <View style={styles.progressBarBg}>
+                      <View style={[styles.progressBarFill, { width: `${item.percentage}%`, backgroundColor: barColor }]} />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    );
+  };
+
   return (
     <ImageBackground
       source={require("../assets/redox-01.png")}
@@ -251,70 +472,79 @@ export default function AdminDashboard({ navigation }) {
       ]}>
         <View style={[
           styles.sidebar,
-          isMobile && {
-            width: '100%',
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-            paddingVertical: 12
-          }
+          isMobile && styles.sidebarMobile,
         ]}>
           {!isMobile && (
             <Text style={styles.sidebarTitle}>Admin Menu</Text>
           )}
 
-          <View style={{ flexDirection: isMobile ? 'row' : 'column'}}>
-          <Pressable
-            onPress={() => setSidebarSelection('Overview')}
-            style={({ pressed, hovered }) => [
-              styles.sidebarItem,
-              sidebarSelection === 'Overview' && styles.sidebarItemActive,
-              hovered && styles.sidebarItemHover,
-              pressed && styles.sidebarItemPressed,
-            ]}
-          >
-            <View style={styles.sidebarItemRow}>
-              <MaterialCommunityIcons
-                name="view-dashboard-outline"
-                size={isMobile ? 14 : 22}
-                color={sidebarSelection === 'Overview' ? '#FFFFFF' : '#64748B'}
-              />
-              <Text style={[styles.sidebarItemText, sidebarSelection === 'Overview' && styles.sidebarItemTextActive]}>Overview</Text>
+          {isMobile ? (
+            // Mobile: horizontal scrollable tab bar, icon + label stacked
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.mobileNavScroll}
+            >
+              {[
+                { key: 'Overview',   icon: 'view-dashboard-outline', label: 'Overview' },
+                { key: 'Students',   icon: 'account-group',           label: 'Students' },
+                { key: 'Personnel',  icon: 'account-circle',          label: 'Accounts' },
+                { key: 'Analytics',  icon: 'chart-bar',               label: 'Analytics' },
+              ].map((item) => (
+                <Pressable
+                  key={item.key}
+                  onPress={() => setSidebarSelection(item.key)}
+                  style={({ pressed }) => [
+                    styles.mobileNavItem,
+                    sidebarSelection === item.key && styles.mobileNavItemActive,
+                    pressed && styles.sidebarItemPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={item.icon}
+                    size={22}
+                    color={sidebarSelection === item.key ? '#FFFFFF' : '#64748B'}
+                  />
+                  <Text style={[
+                    styles.mobileNavLabel,
+                    sidebarSelection === item.key && styles.mobileNavLabelActive,
+                  ]}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            // Desktop: vertical sidebar items
+            <View style={{ flexDirection: 'column' }}>
+              {[
+                { key: 'Overview',   icon: 'view-dashboard-outline', label: 'Overview' },
+                { key: 'Students',   icon: 'account-group',           label: 'Students' },
+                { key: 'Personnel',  icon: 'account-circle',          label: 'Accounts' },
+                { key: 'Analytics',  icon: 'chart-bar',               label: 'Analytics' },
+              ].map((item) => (
+                <Pressable
+                  key={item.key}
+                  onPress={() => setSidebarSelection(item.key)}
+                  style={({ pressed, hovered }) => [
+                    styles.sidebarItem,
+                    sidebarSelection === item.key && styles.sidebarItemActive,
+                    hovered && styles.sidebarItemHover,
+                    pressed && styles.sidebarItemPressed,
+                  ]}
+                >
+                  <View style={styles.sidebarItemRow}>
+                    <MaterialCommunityIcons
+                      name={item.icon}
+                      size={22}
+                      color={sidebarSelection === item.key ? '#FFFFFF' : '#64748B'}
+                    />
+                    <Text style={[styles.sidebarItemText, sidebarSelection === item.key && styles.sidebarItemTextActive]}>
+                      {item.label}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
             </View>
-          </Pressable>
-          </View>
-          <Pressable
-            onPress={() => setSidebarSelection('Students')}
-            style={[
-              styles.sidebarItem,
-              sidebarSelection === 'Students' && styles.sidebarItemActive,
-              isMobile && styles.sidebarItemMobile
-            ]}
-          >
-            <MaterialCommunityIcons 
-              name="account-group" 
-              size={isMobile ? 24 : 20} 
-              color={sidebarSelection === 'Students' ? '#FFFFFF' : '#64748B'} 
-            />
-            <Text style={[styles.sidebarItemText, sidebarSelection === 'Students' && styles.sidebarItemTextActive]}>Students</Text>
-            </Pressable>
-          <Pressable
-            onPress={() => setSidebarSelection('Personnel')}
-            style={({ pressed, hovered }) => [
-              styles.sidebarItem,
-              sidebarSelection === 'Personnel' && styles.sidebarItemActive,
-              hovered && styles.sidebarItemHover,
-              pressed && styles.sidebarItemPressed,
-            ]}
-          >
-            <View style={styles.sidebarItemRow}>
-              <MaterialCommunityIcons
-                name="account-circle"
-                size={isMobile ? 12 : 22}
-                color={sidebarSelection === 'Personnel' ? '#FFFFFF' : '#64748B'}
-              />
-              <Text style={[styles.sidebarItemText, sidebarSelection === 'Personnel' && styles.sidebarItemTextActive]}>Accounts</Text>
-            </View>
-          </Pressable>
+          )}
         </View>
 
         <View style={[
@@ -517,13 +747,20 @@ export default function AdminDashboard({ navigation }) {
                     <View style={[styles.roleBadge, item.role === 'faculty' && styles.roleBadgeFaculty]}>
                       <Text style={styles.roleBadgeText}>{item.role || 'Staff'}</Text>
                     </View>
-                    <Pressable onPress={() => requestUserDelete(item.id)}>
-                      <MaterialCommunityIcons name="delete" size={20} color="#EF4444" />
-                    </Pressable>
+                    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                      <Pressable onPress={() => requestPasswordReset(item)}>
+                        <MaterialCommunityIcons name="key-variant" size={20} color="#0052FF" />
+                      </Pressable>
+                      <Pressable onPress={() => requestUserDelete(item.id)}>
+                        <MaterialCommunityIcons name="delete" size={20} color="#EF4444" />
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
               )}
             />
+          ) : sidebarSelection === 'Analytics' ? (
+            renderAnalyticsView()
           ) : (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <Text style={styles.emptyText}>Settings coming soon.</Text>
@@ -665,6 +902,62 @@ export default function AdminDashboard({ navigation }) {
           </View>
         </View>
       )}
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && (
+        <View style={styles.modalOverlay}>
+          <View style={[
+            styles.modalContent,
+            isMobile && { width: '95%', maxHeight: '95%' }
+          ]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Reset Password</Text>
+              <Pressable onPress={() => setShowResetPasswordModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#0F172A" />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 16 }}>
+                Resetting password for: <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>{selectedUserForReset?.first_name} {selectedUserForReset?.last_name} ({selectedUserForReset?.username})</Text>
+              </Text>
+
+              <Text style={styles.inputLabel}>New Password *</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter new password"
+                value={resetPasswordForm.password}
+                onChangeText={(text) => setResetPasswordForm({ ...resetPasswordForm, password: text })}
+                secureTextEntry={true}
+              />
+
+              <Text style={styles.inputLabel}>Confirm New Password *</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Confirm new password"
+                value={resetPasswordForm.confirmPassword}
+                onChangeText={(text) => setResetPasswordForm({ ...resetPasswordForm, confirmPassword: text })}
+                secureTextEntry={true}
+              />
+            </View>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                onPress={() => setShowResetPasswordModal(false)}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleResetPassword}
+                style={styles.confirmButton}
+              >
+                <Text style={styles.confirmButtonText}>Reset Password</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
     </ImageBackground>
   );
 }
@@ -672,19 +965,20 @@ export default function AdminDashboard({ navigation }) {
 const getStyles = (isMobile) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC'
+    backgroundColor: '#F5F7FA',
   },
   header: {
     marginBottom: 24,
     padding: 24,
-    borderRadius: 28,
+    borderRadius: 24,
     backgroundColor: '#002366',
     borderBottomWidth: 0,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 28,
-    elevation: 8,
+    shadowColor: '#002366',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 10,
+    overflow: 'hidden',
   },
   title: {
     ...Typography.header,
@@ -742,13 +1036,15 @@ const getStyles = (isMobile) => StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 26,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.08,
-    shadowRadius: 28,
-    elevation: 7
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 24,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   sidebar: {
     width: 250,
@@ -756,12 +1052,50 @@ const getStyles = (isMobile) => StyleSheet.create({
     paddingHorizontal: 20,
     borderRightWidth: 1,
     borderRightColor: '#E2E8F0',
-    backgroundColor: 'rgba(248,250,252,0.96)',
     backgroundColor: 'white'
+  },
+  sidebarMobile: {
+    width: '100%',
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    flexDirection: 'row',
+  },
+  mobileNavScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  mobileNavItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 3,
+    minWidth: 70,
+  },
+  mobileNavItemActive: {
+    backgroundColor: '#002366',
+  },
+  mobileNavLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 3,
+    textAlign: 'center',
+  },
+  mobileNavLabelActive: {
+    color: '#FFFFFF',
   },
   sidebarTitle: {
     ...Typography.header,
-    fontSize: isMobile ? 15 : 24,
+    fontSize: 24,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 30
@@ -788,8 +1122,8 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   sidebarItemText: {
     ...Typography.title,
-    marginLeft: isMobile ? 0 : 14,
-    fontSize: isMobile ? 11 : 15,
+    marginLeft: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#334155'
   },
@@ -1078,11 +1412,124 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   glassAccent: {
     position: 'absolute',
-    top: 0,
+    top: -20,
     right: -30,
-    width: 190,
-    height: 190,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  analyticsRow: {
+    flexDirection: 'row',
+    gap: 20,
+    width: '100%',
+    justifyContent: 'space-between',
+    marginBottom: 20
+  },
+  analyticsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  analyticsCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 10,
+  },
+  analyticsCardTitle: {
+    fontSize: isMobile ? 15 : 17,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  analyticsCardBody: {
+    gap: isMobile ? 8 : 12,
+  },
+  leaderboardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  leaderboardRankContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  leaderboardRankText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  leaderboardInfo: {
+    flex: 1,
+  },
+  leaderboardName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  leaderboardSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  leaderboardCount: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#002366',
+    marginLeft: 12,
+  },
+  distributionRow: {
+    marginBottom: 14,
+  },
+  distributionLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  distributionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  distributionValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  progressBarBg: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F1F5F9',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  sidebarItemActive: {
+    backgroundColor: '#002366',
+    borderRadius: 14,
+  },
+  sidebarItemHover: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14
   }
 });

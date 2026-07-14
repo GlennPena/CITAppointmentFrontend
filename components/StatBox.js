@@ -1,101 +1,95 @@
 /*
-  Responsible for displaying a statistical summary card for dashboard analytics and metrics overview.
+  StatBox — dashboard metric card with colored left-border accent,
+  large number, label, icon, and optional trend indicator.
 */
 
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useWindowDimensions } from 'react-native';
 
-
-const StatBox = ({ label, value, color = "#3B82F6", icon = "chart-box" }) => {
+const StatBox = ({ label, value, color = '#002366', icon = 'chart-box', trend }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-
   const styles = getStyles(isMobile, width);
 
   return (
-    <View style={styles.card}>
-      
-      {/* Top Row (Label + Icon) */}
-      <View style={styles.topRow}>
-        <Text style={styles.label}>{label}</Text>
-        <View style={[styles.iconContainer, { backgroundColor: color + "20" }]}>
-          <MaterialCommunityIcons name={icon} size={isMobile ? 14 : 18} color={color} />
-        </View>
+    <View style={[styles.card, { borderLeftColor: color }]}>
+      {/* Icon badge */}
+      <View style={[styles.iconBadge, { backgroundColor: color + '18' }]}>
+        <MaterialCommunityIcons name={icon} size={isMobile ? 18 : 22} color={color} />
       </View>
 
       {/* Value */}
       <Text style={[styles.value, { color }]}>{value}</Text>
 
-      {/* Accent Line */}
-      <View style={[styles.bar, { backgroundColor: color }]} />
+      {/* Label */}
+      <Text style={styles.label}>{label}</Text>
+
+      {/* Optional trend */}
+      {trend != null && (
+        <View style={styles.trendRow}>
+          <MaterialCommunityIcons
+            name={trend >= 0 ? 'trending-up' : 'trending-down'}
+            size={14}
+            color={trend >= 0 ? '#059669' : '#DC2626'}
+          />
+          <Text style={[styles.trendText, { color: trend >= 0 ? '#059669' : '#DC2626' }]}>
+            {trend >= 0 ? '+' : ''}{trend}%
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
 
 const getStyles = (isMobile, width) => StyleSheet.create({
   card: {
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    backgroundColor: '#FAFBFF',
-    padding: isMobile ? 14 : 22,
+    borderLeftWidth: 4,
+    padding: isMobile ? 14 : 20,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 4,
-    width: isMobile ? (width / 2) - 20 : 210,
-    minHeight: isMobile ? 110 : 138,
-  },
-  topRow: {
-    flexDirection: 'row',
+    shadowRadius: 12,
+    elevation: 3,
+    width: isMobile ? (width / 2) - 22 : 200,
+    minHeight: isMobile ? 108 : 130,
     justifyContent: 'space-between',
+  },
+  iconBadge: {
+    width: isMobile ? 36 : 42,
+    height: isMobile ? 36 : 42,
+    borderRadius: 12,
     alignItems: 'center',
-    gap: isMobile ? 6 : 12,
-    marginBottom: isMobile ? 8 : 12,
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  value: {
+    fontSize: isMobile ? 28 : 38,
+    fontWeight: '900',
+    letterSpacing: -1,
+    lineHeight: isMobile ? 34 : 44,
   },
   label: {
     fontSize: isMobile ? 11 : 12,
     fontWeight: '700',
     color: '#64748B',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
+    marginTop: 4,
   },
-  value: {
-    fontSize: isMobile ? 22 : 34,
-    fontWeight: '900',
-    color: '#0F172A',
-    letterSpacing: -0.75,
-    marginTop: 8,
-  },
-  trend: {
-    fontSize: isMobile ? 10 : 12,
-    fontWeight: '500',
+  trendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
+    gap: 3,
+    marginTop: 6,
   },
-  trendPositive: {
-    color: '#16A34A',
-  },
-  trendNegative: {
-    color: '#DC2626',
-  },
-  iconContainer: {
-    padding: isMobile ? 6 : 10,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  bar: {
-    height: isMobile ? 4 : 5,
-    borderRadius: 99,
-    marginTop: isMobile ? 12 : 18,
+  trendText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
 

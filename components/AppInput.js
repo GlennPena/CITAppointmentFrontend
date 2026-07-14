@@ -1,42 +1,35 @@
 /* 
-  Responsible for creating input field with animated floating label, validation handling, and optional password visibility toggle.
+  AppInput — floating label text input with animated label, focus ring,
+  and optional password visibility toggle.
 */
 
 import { useState, useRef, useEffect } from 'react';
 import { View, TextInput, Animated, StyleSheet, Pressable } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 
-import { Typography } from "../styles/theme";
-
-export const AppInput = ({ 
-  label, 
-  value, 
-  onChangeText, 
-  setError, 
-  secureTextEntry, 
-  style, 
+export const AppInput = ({
+  label,
+  value,
+  onChangeText,
+  setError,
+  secureTextEntry,
+  style,
   editable,
   disabledStyleOverride,
   disabledLabelBg,
-  ...props 
+  ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  // Only forces the "default/unfocused" look when this input is explicitly
-  // marked disabled via disabledStyleOverride (e.g. Academic Info in
-  // RegistrationScreen). Other screens using editable={false} without this
-  // prop keep their existing floating-label behavior untouched.
   const isForcedDisabledLook = editable === false && !!disabledStyleOverride;
 
-  // Auto-pull the backgroundColor from disabledStyleOverride so the label
-  // always matches the field, without needing a second prop kept in sync.
   const flattenedDisabledStyle = disabledStyleOverride
     ? StyleSheet.flatten(disabledStyleOverride)
     : null;
   const resolvedDisabledLabelBg =
-    disabledLabelBg || flattenedDisabledStyle?.backgroundColor || '#ffffff';
-  
+    disabledLabelBg || flattenedDisabledStyle?.backgroundColor || '#FFFFFF';
+
   const animatedIsFocused = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
@@ -46,84 +39,71 @@ export const AppInput = ({
 
     Animated.timing(animatedIsFocused, {
       toValue,
-      duration: 200,
-      useNativeDriver: false, 
+      duration: 180,
+      useNativeDriver: false,
     }).start();
   }, [isFocused, value, isForcedDisabledLook]);
 
   const isSecure = secureTextEntry && !isPasswordVisible;
 
+  const showHint = !isForcedDisabledLook && (isFocused || (value && value.length > 0));
+
   const labelStyle = {
-    ...Typography.body,
     position: 'absolute',
-    left: 16,
-    top: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: [14, -12],
-    }),
-    fontSize: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: [15, 12], 
-    }),
+    left: 14,
+    top: animatedIsFocused.interpolate({ inputRange: [0, 1], outputRange: [16, -10] }),
+    fontSize: animatedIsFocused.interpolate({ inputRange: [0, 1], outputRange: [15, 11] }),
+    fontWeight: '600',
     color: animatedIsFocused.interpolate({
       inputRange: [0, 1],
-      outputRange: ['#94A3B8', '#0F172A'], 
+      outputRange: ['#94A3B8', isFocused ? '#002366' : '#475569'],
     }),
-    backgroundColor: isForcedDisabledLook ? resolvedDisabledLabelBg : '#ffffff', 
-    paddingHorizontal: 6,
+    backgroundColor: isForcedDisabledLook ? resolvedDisabledLabelBg : '#FFFFFF',
+    paddingHorizontal: 4,
     zIndex: 2,
+    letterSpacing: 0.2,
   };
 
-  const showHint = !isForcedDisabledLook && (isFocused || (value && value.length > 0));
-  
   return (
     <View style={styles.container}>
       <Animated.Text style={labelStyle} pointerEvents="none">
-        {label === "Date of Birth" && showHint 
-          ? "Date of Birth (YYYY-MM-DD)" 
-        : label === "Course" && showHint
-          ? "Course (BSN, STEM, High School)"
-        : label === "Year" && showHint
-          ? "Year / Grade Level"
-        : label}
+        {label === 'Date of Birth' && showHint
+          ? 'Date of Birth (YYYY-MM-DD)'
+          : label === 'Course' && showHint
+          ? 'Course (BSN, STEM, High School)'
+          : label === 'Year' && showHint
+          ? 'Year / Grade Level'
+          : label}
       </Animated.Text>
 
       <TextInput
         {...props}
         editable={editable}
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor="#CBD5E1"
         style={[
-          styles.defaultInput,
-          isFocused && !isForcedDisabledLook && styles.focus,
-          editable === false && { backgroundColor: '#ffffff', color: '#64748B' },
+          styles.input,
+          isFocused && !isForcedDisabledLook && styles.inputFocused,
+          editable === false && styles.inputDisabled,
           editable === false && disabledStyleOverride,
+          (secureTextEntry && value?.length > 0) && { paddingRight: 52 },
           style,
-          (secureTextEntry && value?.length > 0) && { paddingRight: 56 }
-          
         ]}
         secureTextEntry={isSecure}
         value={value}
-        onFocus={() => {
-          setIsFocused(true);
-          if (setError) setError(null);
-        }}
+        onFocus={() => { setIsFocused(true); if (setError) setError(null); }}
         onBlur={() => setIsFocused(false)}
-        onChangeText={(text) => {
-          if (onChangeText) onChangeText(text);
-          if (setError) setError(null);
-        }}
+        onChangeText={(text) => { if (onChangeText) onChangeText(text); if (setError) setError(null); }}
       />
 
       {secureTextEntry && value?.length > 0 && (
-        <Pressable 
-          style={styles.iconContainer} 
+        <Pressable
+          style={styles.eyeBtn}
           onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          {isPasswordVisible ? (
-            <EyeOff size={20} color="#64748B" />
-          ) : (
-            <Eye size={20} color="#64748B" />
-          )}
+          {isPasswordVisible
+            ? <EyeOff size={19} color="#94A3B8" />
+            : <Eye    size={19} color="#94A3B8" />}
         </Pressable>
       )}
     </View>
@@ -133,33 +113,39 @@ export const AppInput = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginVertical: 12,
+    marginVertical: 10,
     position: 'relative',
   },
-  defaultInput: {
-    ...Typography.body,
+  input: {
     width: '100%',
-    height: 50,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0d8d8',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: '#0F172A',
-    letterSpacing: 0.3,
-  },
-  focus: {
-    ...Typography.body,
-    borderColor: '#ffffff', 
-    backgroundColor: '#FFFFFF',
+    height: 52,
+    borderRadius: 14,
     borderWidth: 1.5,
-    letterSpacing: 0.3,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    fontSize: 15,
+    color: '#0F172A',
+    letterSpacing: 0.2,
   },
-  iconContainer: {
+  inputFocused: {
+    borderColor: '#002366',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#002366',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  inputDisabled: {
+    backgroundColor: '#F8FAFC',
+    color: '#94A3B8',
+    borderColor: '#E2E8F0',
+  },
+  eyeBtn: {
     position: 'absolute',
-    right: 12,
-    top: 15,
+    right: 14,
+    top: 16,
     zIndex: 2,
   },
 });

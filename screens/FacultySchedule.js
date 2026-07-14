@@ -10,6 +10,15 @@ import api from "../utils/api";
 import { Typography } from "../styles/theme";
 
 
+// Returns today's date as YYYY-MM-DD in the device's local timezone.
+// Using toISOString() would return UTC date which is wrong for UTC+8 users.
+const getLocalDateStr = (date = new Date()) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 export default function FacultySchedule({ route }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -17,7 +26,7 @@ export default function FacultySchedule({ route }) {
   const styles = getStyles(isMobile, isDesktop);
 
   const [appointments, setAppointments] = useState([]);
-  const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
+  const [dateStr, setDateStr] = useState(getLocalDateStr());
   const [loading, setLoading] = useState(false);
 
   const [isModalVisible, setIsModalVisible] = useState(false); 
@@ -380,139 +389,138 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F5F7FA',
     width: '100%',
-    height: '100%', 
-    paddingHorizontal: isMobile ? 12 : 50, 
-    paddingTop: 16
+    height: '100%',
+    paddingHorizontal: isMobile ? 12 : 50,
+    paddingTop: 16,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 20,
     marginTop: 16,
-    padding: isMobile ? 30 : 36,
-    borderRadius: 28,
+    padding: isMobile ? 22 : 32,
+    borderRadius: 24,
     backgroundColor: '#002366',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 28,
-    elevation: 8,
+    shadowColor: '#002366',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.28,
+    shadowRadius: 24,
+    elevation: 10,
     width: '100%',
-
     flexDirection: isMobile ? 'column' : 'row',
     justifyContent: 'space-between',
     alignItems: isMobile ? 'flex-start' : 'center',
-    gap: isMobile ? 10 : 0,
+    gap: isMobile ? 8 : 0,
+    overflow: 'hidden',
   },
   pageTitle: {
-    ...Typography.header,
-    fontSize: isMobile ? 24 : 36,
-    fontWeight: '800',
+    fontSize: isMobile ? 22 : 30,
+    fontWeight: '900',
     color: '#FFFFFF',
-    marginBottom: 6,
+    letterSpacing: -0.8,
+    marginBottom: 4,
   },
   dateSubtext: {
-    ...Typography.title,
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 18,
-    fontWeight: '600'
+    color: 'rgba(255,255,255,0.70)',
+    fontSize: isMobile ? 13 : 15,
+    fontWeight: '500',
   },
   glassAccent: {
     position: 'absolute',
-    top: -20,
-    right: -20,
-    width: 180,
-    height: 180,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    top: -30,
+    right: -30,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 16,
+    gap: 10,
   },
   filterGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   datePickerBox: {
-    flexDirection: 'row', 
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
-    gap: 12
+    marginVertical: 18,
+    gap: 12,
   },
   datePickerLabel: {
-    ...Typography.title,
     color: '#002366',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
+    letterSpacing: -0.2,
   },
   dateInput: {
-    ...Typography.body,
     fontWeight: '600',
-    padding: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ffffff',
+    padding: 9,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
     fontSize: 14,
     cursor: 'pointer',
     lineHeight: 1,
     outlineStyle: 'none',
-    width: 105,
+    width: 110,
     paddingRight: 8,
+    color: '#0F172A',
   },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10,
-    gap: 8,
+    gap: 6,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderRadius: 10,
-    borderColor: '#ffffff',
-    padding: 6,
-    paddingHorizontal: 12
-
+    borderWidth: 1.5,
+    borderRadius: 12,
+    borderColor: '#E2E8F0',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   sortBtnText: {
-    ...Typography.body,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#0F172A',
+    color: '#334155',
   },
-
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    paddingVertical: 14,
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 10,
+    borderRadius: 10,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     width: isDesktop ? '100%' : 1000,
   },
   headerCell: {
-    ...Typography.label,
-    fontSize: isMobile ? 10 : 12,
+    fontSize: isMobile ? 10 : 11,
     fontWeight: '800',
-    color: '#475569',
+    color: '#94A3B8',
     textTransform: 'uppercase',
-    paddingLeft: 20
+    letterSpacing: 1,
+    paddingLeft: 20,
   },
-
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#F1F5F9',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 4,
-    marginBottom: 20,
-    borderWidth: 1.5,
+    marginBottom: 18,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
     alignSelf: 'flex-start',
-    minWidth: 320
+    minWidth: 320,
   },
   tabButton: {
     flex: 1,
@@ -521,46 +529,46 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    gap: 8,
-    backgroundColor: 'transparent'
+    borderRadius: 10,
+    gap: 7,
+    backgroundColor: 'transparent',
   },
   tabButtonActive: {
     backgroundColor: '#002366',
     shadowColor: '#002366',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   tabButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569'
+    color: '#64748B',
+    letterSpacing: 0.1,
   },
   tabButtonTextActive: {
-    color: '#FFF'
+    color: '#FFFFFF',
   },
-
   emptyContainer: {
     marginTop: 60,
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
   },
   emptyTitle: {
-    ...Typography.body,
     fontSize: isMobile ? 16 : 18,
     fontWeight: '700',
     color: '#334155',
     marginBottom: 6,
+    letterSpacing: -0.2,
   },
   emptyText: {
-    ...Typography.body,
-    fontSize: isMobile ? 12 : 14,
+    fontSize: isMobile ? 13 : 14,
     color: '#94A3B8',
     textAlign: 'center',
+    lineHeight: 21,
   },
   mainWrapper: {
     width: '100%',
-  }
+  },
 });

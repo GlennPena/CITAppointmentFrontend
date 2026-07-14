@@ -114,6 +114,9 @@ export default function RegistrationScreen({ navigation, route }) {
         dataToSend.course = "N/A";
         dataToSend.year = "N/A";
         dataToSend.section = "N/A";
+        dataToSend.role = "faculty";
+      } else {
+        dataToSend.role = "student";
       }
 
       const payload = isGoogle ? { ...dataToSend, is_google: true } : dataToSend;
@@ -308,7 +311,7 @@ export default function RegistrationScreen({ navigation, route }) {
               {isStaff && <Text style={styles.checkboxMark}>✓</Text>}
             </View>
             <Text style={styles.checkboxLabel}>
-              I am an Employee.
+              I am a Faculty.
             </Text>
           </Pressable>
 
