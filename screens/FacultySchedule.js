@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
-import { View, FlatList, StyleSheet, Text, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions} from "react-native";
+import { View, FlatList, StyleSheet, Text, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions, Modal, TextInput, Alert} from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import AppointmentRow from "../components/AppointmentTable";
-import PatientDetailModal from "../components/PatientDetailModal";
+import StudentDetailModal from "../components/StudentDetailModal";
 import CompleteAppointmentModal from "../components/CompleteAppointmentModal";
 
 import api from "../utils/api";
 import { Typography } from "../styles/theme";
 
 
-export default function DoctorSchedule() {
+export default function FacultySchedule({ route }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isDesktop = width >= 1200;
@@ -22,10 +22,18 @@ export default function DoctorSchedule() {
 
   const [isModalVisible, setIsModalVisible] = useState(false); 
   const [selectedItem, setSelectedItem] = useState(null);
+  const [cancelModal, setCancelModal] = useState({ visible: false, id: null, reason: "" });
 
   const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
 
   const [sortOrder, setSortOrder] = useState('newest');
+  const [activeTab, setActiveTab] = useState('students'); // 'students' or 'meetings'
+
+  useEffect(() => {
+    if (route?.params?.date) {
+      setDateStr(route.params.date);
+    }
+  }, [route?.params]);
 
   useEffect(() => {
     loadData();
@@ -44,7 +52,15 @@ export default function DoctorSchedule() {
         return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
       });
 
-      setAppointments(res.data);
+      if (route?.params?.highlightId) {
+        const target = data.find(app => app.id === route.params.highlightId);
+        if (target) {
+          const isMeeting = !target.student_name || target.student_name === "N/A";
+          setActiveTab(isMeeting ? 'meetings' : 'students');
+        }
+      }
+
+      setAppointments(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -53,11 +69,37 @@ export default function DoctorSchedule() {
   };
 
   const handleAction = async (id, newStatus) => {
+    if (newStatus === 'Cancelled') {
+      setCancelModal({ visible: true, id, reason: "" });
+    } else {
+      try {
+        await api.patch(`appointments/${id}/`, { status: newStatus });
+        loadData();
+      } catch (err) {
+        alert("Error: " + (err.response?.data?.detail || "Action failed"));
+      }
+    }
+  };
+
+  const submitCancellation = async () => {
+    const { id, reason } = cancelModal;
+    if (!reason.trim()) {
+      Alert.alert("Required", "Please enter a reason for cancellation.");
+      return;
+    }
+
     try {
-      await api.patch(`appointments/${id}/`, { status: newStatus });
+      setLoading(true);
+      setCancelModal({ visible: false, id: null, reason: "" });
+      await api.patch(`appointments/${id}/`, {
+        status: 'Cancelled',
+        consultation_notes: `Faculty Cancellation: ${reason.trim()}`
+      });
       loadData();
     } catch (err) {
-      alert("Error: " + (err.response?.data?.detail || "Action failed"));
+      console.error(err);
+      alert("Failed to cancel appointment.");
+      setLoading(false);
     }
   };
 
@@ -103,15 +145,21 @@ export default function DoctorSchedule() {
       </View>
 
       <View style={{ flex: 2 }}>
-        <Text style={styles.headerCell}>Patient</Text>
+        <Text style={styles.headerCell}>
+          {activeTab === 'meetings' ? 'Host / Organizer' : 'Student'}
+        </Text>
       </View>
 
       <View style={{ flex: 2 }}>
-        <Text style={styles.headerCell}>Service</Text>
+        <Text style={styles.headerCell}>
+          {activeTab === 'meetings' ? 'Meeting Type' : 'Service'}
+        </Text>
       </View>
 
       <View style={{ flex: 2 }}>
-        <Text style={styles.headerCell}>Condition</Text>
+        <Text style={styles.headerCell}>
+          {activeTab === 'meetings' ? 'Agenda' : 'Notes'}
+        </Text>
       </View>
 
       <View style={{ flex: 1.5 }}>
@@ -121,7 +169,7 @@ export default function DoctorSchedule() {
       <View style={{ flex: 2 }}>
         <Text style={[styles.headerCell, {textAlign: 'right', paddingRight:10 }]}>Actions</Text>
       </View>
-  </View>
+    </View>
   );
 
   return (
@@ -173,13 +221,47 @@ export default function DoctorSchedule() {
           </View>
         </View>
       
+        {/* SEGMENTED TAB SELECTOR */}
+        <View style={styles.tabContainer}>
+          <Pressable 
+            style={[styles.tabButton, activeTab === 'students' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('students')}
+          >
+            <MaterialCommunityIcons 
+              name="account-school" 
+              size={18} 
+              color={activeTab === 'students' ? '#FFF' : '#475569'} 
+            />
+            <Text style={[styles.tabButtonText, activeTab === 'students' && styles.tabButtonTextActive]}>
+              Student Consultations
+            </Text>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.tabButton, activeTab === 'meetings' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('meetings')}
+          >
+            <MaterialCommunityIcons 
+              name="account-group" 
+              size={18} 
+              color={activeTab === 'meetings' ? '#FFF' : '#475569'} 
+            />
+            <Text style={[styles.tabButtonText, activeTab === 'meetings' && styles.tabButtonTextActive]}>
+              CIT Meetings
+            </Text>
+          </Pressable>
+        </View>
+
         <ScrollView horizontal={!isDesktop} showsHorizontalScrollIndicator={!isDesktop}>
           <View style={{ width: '100%' }}>
             {loading ? (
-              <ActivityIndicator size="large" color="#0052FF" style={{ marginTop: 40 }} />
+              <ActivityIndicator size="large" color="#002366" style={{ marginTop: 40 }} />
             ) : (
               <FlatList
-                data={appointments}
+                data={appointments.filter(item => {
+                  const isMeeting = !item.student_name || item.student_name === "N/A";
+                  return activeTab === 'meetings' ? isMeeting : !isMeeting;
+                })}
                 keyExtractor={(item) => item.id.toString()}
                 ListHeaderComponent={TableHeader}
                 contentContainerStyle={{ paddingBottom: 40 }}
@@ -190,13 +272,18 @@ export default function DoctorSchedule() {
                     onAction={handleAction}
                     onCompletePress={handleOpenCompleteModal}
                     onDelete={handleDelete}
+                    isHighlighted={route?.params?.highlightId === item.id}
                   />
                 )}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyTitle}>No Appointments</Text>
+                    <Text style={styles.emptyTitle}>
+                      {activeTab === 'meetings' ? 'No CIT Meetings' : 'No Appointments'}
+                    </Text>
                     <Text style={styles.emptyText}>
-                      There are no scheduled appointments for this date.
+                      {activeTab === 'meetings' 
+                        ? 'There are no CIT meetings scheduled for this date.' 
+                        : 'There are no scheduled student consultations for this date.'}
                     </Text>
                   </View>
                 }
@@ -205,7 +292,7 @@ export default function DoctorSchedule() {
           </View>
         </ScrollView>
 
-        <PatientDetailModal 
+        <StudentDetailModal 
           visible={isModalVisible} 
           item={selectedItem} 
           onClose={() => setIsModalVisible(false)} 
@@ -214,10 +301,73 @@ export default function DoctorSchedule() {
 
         <CompleteAppointmentModal
           visible={isCompleteModalVisible}
-          patientName={selectedItem?.patient_name}
+          studentName={selectedItem?.student_name}
           onClose={() => setIsCompleteModalVisible(false)}
           onConfirm={handleConfirmCompletion}
         />
+
+        <Modal visible={cancelModal.visible} transparent animationType="fade">
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}>
+            <View style={{
+              backgroundColor: '#FFF',
+              borderRadius: 20,
+              padding: 24,
+              width: '90%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 5
+            }}>
+              <Text style={{ ...Typography.header, fontSize: 18, fontWeight: '800', color: '#002366', marginBottom: 8 }}>
+                Cancel Appointment
+              </Text>
+              <Text style={{ ...Typography.body, fontSize: 13, color: '#64748B', marginBottom: 16 }}>
+                Please provide a reason for cancelling this appointment:
+              </Text>
+              <TextInput
+                placeholder="e.g. Schedule conflict with department faculty meeting."
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: '#E2E8F0',
+                  borderRadius: 10,
+                  padding: 12,
+                  fontSize: 14,
+                  color: '#1E293B',
+                  minHeight: 100,
+                  textAlignVertical: 'top',
+                  marginBottom: 20,
+                  backgroundColor: '#F8FAFC'
+                }}
+                multiline={true}
+                numberOfLines={4}
+                value={cancelModal.reason}
+                onChangeText={(txt) => setCancelModal({ ...cancelModal, reason: txt })}
+              />
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <Pressable
+                  style={{ flex: 1, backgroundColor: '#F1F5F9', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                  onPress={() => setCancelModal({ visible: false, id: null, reason: "" })}
+                >
+                  <Text style={{ color: '#475569', fontWeight: '700', fontSize: 14 }}>Go Back</Text>
+                </Pressable>
+                <Pressable
+                  style={{ flex: 1, backgroundColor: '#EF4444', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                  onPress={submitCancellation}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Cancel Appt</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
         </View>
       </ImageBackground>
     </ScrollView>
@@ -353,6 +503,45 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     paddingLeft: 20
   },
 
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignSelf: 'flex-start',
+    minWidth: 320
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+    backgroundColor: 'transparent'
+  },
+  tabButtonActive: {
+    backgroundColor: '#002366',
+    shadowColor: '#002366',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569'
+  },
+  tabButtonTextActive: {
+    color: '#FFF'
+  },
+
   emptyContainer: {
     marginTop: 60,
     alignItems: 'center',
@@ -375,4 +564,3 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     width: '100%',
   }
 });
-

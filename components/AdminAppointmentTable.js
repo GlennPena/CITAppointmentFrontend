@@ -24,7 +24,7 @@ export default function AdminAppointmentRow({ item, onDelete, onViewDetails }) {
       </View>
 
       <View style={{ flex: 2 }}>
-        <Text style={styles.primaryText}>{item.patient_name}</Text>
+        <Text style={styles.primaryText}>{item.student_name}</Text>
         <Pressable onPress={() => onViewDetails(item)}>
           <Text style={styles.linkText}>View Details</Text>
         </Pressable>

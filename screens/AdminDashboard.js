@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, Pressab
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import AdminAppointmentRow from "../components/AdminAppointmentTable";
-import PatientDetailModal from "../components/PatientDetailModal";
+import StudentDetailModal from "../components/StudentDetailModal";
 import StatBox from "../components/StatBox";
 import InlineAlert from "../components/InlineAlert";
 import { ConfirmModal } from "../components/ConfirmModal";
@@ -21,7 +21,7 @@ export default function AdminDashboard({ navigation }) {
   const styles = getStyles(isMobile);
 
   const [appointments, setAppointments] = useState([]);
-  const [patients, setPatients] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -29,7 +29,7 @@ export default function AdminDashboard({ navigation }) {
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
   const [confirmDelete, setConfirmDelete] = useState({ visible: false, id: null });
 
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [detailVisible, setDetailVisible] = useState(false);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0 });
 
@@ -42,7 +42,7 @@ export default function AdminDashboard({ navigation }) {
     lastName: "",
     email: "",
     contact: "",
-    role: "doctor",
+    role: "faculty",
     password: "",
   });
 
@@ -51,7 +51,7 @@ export default function AdminDashboard({ navigation }) {
   const filterOptions = ["All", "Completed", "Cancelled", "Rejected"];
 
   const [accountFilter, setAccountFilter] = useState("All");
-  const accountFilterOptions = ["All", "Patient", "Doctor", "Admin"];
+  const accountFilterOptions = ["All", "Student", "Faculty", "Admin"];
 
   useEffect(() => {
     loadData();
@@ -64,7 +64,7 @@ export default function AdminDashboard({ navigation }) {
       const res = await api.get("appointments/");
       setAppointments(res.data);
       updateStats(res.data);
-      extractPatients(res.data);
+      extractStudents(res.data);
     } catch (err) {
       setError("Failed to load appointment records. Please check your connection.");
     } finally {
@@ -72,21 +72,21 @@ export default function AdminDashboard({ navigation }) {
     }
   };
 
-  const extractPatients = (appointmentData) => {
-    const patientMap = {};
+  const extractStudents = (appointmentData) => {
+    const studentMap = {};
     appointmentData.forEach(appt => {
-      const patientId = appt.patient;
-      if (!patientMap[patientId]) {
-        patientMap[patientId] = {
-          id: patientId,
-          name: appt.patient_name,
-          email: appt.patient_email,
+      const studentId = appt.student;
+      if (!studentMap[studentId]) {
+        studentMap[studentId] = {
+          id: studentId,
+          name: appt.student_name,
+          email: appt.student_email,
           appointmentCount: 0
         };
       }
-      patientMap[patientId].appointmentCount += 1;
+      studentMap[studentId].appointmentCount += 1;
     });
-    setPatients(Object.values(patientMap));
+    setStudents(Object.values(studentMap));
   };
 
   const updateStats = (data) => {
@@ -166,7 +166,7 @@ export default function AdminDashboard({ navigation }) {
         lastName: "",
         email: "",
         contact: "",
-        role: "doctor",
+        role: "faculty",
         password: "",
       });
 
@@ -193,7 +193,7 @@ export default function AdminDashboard({ navigation }) {
 
   const filteredAppointments = Array.isArray(appointments) 
   ? appointments.filter(item => {
-      const matchesSearch = item.patient_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = item.student_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const now = new Date();
       const appointmentDate = item.date_time ? new Date(item.date_time) : null;
@@ -283,23 +283,20 @@ export default function AdminDashboard({ navigation }) {
           </Pressable>
           </View>
           <Pressable
-            onPress={() => setSidebarSelection('Patients')}
-            style={({ pressed, hovered }) => [
+            onPress={() => setSidebarSelection('Students')}
+            style={[
               styles.sidebarItem,
-              sidebarSelection === 'Patients' && styles.sidebarItemActive,
-              hovered && styles.sidebarItemHover,
-              pressed && styles.sidebarItemPressed,
+              sidebarSelection === 'Students' && styles.sidebarItemActive,
+              isMobile && styles.sidebarItemMobile
             ]}
           >
-            <View style={styles.sidebarItemRow}>
-              <MaterialCommunityIcons
-                name="account-group-outline"
-                size={isMobile ? 14 : 22}
-                color={sidebarSelection === 'Patients' ? '#FFFFFF' : '#64748B'}
-              />
-              <Text style={[styles.sidebarItemText, sidebarSelection === 'Patients' && styles.sidebarItemTextActive]}>Patients</Text>
-            </View>
-          </Pressable>
+            <MaterialCommunityIcons 
+              name="account-group" 
+              size={isMobile ? 24 : 20} 
+              color={sidebarSelection === 'Students' ? '#FFFFFF' : '#64748B'} 
+            />
+            <Text style={[styles.sidebarItemText, sidebarSelection === 'Students' && styles.sidebarItemTextActive]}>Students</Text>
+            </Pressable>
           <Pressable
             onPress={() => setSidebarSelection('Personnel')}
             style={({ pressed, hovered }) => [
@@ -395,32 +392,32 @@ export default function AdminDashboard({ navigation }) {
                   item={item}
                   onDelete={requestDelete}
                   onViewDetails={(pt) => {
-                    setSelectedPatient(pt);
+                    setSelectedStudent(pt);
                     setDetailVisible(true);
                   }}
                 />
               )}
             />
           
-          ) : sidebarSelection === 'Patients' ? (
+          ) : sidebarSelection === 'Students' ? (
             <FlatList
-              data={patients.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))}
+              data={students.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))}
               keyExtractor={item => item.id.toString()}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>No patients found.</Text>
+                <Text style={styles.emptyText}>No students found.</Text>
               }
               ListHeaderComponent={
                 <>
                   <View style={styles.header}>
                     <Text style={[styles.title, styles.pageTitle]}>
-                      Patients
+                      Students
                     </Text>
 
                     <View style={styles.searchContainer}>
                       <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
                       <TextInput
-                        placeholder="Search patients..."
+                        placeholder="Search students..."
                         style={styles.searchInput}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -429,7 +426,7 @@ export default function AdminDashboard({ navigation }) {
                     <View style={styles.glassAccent} />
                   </View>
 
-                  <Text style={styles.sectionTitle}>All Patients ({patients.length})</Text>
+                  <Text style={styles.sectionTitle}>All Students ({students.length})</Text>
                 </>
               }
               renderItem={({ item }) => (
@@ -517,7 +514,7 @@ export default function AdminDashboard({ navigation }) {
                     )}
                   </View>
                   <View style={styles.personnelMeta}>
-                    <View style={[styles.roleBadge, item.role === 'doctor' && styles.roleBadgeDoctor]}>
+                    <View style={[styles.roleBadge, item.role === 'faculty' && styles.roleBadgeFaculty]}>
                       <Text style={styles.roleBadgeText}>{item.role || 'Staff'}</Text>
                     </View>
                     <Pressable onPress={() => requestUserDelete(item.id)}>
@@ -555,9 +552,9 @@ export default function AdminDashboard({ navigation }) {
         onCancel={() => setConfirmDelete({ visible: false, id: null })}
       />
 
-      <PatientDetailModal
+      <StudentDetailModal
         visible={detailVisible}
-        item={selectedPatient}
+        item={selectedStudent}
         onClose={() => setDetailVisible(false)}
         onAction={() => {}}
       />
@@ -622,7 +619,7 @@ export default function AdminDashboard({ navigation }) {
 
               <Text style={styles.inputLabel}>Role *</Text>
               <View style={styles.roleSelector}>
-                {['doctor', 'admin'].map((role) => (
+                {['faculty', 'dean', 'admin'].map((role) => (
                   <Pressable
                     key={role}
                     onPress={() => setPersonnelForm({ ...personnelForm, role })}
@@ -922,7 +919,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     backgroundColor: '#F1F5F9',
     borderRadius: 12
   },
-  roleBadgeDoctor: {
+  roleBadgeFaculty: {
     backgroundColor: '#DBEAFE'
   },
   roleBadgeText: {

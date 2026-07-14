@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Image, Pressable, Text, StyleSheet, useWindowDimensions } from "react-native";
+import { Image, Pressable, Text, StyleSheet, useWindowDimensions, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -13,12 +13,36 @@ import { Typography } from "./styles/theme";
 
 import LoginScreen from "./screens/LoginScreen";
 import RegistrationScreen from "./screens/RegistrationScreen";
-import PatientDashboard from "./screens/PatientDashboard";
+import StudentDashboard from "./screens/StudentDashboard";
 import AdminDashboard from "./screens/AdminDashboard";
-import DoctorNavigation from "./screens/DoctorNavigation";
+import FacultyNavigation from "./screens/FacultyNavigation";
 
 
 const Stack = createNativeStackNavigator();
+
+// Header Logo Component
+const HeaderLogo = ({ isMobile }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: isMobile ? 0 : 20 }}>
+    <Image 
+      source={require('./assets/cit-logo.png')}
+      style={{
+        width: isMobile ? 35 : 45,
+        height: isMobile ? 35 : 45,
+        marginRight: 8,
+      }} 
+      resizeMode="contain"
+    />
+    <Text style={{
+      fontSize: isMobile ? 15 : 20,
+      fontWeight: '900',
+      color: '#002366',
+      fontFamily: 'Inter_900Black',
+      letterSpacing: 0.5,
+    }}>
+      UA APPOINTMENT
+    </Text>
+  </View>
+);
 
 // Logout Button Component
 const LogoutButton = ({ navigation, isMobile }) => (
@@ -59,8 +83,8 @@ export default function App() {
 
         if (accessToken && rememberMe === 'true' && role) {
           if (role === 'admin') setInitialRoute("AdminDashboard");
-          else if (role === 'doctor') setInitialRoute("DoctorHome");
-          else setInitialRoute("PatientDashboard");
+          else if (role === 'faculty' || role === 'dean') setInitialRoute("FacultyHome");
+          else setInitialRoute("StudentDashboard");
 
         } else {
           const keys = ['access_token', 'refresh_token', 'user_role', 'first_name', 'last_name'];
@@ -91,17 +115,7 @@ export default function App() {
           name="AdminDashboard" 
           component={AdminDashboard} 
           options={({ navigation }) => ({
-            headerTitle: () => (
-              <Image 
-                resizeMode="contain"
-                source={require('./assets/ua-clinic-logo.png')} 
-                style={{
-                width: isMobile ? 120 : 180,
-                height: isMobile ? 40 : 60,
-                marginLeft: isMobile ? 0 : 20,
-              }}
-              />
-            ),
+            headerTitle: () => <HeaderLogo isMobile={isMobile} />,
             headerLeft: () => null,
             headerTitleAlign: 'left',
             headerRight: () => <LogoutButton navigation={navigation} isMobile={isMobile} />,
@@ -113,20 +127,10 @@ export default function App() {
         />
 
         <Stack.Screen 
-          name="DoctorHome" 
-          component={DoctorNavigation} 
+          name="FacultyHome" 
+          component={FacultyNavigation} 
           options={({ navigation }) => ({
-            headerTitle: () => (
-              <Image 
-                resizeMode="contain"
-                source={require('./assets/ua-clinic-logo.png')} 
-                style={{
-                  width: isMobile ? 120 : 180,
-                  height: isMobile ? 40 : 60,
-                  marginLeft: isMobile ? 0 : 20,
-                }} 
-              />
-            ),
+            headerTitle: () => <HeaderLogo isMobile={isMobile} />,
             headerTitleAlign: 'left',
             headerRight: () => <LogoutButton navigation={navigation} isMobile={isMobile} />,
             headerStyle: {
@@ -137,20 +141,10 @@ export default function App() {
         />
 
         <Stack.Screen 
-          name="PatientDashboard" 
-          component={PatientDashboard} 
+          name="StudentDashboard" 
+          component={StudentDashboard} 
           options={({ navigation }) => ({
-            headerTitle: () => (
-              <Image 
-                resizeMode="contain"
-                source={require('./assets/ua-clinic-logo.png')} 
-                style={{
-                width: isMobile ? 120 : 180,
-                height: isMobile ? 40 : 60,
-                marginLeft: isMobile ? 0 : 20,
-              }}
-              />
-            ),
+            headerTitle: () => <HeaderLogo isMobile={isMobile} />,
             headerLeft: () => null,
             headerTitleAlign: 'left',
             headerRight: () => <LogoutButton navigation={navigation} isMobile={isMobile} />,

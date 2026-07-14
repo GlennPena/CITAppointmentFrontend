@@ -1,5 +1,6 @@
 /* 
-  Modal for printable early dismissal slip
+  Modal for printable Consultation Report
+  Includes: Student Info, Appointment Notes, Consultation Report by Faculty
 */
 
 import React, { useRef, useState, useEffect } from 'react';
@@ -14,7 +15,7 @@ import { Asset } from 'expo-asset';
 import api from '../utils/api';
 
 
-export default function DismissalSlipModal({ visible, onClose, data }) {
+export default function ConsultationReportModal({ visible, onClose, data }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const styles = getStyles(isMobile);
@@ -41,6 +42,9 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
   const cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
   const verificationUrl = `${cleanBaseUrl}/verify-slip/${data.id}/`;
 
+  const appointmentNotes = data.condition || "No appointment notes provided.";
+  const consultationNotes = data.consultation_notes || "No consultation notes recorded.";
+
   const getQRCodeBase64 = () => {
     return new Promise((resolve) => {
       if (qrRef.current) {
@@ -54,7 +58,6 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
   };
   
   const handleAction = async () => {
-    console.log("DEBUG: Appointment Data Object:", data);
     try {
       const asset = Asset.fromModule(require('../assets/ua-logo.png'));
       await asset.downloadAsync();
@@ -71,32 +74,28 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
           year: 'numeric' 
         })
       : "N/A";
-      
-      let timeOutStr = "--:-- --";
-      if (appointmentDateObj) {
-        const timeOutDate = new Date(appointmentDateObj);
-        timeOutDate.setHours(timeOutDate.getHours() + 1);
-        
-        timeOutStr = timeOutDate.toLocaleTimeString([], { 
+
+      const appointmentTime = appointmentDateObj
+      ? appointmentDateObj.toLocaleTimeString([], { 
           hour: '2-digit', 
           minute: '2-digit' 
-        });
-      }
+        })
+      : "N/A";
 
       if (Platform.OS === 'web') {
         const doc = new jsPDF({
           orientation: "portrait",
           unit: "mm",
-          format: "a5",
+          format: "a4",
         });
 
-        const pageWidth = 148;
-        const endX = 130;
-
-        const leftPadding = 18;
+        const pageWidth = 210;
+        const endX = 190;
+        const leftPadding = 20;
 
         const primaryBlack = [0, 0, 0];
         const subLabelGray = [100, 116, 139];
+        const accentBlue = [0, 35, 102];
 
         const logoWidth = 16;
         const logoHeight = 16;
@@ -110,9 +109,9 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
         const totalHeaderWidth = logoWidth + gap + textWidth;
         
         const startXHeader = (pageWidth - totalHeaderWidth) / 2;
-        const headerY = 18;
+        const headerY = 20;
 
-        // RENDERING PART
+        // LOGO + HEADER
         if (logoUri) {
           try {
             doc.addImage(logoUri, 'PNG', startXHeader, headerY - 10, logoWidth, logoHeight);
@@ -129,29 +128,34 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
         doc.setFontSize(10);
         doc.text("City of San Fernando, Pampanga", startXHeader + logoWidth + gap, headerY + 2);
 
-        doc.setTextColor(...primaryBlack);
+        // TITLE
+        doc.setTextColor(...accentBlue);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(13);
+        doc.setFontSize(14);
 
-        const titleText = "EARLY DISMISSAL SLIP";
-        const titleWidth = doc.getTextWidth(titleText);
+        const titleText = "CONSULTATION REPORT";
         const centerX = pageWidth / 2;
-        const titleY = 35;
-
+        const titleY = 38;
 
         doc.text(titleText, centerX, titleY, { align: "center" });
+        const titleWidth = doc.getTextWidth(titleText);
+        doc.line(centerX - (titleWidth / 2), titleY + 1.5, centerX + (titleWidth / 2), titleY + 1.5);
 
-        const lineStartX = centerX - (titleWidth / 2);
-        const lineEndX = centerX + (titleWidth / 2);
-        
-        doc.line(lineStartX, titleY + 1, lineEndX, titleY + 1);
+        // STUDENT INFORMATION SECTION
+        let currentY = 52;
+        const rowSpacing = 10;
 
-        let currentY = 55;
-        const rowSpacing = 14;
-        const textLinePadding = 1.5;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...accentBlue);
+        doc.text("STUDENT INFORMATION", leftPadding, currentY);
+        currentY += 2;
+        doc.setDrawColor(...accentBlue);
+        doc.line(leftPadding, currentY, endX, currentY);
+        currentY += rowSpacing;
 
         const addPdfRow = (label, value) => {
-          doc.setFontSize(12);
+          doc.setFontSize(11);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...primaryBlack);
           
@@ -159,61 +163,95 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
           const labelWidth = doc.getTextWidth(labelText);
           doc.text(labelText, leftPadding, currentY);
 
-          
           doc.setFont("helvetica", "normal");
-          const valueX = leftPadding + labelWidth + 2;
+          const valueX = leftPadding + labelWidth + 3;
           doc.text(`${value}`, valueX, currentY);
 
-          doc.line(valueX, currentY + textLinePadding, endX, currentY + textLinePadding);
-          
           currentY += rowSpacing; 
         };
 
-        addPdfRow("Name of Student", `${data.first_name} ${data.last_name}`);
-        addPdfRow("Year and Section", `${data.course} ${data.year || ''}-${data.section || ''}`);
-        addPdfRow("Time-Out", timeOutStr);
-        addPdfRow("Remarks", "");
-        addPdfRow("Date", appointmentDate);
+        addPdfRow("Name", `${data.first_name} ${data.last_name}`);
+        addPdfRow("Course & Section", `${data.course} ${data.year || ''}-${data.section || ''}`);
+        addPdfRow("Date of Consultation", appointmentDate);
+        addPdfRow("Time", appointmentTime);
+        addPdfRow("Service", data.service || "General Consultation");
 
-        currentY += 10;
+        // APPOINTMENT NOTES SECTION
+        currentY += 5;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...accentBlue);
+        doc.text("APPOINTMENT NOTES", leftPadding, currentY);
+        currentY += 2;
+        doc.line(leftPadding, currentY, endX, currentY);
+        currentY += rowSpacing;
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...primaryBlack);
+        const notesLines = doc.splitTextToSize(appointmentNotes, endX - leftPadding);
+        doc.text(notesLines, leftPadding, currentY);
+        currentY += (notesLines.length * 5) + 8;
+
+        // CONSULTATION REPORT SECTION
+        currentY += 5;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...accentBlue);
+        doc.text("CONSULTATION REPORT", leftPadding, currentY);
+        currentY += 2;
+        doc.line(leftPadding, currentY, endX, currentY);
+        currentY += rowSpacing;
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...primaryBlack);
+        const consultLines = doc.splitTextToSize(consultationNotes, endX - leftPadding);
+        doc.text(consultLines, leftPadding, currentY);
+        currentY += (consultLines.length * 5) + 15;
+
+        // QR + SIGNATURE FOOTER
         if (qrBase64) {
           doc.addImage(qrBase64, 'PNG', leftPadding, currentY, 25, 25);
           
           doc.setTextColor(...subLabelGray);
-          doc.setFontSize(9);
-          doc.text("Scan to verify", leftPadding + 12, currentY + 30, { align: "center" });
+          doc.setFontSize(8);
+          doc.text("Scan to verify", leftPadding + 12.5, currentY + 30, { align: "center" });
         }
 
-        const sigXStart = 85;
+        const sigXStart = 130;
         doc.setTextColor(...primaryBlack);
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
-        doc.text(`${data.faculty_name || ''}`, sigXStart + 22.5, currentY + 20, { align: "center" });
+        doc.text(`${data.faculty_name || ''}`, sigXStart + 30, currentY + 20, { align: "center" });
 
         doc.line(sigXStart, currentY + 22, endX, currentY + 22);
 
         doc.setTextColor(...subLabelGray);
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        doc.text("Faculty Member", sigXStart + 22.5, currentY + 27, { align: "center" });
+        doc.text("Attending Faculty", sigXStart + 30, currentY + 27, { align: "center" });
 
-        doc.save(`UA_Slip_${data.last_name}.pdf`);
+        doc.save(`UA_ConsultationReport_${data.last_name}.pdf`);
 
       } else {
+        // MOBILE: HTML-based PDF
         const html = `
           <html>
             <head>
               <style>
                 body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #000; }
-                .header { display: flex; align-items: center; margin-bottom: 30px; }
+                .header { display: flex; align-items: center; margin-bottom: 20px; }
                 .logo { width: 50px; height: 50px; margin-right: 15px; }
                 .uni-name { font-weight: bold; font-size: 18px; margin: 0; }
                 .location { color: #5b6675; font-size: 13px; margin: 0; }
-                .title { text-align: center; font-weight: 900; font-size: 16px; text-decoration: underline; margin: 40px 0; }
-                .row { display: flex; margin-bottom: 20px; align-items: flex-end; }
-                .label { font-weight: bold; font-size: 14px; width: 140px; }
-                .value { flex: 1; border-bottom: 1px solid #000; font-size: 14px; padding-bottom: 2px; }
-                .footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px; }
+                .title { text-align: center; font-weight: 900; font-size: 16px; color: #002366; text-decoration: underline; margin: 30px 0 20px; }
+                .section-title { font-weight: bold; font-size: 13px; color: #002366; border-bottom: 2px solid #002366; padding-bottom: 4px; margin: 20px 0 12px; }
+                .row { display: flex; margin-bottom: 10px; align-items: flex-end; }
+                .label { font-weight: bold; font-size: 13px; width: 170px; }
+                .value { flex: 1; font-size: 13px; padding-bottom: 2px; }
+                .notes-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.6; margin-bottom: 10px; }
+                .footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; }
                 .signature-box { text-align: center; width: 200px; }
                 .sig-line { border-top: 1px solid #000; margin: 5px 0; }
               </style>
@@ -227,13 +265,20 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
                 </div>
               </div>
 
-              <div class="title">EARLY DISMISSAL SLIP</div>
+              <div class="title">CONSULTATION REPORT</div>
 
-              <div class="row"><div class="label">Name of Student:</div><div class="value">${data.first_name} ${data.last_name}</div></div>
-              <div class="row"><div class="label">Year and Section:</div><div class="value">${data.course} ${data.year || ''}-${data.section || ''}</div></div>
-              <div class="row"><div class="label">Time-Out:</div><div class="value">${currentTime}</div></div>
-              <div class="row"><div class="label">Remarks:</div><div class="value"></div></div>
-              <div class="row"><div class="label">Date:</div><div class="value">${currentDate}</div></div>
+              <div class="section-title">STUDENT INFORMATION</div>
+              <div class="row"><div class="label">Name:</div><div class="value">${data.first_name} ${data.last_name}</div></div>
+              <div class="row"><div class="label">Course & Section:</div><div class="value">${data.course} ${data.year || ''}-${data.section || ''}</div></div>
+              <div class="row"><div class="label">Date of Consultation:</div><div class="value">${appointmentDate}</div></div>
+              <div class="row"><div class="label">Time:</div><div class="value">${appointmentTime}</div></div>
+              <div class="row"><div class="label">Service:</div><div class="value">${data.service || 'General Consultation'}</div></div>
+
+              <div class="section-title">APPOINTMENT NOTES</div>
+              <div class="notes-box">${appointmentNotes}</div>
+
+              <div class="section-title">CONSULTATION REPORT</div>
+              <div class="notes-box">${consultationNotes}</div>
 
               <div class="footer">
                 <div style="text-align: center;">
@@ -243,7 +288,7 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
                 <div class="signature-box">
                   <p style="font-weight: bold; margin: 0;">${data.faculty_name || 'Faculty Member'}</p>
                   <div class="sig-line"></div>
-                  <p style="font-size: 12px; margin: 0;">Faculty Member</p>
+                  <p style="font-size: 12px; margin: 0;">Attending Faculty</p>
                 </div>
               </div>
             </body>
@@ -270,7 +315,7 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
             />
           </View>
 
-          <Text style={styles.modalTitle}>Slip Preview</Text>
+          <Text style={styles.modalTitle}>Consultation Report Preview</Text>
           
           <ScrollView style={styles.previewScroll} showsVerticalScrollIndicator={false}>
             <View style={styles.paper}>
@@ -293,38 +338,25 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
                 </View>
               </View>
 
-              <Text style={styles.previewTitle}>EARLY DISMISSAL SLIP</Text>
+              <Text style={styles.previewTitle}>CONSULTATION REPORT</Text>
               
-              {/* INFO ROWS */}
+              {/* STUDENT INFORMATION */}
+              <Text style={styles.sectionHeading}>STUDENT INFORMATION</Text>
+              <View style={styles.sectionDivider} />
+
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Name of Student:</Text>
-                <Text style={styles.infoValueUnderlined}>{data.first_name} {data.last_name}</Text>
+                <Text style={styles.infoLabel}>Name:</Text>
+                <Text style={styles.infoValue}>{data.first_name} {data.last_name}</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Year and Section:</Text>
-                <Text style={styles.infoValueUnderlined}>{data.course} {data.year || ''}-{data.section || ''}</Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Time-Out:</Text>
-                <Text style={styles.infoValueUnderlined}>
-                  {data.date_time ? (() => {
-                    const d = new Date(data.date_time);
-                    d.setHours(d.getHours() + 1); // Add the 1 hour buffer
-                    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  })() : '--:-- --'}
-                </Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Remarks:</Text>
-                <Text style={styles.infoValueUnderlined}></Text>
+                <Text style={styles.infoLabel}>Course & Section:</Text>
+                <Text style={styles.infoValue}>{data.course} {data.year || ''}-{data.section || ''}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Date:</Text>
-                <Text style={styles.infoValueUnderlined}>
+                <Text style={styles.infoValue}>
                   {data.date_time ? new Date(data.date_time).toLocaleDateString('en-US', { 
                     month: 'long', 
                     day: 'numeric', 
@@ -333,6 +365,36 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
                 </Text>
               </View>
 
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Time:</Text>
+                <Text style={styles.infoValue}>
+                  {data.date_time ? new Date(data.date_time).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  }) : 'N/A'}
+                </Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Service:</Text>
+                <Text style={styles.infoValue}>{data.service || 'General Consultation'}</Text>
+              </View>
+
+              {/* APPOINTMENT NOTES */}
+              <Text style={[styles.sectionHeading, { marginTop: 16 }]}>APPOINTMENT NOTES</Text>
+              <View style={styles.sectionDivider} />
+              <View style={styles.notesBox}>
+                <Text style={styles.notesText}>{appointmentNotes}</Text>
+              </View>
+
+              {/* CONSULTATION REPORT */}
+              <Text style={[styles.sectionHeading, { marginTop: 16 }]}>CONSULTATION REPORT</Text>
+              <View style={styles.sectionDivider} />
+              <View style={styles.notesBox}>
+                <Text style={styles.notesText}>{consultationNotes}</Text>
+              </View>
+
+              {/* FOOTER: QR + SIGNATURE */}
               <View style={styles.previewFooter}>
                  <View style={styles.qrSide}>
                     <QRCode value={verificationUrl} size={60} />
@@ -341,7 +403,7 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
                  <View style={styles.signatureSide}>
                     <Text style={styles.facultyName}>{data.faculty_name || ''}</Text>
                     <View style={styles.signatureLine} />
-                    <Text style={styles.facultyLabel}>Faculty Member</Text>
+                    <Text style={styles.facultyLabel}>Attending Faculty</Text>
                  </View>
               </View>
             </View>
@@ -373,7 +435,7 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   modalCard: { 
     width: '100%', 
-    maxWidth: 500, 
+    maxWidth: 550, 
     backgroundColor: '#FFF', 
     borderRadius: 24, 
     padding: isMobile ? 10 : 20, 
@@ -381,10 +443,10 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   modalTitle: { 
     ...Typography.header, 
-    fontSize: isMobile ? 20 : 22, 
+    fontSize: isMobile ? 18 : 20, 
     color: '#002366', 
     marginBottom: isMobile ? 10 : 15, 
-    textAlign: 'center' ,
+    textAlign: 'center',
     letterSpacing: 0.3,
   },
   previewScroll: { 
@@ -394,8 +456,8 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   paper: { 
     backgroundColor: '#FFF', 
-    padding: isMobile ? 20 : 40, 
-    paddingHorizontal: isMobile ? 30 : 60,
+    padding: isMobile ? 20 : 30, 
+    paddingHorizontal: isMobile ? 24 : 40,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#CBD5E1',
@@ -404,14 +466,13 @@ const getStyles = (isMobile) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     width: '100%',
   },
   previewLogo: {
-    width: isMobile ? 40 : 50,
-    height: isMobile ? 40 : 50,
-    marginRight: 12,
-    justifyContent: 'left'
+    width: isMobile ? 36 : 45,
+    height: isMobile ? 36 : 45,
+    marginRight: 10,
   },
   headerTextContainer: {
     flexShrink: 1, 
@@ -419,59 +480,82 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   previewUniName: {
     ...Typography.title,
-    fontSize: isMobile ? 12 : 16,
+    fontSize: isMobile ? 12 : 15,
     fontWeight: 'bold',
     color: '#000000',
-    lineHeight: isMobile ? 12 : 18,
+    lineHeight: isMobile ? 14 : 18,
   },
   previewLocation: {
     ...Typography.body,
-    fontSize: isMobile ? 10 : 12,
+    fontSize: isMobile ? 10 : 11,
     color: '#5b6675',
   },
   previewTitle: {
     ...Typography.title,
-    fontSize: isMobile ? 12 : 14,
+    fontSize: isMobile ? 13 : 15,
     fontWeight: '900',
     textAlign: 'center',
     textDecorationLine: 'underline',
-    marginBottom: 25,
-    color: '#000',
+    marginBottom: 20,
+    color: '#002366',
+  },
+  sectionHeading: {
+    ...Typography.label,
+    fontSize: isMobile ? 10 : 11,
+    fontWeight: '800',
+    color: '#002366',
+    letterSpacing: 0.8,
+    marginBottom: 3,
+  },
+  sectionDivider: {
+    height: 2,
+    backgroundColor: '#002366',
+    marginBottom: 10,
   },
   infoRow: { 
     flexDirection: 'row', 
-    marginBottom: 15,
-    alignItems: 'flex-end'
+    marginBottom: 8,
+    alignItems: 'center'
   },
   infoLabel: { 
     ...Typography.body,
-    fontSize: 12, 
+    fontSize: isMobile ? 10 : 11, 
     fontWeight: '700', 
     color: '#000000',
     marginRight: 5,
-    lineHeight: 20,
+    width: isMobile ? 110 : 140,
   },
-  infoValueUnderlined: { 
+  infoValue: { 
     ...Typography.body,
-    lineHeight: 18,
-    letterSpacing: 1,
     flex: 1, 
-    fontSize: 12, 
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
+    fontSize: isMobile ? 10 : 11, 
     color: '#000',
+  },
+  notesBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 6,
+  },
+  notesText: {
+    ...Typography.body,
+    fontSize: isMobile ? 10 : 11,
+    color: '#334155',
+    lineHeight: 18,
   },
   previewFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginTop: 30,
+    marginTop: 24,
   },
   qrSide: {
     alignItems: 'center',
   },
   qrLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#64748B',
     marginTop: 4
   },
@@ -481,7 +565,7 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   facultyName: {
     ...Typography.title,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     lineHeight: 16,
   },
@@ -492,13 +576,13 @@ const getStyles = (isMobile) => StyleSheet.create({
     marginVertical: 4
   },
   facultyLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#000'
   },
   buttonRow: { 
     flexDirection: 'row', 
     gap: 12, 
-    marginTop: 20 
+    marginTop: 16 
   },
   btnCancel: { 
     ...Typography.label,
@@ -512,18 +596,18 @@ const getStyles = (isMobile) => StyleSheet.create({
   btnDownload: { 
     ...Typography.label,
     flex: 2, 
-    padding: isMobile ? 12 :14, 
+    padding: isMobile ? 12 : 14, 
     borderRadius: 12, 
     backgroundColor: '#002366', 
     alignItems: 'center' 
   },
   btnTextCancel: { 
-    fontSize: isMobile ? 12 : 'none',
+    fontSize: isMobile ? 12 : 14,
     color: '#64748B', 
     fontWeight: '700' 
   },
   btnTextDownload: { 
-    fontSize: isMobile ? 12 : 'none',
+    fontSize: isMobile ? 12 : 14,
     color: '#FFF', 
     fontWeight: 'bold' 
   },

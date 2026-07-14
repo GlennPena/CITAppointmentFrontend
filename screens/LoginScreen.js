@@ -6,14 +6,15 @@ import {
   Pressable,
   TouchableOpacity,
   ActivityIndicator,
-  ImageBackground, 
-  Image, 
+  Image,
   useWindowDimensions,
-  Platform
+  Platform,
+  ScrollView,
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import InlineAlert from "../components/InlineAlert";
 import { AppInput } from "../components/AppInput";
@@ -24,43 +25,45 @@ import { Typography } from "../styles/theme";
 
 if (Platform.OS !== 'web') {
   GoogleSignin.configure({
-    webClientId: GOOGLE_WEB_CLIENT_ID, 
+    webClientId: GOOGLE_WEB_CLIENT_ID,
     offlineAccess: true,
   });
 }
 
+// ── Decorative Floating Orb ─────────────────────────────────────────────────
+const Orb = ({ style }) => (
+  <View style={[{
+    position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.18,
+  }, style]} />
+);
+
 export default function LoginScreen({ navigation }) {
-  
+
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-
-  const styles = getStyles(isMobile);
+  const styles = getStyles(isMobile, width);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   const [googleLoading, setGoogleLoading] = useState(false);
-
   const [alertConfig, setAlertConfig] = useState({ message: "", type: "" });
 
   const handleLogin = async () => {
     setAlertConfig({ message: "", type: "" });
     setLoading(true);
-
     try {
       const response = await api.post("login/", { username, password });
       const { access, refresh, role, first_name, last_name, id } = response.data;
-
       if (id) await AsyncStorage.setItem('user_id', id.toString());
-
       await AsyncStorage.setItem('access_token', access);
       await AsyncStorage.setItem('user_role', role);
       await AsyncStorage.setItem('first_name', first_name || "");
       await AsyncStorage.setItem('last_name', last_name || "");
-
       if (rememberMe) {
         await AsyncStorage.setItem('refresh_token', refresh);
         await AsyncStorage.setItem('remember_me', 'true');
@@ -68,15 +71,12 @@ export default function LoginScreen({ navigation }) {
         await AsyncStorage.removeItem('refresh_token');
         await AsyncStorage.setItem('remember_me', 'false');
       }
-
       setAlertConfig({ message: "Welcome back!", type: "success" });
-
       setTimeout(() => {
         if (role === "admin") navigation.replace("AdminDashboard");
-        else if (role === "doctor") navigation.replace("DoctorHome");
-        else navigation.replace("PatientDashboard");
+        else if (role === "faculty" || role === "dean") navigation.replace("FacultyHome");
+        else navigation.replace("StudentDashboard");
       }, 800);
-
     } catch (error) {
       const errorMsg = error.response?.data?.detail || "Invalid username or password.";
       setAlertConfig({ message: errorMsg, type: "error" });
@@ -87,30 +87,22 @@ export default function LoginScreen({ navigation }) {
 
   const handleBackendResponse = async (data) => {
     const { action, tokens, user, google_info } = data;
-
     if (action === "login") {
-      // Save tokens and user info
+      if (user.id) await AsyncStorage.setItem('user_id', user.id.toString());
       await AsyncStorage.setItem('access_token', tokens.access);
       await AsyncStorage.setItem('user_role', user.role);
       await AsyncStorage.setItem('first_name', user.first_name);
       await AsyncStorage.setItem('last_name', user.last_name);
-
       setAlertConfig({ message: "Welcome back!", type: "success" });
-
       setTimeout(() => {
         if (user.role === "admin") navigation.replace("AdminDashboard");
-        else if (user.role === "doctor") navigation.replace("DoctorHome");
-        else navigation.replace("PatientDashboard");
+        else if (user.role === "faculty" || user.role === "dean") navigation.replace("FacultyHome");
+        else navigation.replace("StudentDashboard");
       }, 800);
-
     } else if (action === "register") {
       setAlertConfig({ message: "Almost there! Please complete your profile.", type: "success" });
-
       setTimeout(() => {
-        navigation.navigate("Register", { 
-          isGoogle: true, 
-          googleData: google_info 
-        });
+        navigation.navigate("Register", { isGoogle: true, googleData: google_info });
       }, 1000);
     }
   };
@@ -121,38 +113,27 @@ export default function LoginScreen({ navigation }) {
         if (window.google) {
           window.google.accounts.id.initialize({
             client_id: GOOGLE_WEB_CLIENT_ID,
-            callback: handleWebGoogleResponse, 
+            callback: handleWebGoogleResponse,
             use_fedcm_for_prompt: true,
           });
         }
       };
-
       if (window.google) {
         initializeGoogle();
       } else {
         const interval = setInterval(() => {
-          if (window.google) {
-            initializeGoogle();
-            clearInterval(interval);
-          }
+          if (window.google) { initializeGoogle(); clearInterval(interval); }
         }, 1000);
       }
     }
   }, []);
 
   const handleWebGoogleResponse = async (response) => {
-    console.log("Full Google Response:", response); 
     setGoogleLoading(true);
-    
     try {
-      const backendRes = await api.post("google-auth/", { 
-        id_token: response.credential 
-      });
-      
-      console.log("Backend response received:", backendRes.data);
+      const backendRes = await api.post("google-auth/", { id_token: response.credential });
       handleBackendResponse(backendRes.data);
     } catch (err) {
-      console.error("Backend Auth Error:", err);
       setAlertConfig({ message: "Verification failed with server.", type: "error" });
     } finally {
       setGoogleLoading(false);
@@ -161,35 +142,28 @@ export default function LoginScreen({ navigation }) {
 
   const handleGoogleLogin = async () => {
     setAlertConfig({ message: "", type: "" });
-
     if (Platform.OS === 'web') {
       if (window.google) {
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          setAlertConfig({ 
-            message: "Please allow third-party sign-in in your browser settings.", 
-            type: "error" 
-          });
-        }
-      });
-    }
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setAlertConfig({ message: "Please allow third-party sign-in in your browser settings.", type: "error" });
+          }
+        });
+      }
     } else {
       setGoogleLoading(true);
       try {
         await GoogleSignin.hasPlayServices();
         const userInfo = await GoogleSignin.signIn();
         const email = userInfo.user.email;
-
         if (!email.toLowerCase().endsWith("@ua.edu.ph")) {
           await GoogleSignin.signOut();
           setAlertConfig({ message: "Only @ua.edu.ph emails are allowed.", type: "error" });
           return;
         }
-
         const response = await api.post("google-auth/", { id_token: userInfo.idToken });
         handleBackendResponse(response.data);
       } catch (error) {
-        console.error("Google Sign-In Error:", error);
         setAlertConfig({ message: "Sign-in failed", type: "error" });
       } finally {
         setGoogleLoading(false);
@@ -197,265 +171,534 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  // ── DESKTOP: split-panel layout ─────────────────────────────────────────
+  if (!isMobile) {
+    return (
+      <View style={styles.desktopRoot}>
+
+        {/* LEFT PANEL — Branding */}
+        <LinearGradient
+          colors={['#001848', '#002B6B', '#003DA5']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.leftPanel}
+        >
+          {/* Decorative orbs */}
+          <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} />
+          <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} />
+          <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} />
+
+          <View style={styles.leftContent}>
+            {/* Logo */}
+            <View style={styles.leftLogoRow}>
+              <Image
+                source={require('../assets/cit-logo.png')}
+                style={styles.leftLogo}
+                resizeMode="contain"
+              />
+            </View>
+
+            {/* Main copy */}
+            <Text style={styles.leftTitle}>UA Appointment</Text>
+            <Text style={styles.leftSubtitle}>College of Information Technology</Text>
+            <Text style={styles.leftBody}>
+              Book, manage, and track your clinic appointments at the University of the Assumption — all in one place.
+            </Text>
+
+            {/* Feature pills */}
+            <View style={styles.pillRow}>
+              {['🩺 Book Appointments', '📋 View History', '🔒 Secure & Private'].map(f => (
+                <View key={f} style={styles.pill}>
+                  <Text style={styles.pillText}>{f}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Bottom watermark */}
+          <Text style={styles.watermark}>University of the Assumption · CIT</Text>
+        </LinearGradient>
+
+        {/* RIGHT PANEL — Form */}
+        <ScrollView
+          contentContainerStyle={styles.rightPanel}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.formContainer}>
+            {/* Top accent line */}
+            <View style={styles.accentBar} />
+
+            <Text style={styles.formGreeting}>Good to see you!</Text>
+            <Text style={styles.formTitle}>Sign In</Text>
+            <Text style={styles.formSubtitle}>to Book an Appointment</Text>
+
+            <InlineAlert message={alertConfig.message} type={alertConfig.type} />
+
+            <View style={styles.inputSection}>
+              <AppInput
+                label="Username"
+                value={username}
+                onChangeText={setUsername}
+                setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
+              />
+              <AppInput
+                label="Password"
+                value={password}
+                secureTextEntry={!showPassword}
+                onChangeText={setPassword}
+                setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
+              />
+            </View>
+
+            {/* Remember me row */}
+            <View style={styles.row}>
+              <Pressable
+                onPress={() => setRememberMe(!rememberMe)}
+                style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
+              >
+                {rememberMe && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
+              </Pressable>
+              <Text style={styles.rememberText}>Remember me</Text>
+            </View>
+
+            {/* Sign In CTA */}
+            <TouchableOpacity
+              style={[styles.button, loading && { opacity: 0.7 }]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#003DA5', '#001E5C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.buttonGradient}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <View style={styles.buttonInner}>
+                    <Text style={styles.buttonText}>Sign In</Text>
+                    <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
+                  </View>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.divider} />
+            </View>
+
+            {/* Google */}
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading}
+              activeOpacity={0.85}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color="#444" />
+              ) : (
+                <View style={styles.googleContent}>
+                  <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
+                  <Text style={styles.googleButtonText}>Continue with UA Email</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Footer */}
+            <View style={styles.footerRow}>
+              <MaterialCommunityIcons name="shield-check-outline" size={14} color="#94A3B8" />
+              <Text style={styles.securityText}>  Secured with end-to-end encryption</Text>
+            </View>
+
+            <Pressable onPress={() => navigation.navigate("Register")}>
+              <Text style={styles.registerText}>
+                Don't have an account?{'  '}
+                <Text style={styles.link}>Register here</Text>
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ── MOBILE: navy hero top + white form below ──────────────────────────────
   return (
-    <ImageBackground 
-      source={require('../assets/redox-01.png')} 
-      style={styles.container}
-      resizeMode="repeat"
-    >
+    <View style={styles.mobileRoot}>
 
-      {/* HEADER */}
-      <Image 
-        source={require('../assets/ua-clinic-logo.png')}
-        style={styles.logo} 
-        resizeMode="contain"
-      />
+      {/* ── HERO SECTION (always navy, no gradient needed) ── */}
+      <View style={styles.mobileHero}>
+        {/* subtle decorative circle */}
+        <View style={styles.mobileHeroOrb} />
+        <Image
+          source={require('../assets/cit-logo.png')}
+          style={styles.mobileLogo}
+          resizeMode="contain"
+        />
+        <Text style={styles.mobileAppName}>UA APPOINTMENT</Text>
+        <Text style={styles.mobileTagline}>College of Information Technology</Text>
+      </View>
 
-      {/* CARD */}
-      <View style={styles.card}>
+      {/* ── FORM SECTION (white, scrollable) ── */}
+      <ScrollView
+        style={styles.mobileFormScroll}
+        contentContainerStyle={styles.mobileFormContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Notch / pill handle */}
+        <View style={styles.mobileNotch} />
 
-        <Text style={styles.header}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to your UA Clinic account</Text>
+        <Text style={styles.mobileCardTitle}>Welcome!</Text>
+        <Text style={styles.mobileCardSubtitle}>Sign in to Book an Appointment</Text>
 
         <InlineAlert message={alertConfig.message} type={alertConfig.type} />
-        
-        {/* USERNAME */}
-        <View style={styles.inputWrapper}>
-          <AppInput
-            label="Username"
-            value={username}
-            onChangeText={setUsername}
-            setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
-          />
-        </View>
 
-        {/* PASSWORD */}
-        <View style={styles.inputWrapper}>
-          <AppInput
-            label="Password"
-            value={password}
-            secureTextEntry={!showPassword}
-            onChangeText={setPassword}
-            setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
-          />
-        </View>
+        <AppInput
+          label="Username"
+          value={username}
+          onChangeText={setUsername}
+          setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
+        />
+        <AppInput
+          label="Password"
+          value={password}
+          secureTextEntry={!showPassword}
+          onChangeText={setPassword}
+          setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
+        />
 
-        {/* REMEMBER ME */}
         <View style={styles.row}>
           <Pressable
             onPress={() => setRememberMe(!rememberMe)}
             style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
           >
-            {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+            {rememberMe && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
           </Pressable>
-          <Text style={styles.rememberText}>Remember Me</Text>
+          <Text style={styles.rememberText}>Remember me</Text>
         </View>
 
-        {/* BUTTON */}
         <TouchableOpacity
           style={[styles.button, loading && { opacity: 0.7 }]}
           onPress={handleLogin}
           disabled={loading}
+          activeOpacity={0.85}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Sign In</Text>
-          )}
+          <LinearGradient
+            colors={['#003DA5', '#001E5C']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.buttonGradient}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <View style={styles.buttonInner}>
+                <Text style={styles.buttonText}>Sign In</Text>
+                <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
+              </View>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
-        
-        {/* DIVIDER */}
+
         <View style={styles.dividerContainer}>
           <View style={styles.divider} />
-          <Text style={styles.dividerText}>OR</Text>
+          <Text style={styles.dividerText}>or continue with</Text>
           <View style={styles.divider} />
         </View>
-        
-        {/* GOOGLE SIGN IN */}
-        <TouchableOpacity 
-          style={styles.googleButton} 
+
+        <TouchableOpacity
+          style={styles.googleButton}
           onPress={handleGoogleLogin}
           disabled={googleLoading}
+          activeOpacity={0.85}
         >
           {googleLoading ? (
             <ActivityIndicator color="#444" />
           ) : (
             <View style={styles.googleContent}>
-              <Image 
-                source={require('../assets/google-logo.png')} 
-                style={{ width: 23, height: 23 }} 
-              />
+              <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
               <Text style={styles.googleButtonText}>Continue with UA Email</Text>
             </View>
           )}
         </TouchableOpacity>
 
-        {/* SECURITY NOTE */}
-        <Text style={styles.securityText}>
-          Your information is securely protected
-        </Text>
+        <View style={styles.footerRow}>
+          <MaterialCommunityIcons name="shield-check-outline" size={13} color="#94A3B8" />
+          <Text style={styles.securityText}>  Secured with end-to-end encryption</Text>
+        </View>
 
-        {/* REGISTER */}
         <Pressable onPress={() => navigation.navigate("Register")}>
           <Text style={styles.registerText}>
-            Don't have an account? <Text style={styles.link}>Register here</Text>
+            Don't have an account?{'  '}
+            <Text style={styles.link}>Register here</Text>
           </Text>
         </Pressable>
-
-      </View>
-    </ImageBackground>
+      </ScrollView>
+    </View>
   );
 }
 
-const getStyles = (isMobile) => StyleSheet.create({
-  container: {
+const getStyles = (isMobile, width) => StyleSheet.create({
+
+  // ── Desktop ──────────────────────────────────────────────────────────────
+  desktopRoot: {
     flex: 1,
-    alignItems: 'center',
+    flexDirection: 'row',
+    backgroundColor: '#0A1628',
+  },
+  leftPanel: {
+    width: '45%',
+    minHeight: '100%',
+    justifyContent: 'space-between',
+    padding: 56,
+    overflow: 'hidden',
+  },
+  leftContent: {
+    flex: 1,
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    width: '100%',
-    height: '100%', 
-    paddingHorizontal: isMobile ? 20 : 40,
   },
-  logo: {
-    width: isMobile ? 220 : 500,
-    height: isMobile ? 80 : 130,
-    marginBottom: isMobile ? 20 : 30,
+  leftLogoRow: {
+    marginBottom: 32,
   },
-  card: {
-    width: '100%',
-    maxWidth: isMobile ? 380 : 448,
-    backgroundColor: '#FFFFFF',
-    borderRadius: isMobile ? 24 : 40,
-    ...(isMobile
-      ? {}
-      : {
-          shadowOpacity: 0.25,
-          shadowRadius: 16,
-          elevation: 8,
-          shadowColor: '#E2E8F0',
-        }),
-    padding: isMobile ? 20 : 40,
+  leftLogo: {
+    width: 110,
+    height: 110,
+  },
+  leftTitle: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 42,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  leftSubtitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 24,
+  },
+  leftBody: {
+    fontFamily: 'Roboto_400Regular',
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 26,
+    maxWidth: 360,
+    marginBottom: 36,
+  },
+  pillRow: {
+    flexDirection: 'column',
+    gap: 10,
+  },
+  pill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  header: {
-    ...Typography.header,
-    alignItems: 'center',
-    fontSize: isMobile ? 26 : 36,
-    fontWeight: '1000',
-    textAlign: 'center',
-    color: '#002366',
+  pillText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+  },
+  watermark: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.35)',
     letterSpacing: 0.5,
   },
-  subtitle: {
-    ...Typography.caption,
-    fontSize: isMobile ? 13 : 15,
-    fontWeight: '400',
-    textAlign: 'center',
-    color: '#888', 
-    marginBottom: isMobile ? 20 : 40,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
+
+  // Right panel (desktop)
+  rightPanel: {
+    flexGrow: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 10,
-    height: 50,
-    marginVertical: 10
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
   },
+  formContainer: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 44,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  accentBar: {
+    height: 4,
+    width: 48,
+    borderRadius: 2,
+    backgroundColor: '#003DA5',
+    marginBottom: 24,
+  },
+  formGreeting: {
+    fontFamily: 'Roboto_400Regular',
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  formTitle: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 32,
+    color: '#0F172A',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  formSubtitle: {
+    fontFamily: 'Roboto_400Regular',
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 24,
+  },
+  inputSection: {
+    marginTop: 4,
+  },
+
+  // ── Mobile ───────────────────────────────────────────────────────────────
+  mobileRoot: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  mobileHero: {
+    backgroundColor: '#001E5C',
+    alignItems: 'center',
+    paddingTop: 56,
+    paddingBottom: 52,
+    paddingHorizontal: 24,
+    overflow: 'hidden',
+  },
+  mobileHeroOrb: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(79,142,247,0.15)',
+    top: -60,
+    right: -40,
+  },
+  mobileLogo: {
+    width: 86,
+    height: 86,
+    marginBottom: 14,
+  },
+  mobileAppName: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 22,
+    color: '#FFFFFF',
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  mobileTagline: {
+    fontFamily: 'Roboto_400Regular',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 0.5,
+  },
+  mobileFormScroll: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  mobileFormContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 8,
+  },
+  mobileNotch: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E2E8F0',
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 24,
+  },
+  mobileCardTitle: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 26,
+    color: '#0F172A',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  mobileCardSubtitle: {
+    fontFamily: 'Roboto_400Regular',
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+
+  // ── Shared ───────────────────────────────────────────────────────────────
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: isMobile ? 20 : 30,
+    marginTop: 6,
+    marginBottom: isMobile ? 20 : 24,
   },
   checkbox: {
-    width: 18,
-    height: 18,
-    marginLeft: 10,
-    borderWidth: 1,
-    borderColor: '#ddd6d6',
-    borderRadius: 4,
+    width: 20,
+    height: 20,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    borderRadius: 5,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff',
   },
   checkboxChecked: {
-    backgroundColor: '#002366',
-  },
-  checkmark: {
-    color: '#fff',
-    fontSize: 12,
+    backgroundColor: '#002B6B',
+    borderColor: '#002B6B',
   },
   rememberText: {
-    ...Typography.body,
+    fontFamily: 'Roboto_400Regular',
     marginLeft: 8,
-    color: '#888',
-    fontSize: isMobile ? 12 : 14,
+    color: '#64748B',
+    fontSize: 13,
   },
   button: {
     width: '100%',
-    backgroundColor: '#002366',
-    paddingVertical: isMobile ? 12 : 16,
-    borderRadius: 16,
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-    shadowColor: '#002366',
-    transition: 'all'
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: '#002B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  buttonText: {
-    ...Typography.label,
-    textAlign: 'center',
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: isMobile ? 14 : 16,
-  },
-  securityText: {
-    ...Typography.body,
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 10
-  },
-  registerText: {
-    ...Typography.body,
-    textAlign: 'center',
-    marginTop: 15,
-    color: '#666',
-    fontSize: isMobile ? 12 : 14,
-  },
-  link: {
-    fontWeight: '600',
-    color: '#002366',
-  },
-
-  googleButton: {
-    flexDirection: 'row',
+  buttonGradient: {
+    paddingVertical: isMobile ? 14 : 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingVertical: isMobile ? 12 : 14,
-    borderRadius: 12,
-    marginBottom: 10,
   },
-  googleContent: {
+  buttonInner: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  googleButtonText: {
-    marginLeft: 10,
-    fontSize:  isMobile ? 12 : 15,
-    color: '#475569',
-    fontFamily: 'Inter_500Medium',
+  buttonText: {
+    fontFamily: 'Inter_700Bold',
+    color: '#FFFFFF',
+    fontSize: isMobile ? 15 : 16,
+    letterSpacing: 0.3,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: isMobile ? 14: 16,
+    marginBottom: 16,
   },
   divider: {
     flex: 1,
@@ -463,8 +706,56 @@ const getStyles = (isMobile) => StyleSheet.create({
     backgroundColor: '#E2E8F0',
   },
   dividerText: {
-    marginHorizontal: 10,
+    marginHorizontal: 12,
     color: '#94A3B8',
     fontSize: 12,
+    fontFamily: 'Roboto_400Regular',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    paddingVertical: isMobile ? 13 : 14,
+    borderRadius: 14,
+    marginBottom: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  googleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  googleButtonText: {
+    marginLeft: 10,
+    fontSize: isMobile ? 13 : 14,
+    color: '#334155',
+    fontFamily: 'Inter_500Medium',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  securityText: {
+    fontFamily: 'Roboto_400Regular',
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  registerText: {
+    fontFamily: 'Roboto_400Regular',
+    textAlign: 'center',
+    color: '#64748B',
+    fontSize: isMobile ? 12 : 13,
+  },
+  link: {
+    color: '#002B6B',
+    fontFamily: 'Inter_700Bold',
   },
 });

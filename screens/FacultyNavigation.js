@@ -4,15 +4,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Typography } from "../styles/theme";
 
-import DoctorDashboard from './DoctorDashboard';
-import DoctorSchedule from './DoctorSchedule';
-import PatientHistory from './PatientHistory';
+import FacultyDashboard from './FacultyDashboard';
+import FacultySchedule from './FacultySchedule';
+import StudentHistory from './StudentHistory';
 
 
 const Tab = createBottomTabNavigator();
 
 
-export default function DoctorTabs() {
+export default function FacultyTabs() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isDesktop = width >= 1200;
@@ -67,7 +67,7 @@ export default function DoctorTabs() {
             iconName = 'view-dashboard';
           } else if (route.name === 'Schedule') {
             iconName = 'calendar-clock';
-          } else if (route.name === 'Patients') {
+          } else if (route.name === 'Students') {
             iconName = 'account-group';
           }
 
@@ -77,15 +77,15 @@ export default function DoctorTabs() {
     >
       <Tab.Screen 
         name="Dashboard" 
-        component={DoctorDashboard} 
+        component={FacultyDashboard} 
       />
       <Tab.Screen 
         name="Schedule" 
-        component={DoctorSchedule} 
+        component={FacultySchedule} 
       />
       <Tab.Screen 
-        name="Patients" 
-        component={PatientHistory} 
+        name="Students" 
+        component={StudentHistory} 
       />
     </Tab.Navigator>
   );

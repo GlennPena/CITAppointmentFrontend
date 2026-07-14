@@ -1,5 +1,5 @@
 /* 
-  Responsible for displaying detailed patient information inside a modal, including patient profile 
+  Responsible for displaying detailed student information inside a modal, including student profile 
   data, appointment details, and action buttons for approving or rejecting pending appointments. 
 */
 
@@ -7,7 +7,7 @@ import { View, Text, StyleSheet, Modal, Pressable, useWindowDimensions, ScrollVi
 import StatusBadge from './StatusBadge';
 import { Typography } from "../styles/theme";
 
-export default function PatientDetailModal({ visible, item, onClose, onAction }) {
+export default function StudentDetailModal({ visible, item, onClose, onAction }) {
 
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -15,30 +15,46 @@ export default function PatientDetailModal({ visible, item, onClose, onAction })
   
   if (!visible || !item) return null;
 
-	const appointmentDate = new Date(item.date_time);
-	const isPast = appointmentDate < new Date();
+  const isMeeting = !item.student_name || item.student_name === "N/A";
+  const appointmentDate = new Date(item.date_time);
+  const isPast = appointmentDate < new Date();
+
+  const participantsStr = item.participants_detail && item.participants_detail.length > 0
+    ? item.participants_detail.map(p => `${p.full_name} (${p.role === 'dean' ? 'Dean' : 'Faculty'})`).join(', ')
+    : 'All Faculty & Dean';
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          <Text style={styles.title}>Patient Details</Text>
+          <Text style={styles.title}>{isMeeting ? "Meeting Details" : "Student Details"}</Text>
           
           <ScrollView 
             style={styles.scrollArea} 
             contentContainerStyle={styles.infoGrid}
             showsVerticalScrollIndicator={false}
           >
-              <DetailItem label="Name" value={item.patient_name} styles={styles}/>
-              <DetailItem label="Status" value={<StatusBadge status={item.status}/>} styles={styles} />
-              <DetailItem label="Service" value={item.service} styles={styles}/>
-              <DetailItem label="Condition" value={item.condition || "No condition specified"} styles={styles}/>
-              <DetailItem label="Date of Birth" value={item.patient_dob} styles={styles}/>
-              <DetailItem label="Sex" value={item.patient_sex} styles={styles}/>
-              <DetailItem label="Course" value={`${item.patient_course} ${item.patient_year}-${item.patient_section}`} styles={styles} />
-              <DetailItem label="Email" value={item.patient_email} styles={styles}/>
-              <DetailItem label="Address" value={item.patient_address} styles={styles}/>
-              <DetailItem label="Phone" value={item.patient_phone} styles={styles}/>
+            {isMeeting ? (
+              <>
+                <DetailItem label="Host / Organizer" value={item.faculty_name} styles={styles}/>
+                <DetailItem label="Status" value={<StatusBadge status={item.status}/>} styles={styles} />
+                <DetailItem label="Meeting Type" value={item.service} styles={styles}/>
+                <DetailItem label="Agenda / Discussion" value={item.condition || "No agenda specified"} styles={styles}/>
+                <DetailItem label="Participants Invited" value={participantsStr} styles={styles}/>
+              </>
+            ) : (
+              <>
+                <DetailItem label="Name" value={item.student_name} styles={styles}/>
+                <DetailItem label="Status" value={<StatusBadge status={item.status}/>} styles={styles} />
+                <DetailItem label="Service" value={item.service} styles={styles}/>
+                <DetailItem label="Appointment Notes" value={item.condition || "No notes specified"} styles={styles}/>
+                <DetailItem label="Sex" value={item.student_sex} styles={styles}/>
+                <DetailItem label="Course" value={`${item.student_course} ${item.student_year}-${item.student_section}`} styles={styles} />
+                <DetailItem label="Email" value={item.student_email} styles={styles}/>
+                <DetailItem label="Address" value={item.student_address} styles={styles}/>
+                <DetailItem label="Phone" value={item.student_phone} styles={styles}/>
+              </>
+            )}
           </ScrollView>
 
           <View style={styles.footer}>

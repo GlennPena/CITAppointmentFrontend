@@ -1,6 +1,6 @@
 /*  
-  Responsible for displaying a patient history summary card including avatar, 
-  patient info, visit count, and a button to view detailed history.
+  Responsible for displaying a student history summary card including avatar, 
+  student info, visit count, and a button to view detailed history.
 */
 
 import { View, Text, StyleSheet, Pressable } from 'react-native';
@@ -8,25 +8,25 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Avatar from './Avatar';
 import { Typography } from "../styles/theme";
 
-export default function PatientHistoryCard({ patient, onPress }) {
+export default function StudentHistoryCard({ student, onPress }) {
   return (
     <View style={styles.wrapper}>
       <Pressable style={styles.card} android_ripple={{ color: '#E2E8F0' }}>
 
         <View style={styles.headerRow}>
           <Avatar 
-            name={patient.name} 
+            name={student.name} 
             size={50} 
             backgroundColor="#002366" 
           />
 
           <View style={styles.info}>
             <Text style={styles.name} numberOfLines={1}>
-              {patient.name}
+              {student.name}
             </Text>
 
             <View style={styles.subRow}>
-              <Text style={styles.role}>Patient</Text>
+              <Text style={styles.role}>Student</Text>
             </View>
           </View>
         </View>
@@ -40,7 +40,7 @@ export default function PatientHistoryCard({ patient, onPress }) {
               <MaterialCommunityIcons name="calendar-check" size={16} color="#64748B" />
             </View>
             <Text style={styles.visitCount}>
-              {patient.visitCount} visits
+              {student.visitCount} visits
             </Text>
           </View>
 

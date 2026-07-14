@@ -1,5 +1,5 @@
 /*  
-  Responsible for displaying a modal that allows doctors to finalize an appointment by adding outcome and consultation notes.
+  Responsible for displaying a modal that allows faculty members to finalize an appointment by adding outcome and consultation notes.
 */
 
 import { useState } from 'react';
@@ -41,7 +41,7 @@ export default function CompleteAppointmentModal({ visible, onClose, onConfirm }
           <TextInput 
             style={[styles.input, { height: 80 }]} 
             multiline 
-            placeholder="Add specific medical notes here..."
+            placeholder="Add specific consultation notes here..."
             placeholderTextColor="#94A3B8"
             value={notes}
             onChangeText={setNotes}

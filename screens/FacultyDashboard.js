@@ -1,24 +1,27 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, ImageBackground, useWindowDimensions} from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, ImageBackground, useWindowDimensions, Modal, TextInput, Alert} from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import api from "../utils/api";
 import { Typography } from "../styles/theme";
 import Avatar from "../components/Avatar";
+import MeetingBookingModal from "../components/MeetingBookingModal";
 
-export default function DoctorDashboard({ navigation }) {
+export default function FacultyDashboard({ navigation }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isDesktop = width >= 1200;
   const styles = getStyles(isMobile, isDesktop);
 
-  const [doctorName, setDoctorName] = useState("Doctor");
+  const [facultyName, setFacultyName] = useState("Faculty");
 
   const [stats, setStats] = useState({ today: 0, pending: 0, completed: 0, remaining: 0, total: 0});
-  const [nextPatient, setNextPatient] = useState(null);
+  const [nextStudent, setNextStudent] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [disapproveModal, setDisapproveModal] = useState({ visible: false, id: null, reason: "" });
+  const [isBookingVisible, setIsBookingVisible] = useState(false);
   
 
   useEffect(() => {
@@ -32,13 +35,13 @@ export default function DoctorDashboard({ navigation }) {
       
       if (savedName) {
         const formattedName = savedName.charAt(0).toUpperCase() + savedName.slice(1);
-        setDoctorName(formattedName);
+        setFacultyName(formattedName);
       } else {
         const userData = await AsyncStorage.getItem("user");
         if (userData) {
           const parsedUser = JSON.parse(userData);
-          const rawName = parsedUser.first_name || parsedUser.username || "Doctor";
-          setDoctorName(rawName.charAt(0).toUpperCase() + rawName.slice(1));
+          const rawName = parsedUser.first_name || parsedUser.username || "Faculty";
+          setFacultyName(rawName.charAt(0).toUpperCase() + rawName.slice(1));
         }
       }
 
@@ -62,7 +65,7 @@ export default function DoctorDashboard({ navigation }) {
         .filter(a => a.status === 'Approved')
         .sort((a, b) => new Date(a.date_time) - new Date(b.date_time));
 
-      setNextPatient(upcoming[0] || null);
+      setNextStudent(upcoming[0] || null);
 
       const pending = data
       .filter(a => a.status === 'Pending')
@@ -76,6 +79,57 @@ export default function DoctorDashboard({ navigation }) {
       setLoading(false);
     }
   }; 
+
+  const handleQuickAction = async (id, action) => {
+    if (action === 'Approved') {
+      try {
+        setLoading(true);
+        const res = await api.patch(`appointments/${id}/`, { status: 'Approved' });
+        const apptDate = res.data.date_time.split('T')[0];
+        setLoading(false);
+        loadData();
+        Alert.alert("Success", "Appointment approved successfully!", [
+          {
+            text: "View in Schedule",
+            onPress: () => navigation.navigate('Schedule', { date: apptDate, highlightId: id })
+          },
+          {
+            text: "Dismiss",
+            style: "cancel"
+          }
+        ]);
+      } catch (err) {
+        console.error(err);
+        Alert.alert("Error", "Failed to approve appointment.");
+        setLoading(false);
+      }
+    } else {
+      setDisapproveModal({ visible: true, id: id, reason: "" });
+    }
+  };
+
+  const submitDisapproval = async () => {
+    const { id, reason } = disapproveModal;
+    if (!reason.trim()) {
+      Alert.alert("Required", "Please enter a reason for disapproval.");
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setDisapproveModal({ visible: false, id: null, reason: "" });
+      await api.patch(`appointments/${id}/`, { 
+        status: 'Rejected',
+        consultation_notes: reason.trim()
+      });
+      Alert.alert("Success", "Appointment disapproved.");
+      loadData();
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Failed to disapprove appointment.");
+      setLoading(false);
+    }
+  };
 
   const StatCard = ({ label, value, color, icon}) => (
     <View style={styles.statCard}>
@@ -100,18 +154,45 @@ export default function DoctorDashboard({ navigation }) {
 
         <View style={styles.mainWrapper} contentContainerStyle={{ padding: 25 }}>
           <View style={styles.header}>
-            <Text style={styles.pageTitle} numberOfLines={1} ellipsizeMode="tail">
-              Welcome, Dr. {doctorName}
-            </Text>
-
-            <Text style={styles.dateSubtext}>
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </Text>
-
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <View style={{ flexShrink: 1 }}>
+                <Text style={styles.pageTitle} numberOfLines={1} ellipsizeMode="tail">
+                  Welcome, {facultyName}
+                </Text>
+                <Text style={styles.dateSubtext}>
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </Text>
+              </View>
+              <Pressable 
+                style={({ pressed }) => [
+                  {
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#002366',
+                    paddingVertical: 14,
+                    paddingHorizontal: 24,
+                    borderRadius: 16,
+                    gap: 8,
+                    shadowColor: '#002366',
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 10,
+                    elevation: 4,
+                  },
+                  pressed && { opacity: 0.9, transform: [{ scale: 0.96 }] }
+                ]}
+                hitSlop={15}
+                onPress={() => setIsBookingVisible(true)}
+              >
+                <MaterialCommunityIcons name="calendar-plus" size={20} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '800', letterSpacing: 0.2 }}>Book Meeting</Text>
+              </Pressable>
+            </View>
             <View style={styles.glassAccent} />
           </View>
           
@@ -129,18 +210,40 @@ export default function DoctorDashboard({ navigation }) {
                   {pendingRequests.map((item) => (
                     <View key={item.id} style={styles.requestCard}>
                       <View style={styles.requestHeader}>
-                        <Text style={styles.requestName}>{item.patient_name}</Text>
+                        <Text style={styles.requestName}>{item.student_name}</Text>
                         <Text style={styles.requestDate}>
                           {new Date(item.date_time).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </Text>
                       </View>
                       <Text style={styles.requestService}>{item.service}</Text>
-                      <Pressable 
-                        style={styles.reviewBtn}
-                        onPress={() => navigation.navigate('Schedule', { highlightId: item.id })}
-                      >
-                        <Text style={styles.reviewBtnText}>Review Request</Text>
-                      </Pressable>
+
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#64748B', marginBottom: 4 }}>NOTES PREVIEW:</Text>
+                      <View style={{ backgroundColor: '#F8FAFC', padding: 8, borderRadius: 8, marginBottom: 12, height: 60, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9' }}>
+                        <Text style={{ fontSize: 11, color: '#475569', fontStyle: 'italic', lineHeight: 15 }} numberOfLines={3}>
+                          {item.condition || "No notes provided."}
+                        </Text>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
+                        <Pressable 
+                          style={({ pressed }) => [
+                            { flex: 1, backgroundColor: '#10B981', paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
+                            pressed && { opacity: 0.8 }
+                          ]}
+                          onPress={() => handleQuickAction(item.id, 'Approved')}
+                        >
+                          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>Approve</Text>
+                        </Pressable>
+                        <Pressable 
+                          style={({ pressed }) => [
+                            { flex: 1, backgroundColor: '#EF4444', paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
+                            pressed && { opacity: 0.8 }
+                          ]}
+                          onPress={() => handleQuickAction(item.id, 'Rejected')}
+                        >
+                          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>Disapprove</Text>
+                        </Pressable>
+                      </View>
                     </View>
                   ))}
                 </ScrollView>
@@ -155,23 +258,23 @@ export default function DoctorDashboard({ navigation }) {
           <View style={[styles.sectionWrapper, {marginBottom : 60}]}>
             <Text style={styles.sectionTitle}>Next Appointment</Text>
             
-              {nextPatient ? (
+              {nextStudent ? (
                 <View style={styles.nextPatientCard}>
                   
                   <View style={styles.cardHeader}>
                     <Avatar 
-                      name={nextPatient.patient_name} 
+                      name={nextStudent.student_name} 
                       size={56}
                       backgroundColor="#002366" 
                       textColor="#fff"
                     />
                     <View style={styles.nextInfo}>
-                      <Text style={styles.nextName}>{nextPatient.patient_name}</Text>
-                      <Text style={styles.nextService}>{nextPatient.service}</Text>
+                      <Text style={styles.nextName}>{nextStudent.student_name}</Text>
+                      <Text style={styles.nextService}>{nextStudent.service}</Text>
                     </View>
                     <View style={styles.timeBadge}>
                       <Text style={styles.timeText}>
-                        {new Date(nextPatient.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(nextStudent.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Text>
                     </View>
                   </View>
@@ -187,11 +290,83 @@ export default function DoctorDashboard({ navigation }) {
               ) : (
                 <View style={styles.emptyCard}>
                   <MaterialCommunityIcons name="check-decagram-outline" size={40} color="#94A3B8" />
-                  <Text style={styles.emptyText}>No upcoming patients for today.</Text>
+                  <Text style={styles.emptyText}>No upcoming students for today.</Text>
                 </View>
               )}
           </View>
         </View>
+
+        <Modal visible={disapproveModal.visible} transparent animationType="fade">
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}>
+            <View style={{
+              backgroundColor: '#FFF',
+              borderRadius: 20,
+              padding: 24,
+              width: '90%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 5
+            }}>
+              <Text style={{ ...Typography.header, fontSize: 18, fontWeight: '800', color: '#002366', marginBottom: 8 }}>
+                Disapprove Appointment
+              </Text>
+              <Text style={{ ...Typography.body, fontSize: 13, color: '#64748B', marginBottom: 16 }}>
+                Provide a brief explanation or instructions for the student:
+              </Text>
+              <TextInput
+                placeholder="e.g. Please choose another time slot, as I will be in a faculty seminar."
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: '#E2E8F0',
+                  borderRadius: 10,
+                  padding: 12,
+                  fontSize: 14,
+                  color: '#1E293B',
+                  minHeight: 100,
+                  textAlignVertical: 'top',
+                  marginBottom: 20,
+                  backgroundColor: '#F8FAFC'
+                }}
+                multiline={true}
+                numberOfLines={4}
+                value={disapproveModal.reason}
+                onChangeText={(txt) => setDisapproveModal({ ...disapproveModal, reason: txt })}
+              />
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <Pressable
+                  style={{ flex: 1, backgroundColor: '#F1F5F9', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                  onPress={() => setDisapproveModal({ visible: false, id: null, reason: "" })}
+                >
+                  <Text style={{ color: '#475569', fontWeight: '700', fontSize: 14 }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={{ flex: 1, backgroundColor: '#EF4444', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                  onPress={submitDisapproval}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Confirm</Text>
+                </Pressable>
+              </View>
+            </View>
+        </View>
+      </Modal>
+
+      <MeetingBookingModal
+        isVisible={isBookingVisible}
+        onClose={() => setIsBookingVisible(false)}
+        onBookingSuccess={() => {
+          loadData();
+          Alert.alert("Success", "Meeting scheduled successfully!");
+        }}
+      />
     </ImageBackground>
   </ScrollView>
   );
@@ -392,7 +567,7 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
   },
   requestCard: {
     backgroundColor: '#FFF',
-    width: 230,
+    width: 280,
     padding: 20,
     borderRadius: 20,
     marginRight: 16,
@@ -421,4 +596,7 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     marginTop: 10,
     textAlign: 'center'
   },
+  mainWrapper: {
+    width: '100%',
+  }
 });

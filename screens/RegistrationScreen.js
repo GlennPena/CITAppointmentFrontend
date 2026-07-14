@@ -122,8 +122,9 @@ export default function RegistrationScreen({ navigation, route }) {
 
       const { tokens, user } = response.data;
       const { access, refresh } = tokens;
-      const { role, first_name, last_name } = user;
+      const { role, first_name, last_name, id } = user;
 
+      if (id) await AsyncStorage.setItem('user_id', id.toString());
       await AsyncStorage.setItem("access_token", access);
       await AsyncStorage.setItem("refresh_token", refresh);
       await AsyncStorage.setItem("user_role", role);
@@ -140,8 +141,8 @@ export default function RegistrationScreen({ navigation, route }) {
 
       setTimeout(() => {
         if (role === "admin") navigation.replace("AdminDashboard");
-        else if (role === "doctor") navigation.replace("DoctorHome");
-        else navigation.replace("PatientDashboard");
+        else if (role === "faculty" || role === "dean") navigation.replace("FacultyHome");
+        else navigation.replace("StudentDashboard");
       }, 2000);
 
     } catch (error) {
@@ -178,11 +179,14 @@ export default function RegistrationScreen({ navigation, route }) {
       >
 
         {/* HEADER */}
-        <Image 
-          source={require('../assets/ua-clinic-logo.png')}
-          style={styles.logo} 
-          resizeMode="contain"
-        />
+        <View style={styles.headerLogoContainer}>
+          <Image 
+            source={require('../assets/cit-logo.png')}
+            style={styles.citLogo} 
+            resizeMode="contain"
+          />
+          <Text style={styles.appTitle}>UA APPOINTMENT</Text>
+        </View>
  
         {/* CARD */}
         <View style={styles.card}>
@@ -191,7 +195,7 @@ export default function RegistrationScreen({ navigation, route }) {
           <View style={styles.hero}>
             <Text style={styles.heroTitle}>Create Account</Text>
             <Text style={styles.heroSubtitle}>
-              {isGoogle ? "Complete your UA Google Profile" : "Join UA Clinic Appointment System"}
+              {isGoogle ? "Complete your UA Google Profile" : "Join UA Appointment System"}
             </Text>
           </View>
 
@@ -451,10 +455,22 @@ const getStyles = (isMobile, isTablet) => StyleSheet.create({
     backgroundColor: '#2563EB'
   },
 
-  logo: {
-    width: isMobile ? 180 : isTablet ? 260 : 350,
-    height: isMobile ? 70 : 120,
-    marginBottom: 30,
+  headerLogoContainer: {
+    alignItems: 'center',
+    marginBottom: isMobile ? 15 : 25,
+  },
+  citLogo: {
+    width: isMobile ? 80 : 120,
+    height: isMobile ? 80 : 120,
+    marginBottom: 10,
+  },
+  appTitle: {
+    fontSize: isMobile ? 20 : 26,
+    fontWeight: '900',
+    color: '#002366',
+    fontFamily: 'Inter_900Black',
+    letterSpacing: 1.5,
+    textAlign: 'center',
   },
   
   card: {

@@ -47,11 +47,11 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
 
     <View style={styles.divider} />
 
-    {/* DOCTOR INFO */}
+    {/* FACULTY INFO */}
     <View style={styles.infoRow}>
-      <MaterialCommunityIcons name="doctor" size={16} color="#002366" style={styles.icons} />
-      <Text style={styles.label}>Doctor:</Text>
-      <Text style={styles.doctorName}>Dr. {item.doctor_name}</Text>
+      <MaterialCommunityIcons name="account" size={16} color="#002366" style={styles.icons} />
+      <Text style={styles.label}>Faculty:</Text>
+      <Text style={styles.facultyName}>{item.faculty_name}</Text>
     </View>
 
     {/* DATE*/}
@@ -68,16 +68,16 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
       <Text style={styles.value}>{timeString}</Text>
     </View>
     
-    {/* PATIENT NOTE */}
+    {/* STUDENT NOTE */}
     <View style={styles.conditionBox}>
       <View style={styles.noteLabelRow}>
         <MaterialCommunityIcons name="clipboard-text-outline" size={16} color="#002366" style={styles.icons}/>
-        <Text style={styles.patientNoteLabel}>Patient Note:</Text>
+        <Text style={styles.studentNoteLabel}>Appointment notes:</Text>
       </View>
       <Text style={styles.conditionText}>{item.condition || "No description provided"}</Text>
     </View>
 
-    {(item.status === "Completed" && userRole === 'doctor') && (
+    {(item.status === "Completed" && userRole === 'faculty') && (
       <View style={styles.historySection}>
         <View style={styles.divider} />
         
@@ -88,6 +88,32 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>
             "{item.consultation_notes || "No specific notes provided."}"
+          </Text>
+        </View>
+      </View>
+    )}
+
+    {item.status === "Rejected" && (
+      <View style={styles.historySection}>
+        <View style={styles.divider} />
+        
+        <Text style={[styles.labelTiny, { color: '#EF4444' }]}>REASON FOR DISAPPROVAL</Text>
+        <View style={[styles.noteBox, { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
+          <Text style={[styles.noteText, { color: '#991B1B' }]}>
+            "{item.consultation_notes || "No specific reason provided."}"
+          </Text>
+        </View>
+      </View>
+    )}
+
+    {item.status === "Cancelled" && item.consultation_notes && (
+      <View style={styles.historySection}>
+        <View style={styles.divider} />
+        
+        <Text style={[styles.labelTiny, { color: '#EF4444' }]}>REASON FOR CANCELLATION</Text>
+        <View style={[styles.noteBox, { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
+          <Text style={[styles.noteText, { color: '#991B1B' }]}>
+            "{item.consultation_notes}"
           </Text>
         </View>
       </View>
@@ -168,7 +194,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase'
   },
-  doctorName: {
+  facultyName: {
     ...Typography.body,
     fontSize: isMobile ? 15: 16,
     fontWeight: 'bold',
@@ -191,7 +217,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
-  patientNoteLabel: {
+  studentNoteLabel: {
     ...Typography.body,
     color: '#64748B',
     fontSize: 12,

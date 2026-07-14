@@ -56,7 +56,7 @@ const timeSlots = [
 ];
 
 
-export default function BookingModal({ isVisible, onClose, doctors, onBookingSuccess }) {
+export default function BookingModal({ isVisible, onClose, facultyList, onBookingSuccess }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ message: "", type: "" });
@@ -68,7 +68,7 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
 
     const [formData, setFormData] = useState({
     service: "",
-    doctor: null,
+    faculty: null,
     date_time: "",
     condition: "",
     });
@@ -76,9 +76,9 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
   const isStepValid = () => {
     switch (step) {
       case 1: return formData.service !== "";
-      case 2: return formData.doctor !== null;
+      case 2: return formData.faculty !== null;
       case 3: return selectedTime !== null;
-      case 4: return formData.condition.trim().length > 0;
+      case 4: return formData.condition.trim().length >= 256;
       case 5: return true;
       default: return false;
     }
@@ -94,11 +94,11 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
   }
   }, [isVisible]);
 
-  // Fetch booked slots whenever doctor, date, or modal visibility changes
+  // Fetch booked slots whenever faculty, date, or modal visibility changes
   useEffect(() => {
-    if (formData.doctor && selectedDate && isVisible) {
+    if (formData.faculty && selectedDate && isVisible) {
       setBookedSlots([]);
-      api.get(`appointments/busy-slots/${formData.doctor}/?date=${selectedDate}`)
+      api.get(`appointments/busy-slots/${formData.faculty}/?date=${selectedDate}`)
         .then(res => {
           const booked = res.data.map(app => {
             const dt = new Date(app);
@@ -116,7 +116,7 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
           setBookedSlots([]);
         }); 
     }
-  }, [formData.doctor, selectedDate, isVisible]);
+  }, [formData.faculty, selectedDate, isVisible]);
 
   const handleNext = () => {
   if (!isStepValid()) return;
@@ -187,7 +187,7 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
     setStep(1);
     setFormData({
       service: "",
-      doctor: null,
+      faculty: null,
       date_time: "",
       condition: "",
     });
@@ -208,7 +208,27 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
     <View>
       <Text style={styles.modalTitle}>Select Service</Text>
 
-      {['General Consultation', 'Dental Consultation'].map(s => {
+      {[
+        'Dean Consultation',
+        'Faculty Consultation',
+        'Academic Advising',
+        'Course Advising',
+        'Enrollment Concern',
+        'Academic Concern',
+        'Completion Concern',
+        'Grade Consultation',
+        'Capstone Consultation',
+        'Internship Consultation',
+        'Research Consultation',
+        'Student Concern',
+        'Project Consultation',
+        'Thesis Consultation',
+        'Career Advising',
+        'Document Request Follow-up',
+        'Transaction Request Follow-up',
+        'Faculty Meeting',
+        'Meet the Dean',
+      ].map(s => {
         const isSelected = formData.service === s;
         return (
           <Pressable 
@@ -216,7 +236,6 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
             style={[styles.card, isSelected && styles.selected]} 
             onPress={() => {
               setFormData({...formData, service: s});
-              setTimeout(() => setStep(2), 150);
             }}
           >
             <Text style={[styles.cardText, isSelected && { color: '#FFF', fontWeight: 'bold' }]}>
@@ -228,25 +247,24 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
     </View>
   );
 
-  // STEP 2: Doctor Selection
+  // STEP 2: Faculty Selection
   const renderStep2 = () => (
     <View>
-      <Text style={styles.modalTitle}>Choose Doctor</Text>
+      <Text style={styles.modalTitle}>Choose Faculty</Text>
       
-      {doctors.map(doc => {
-        const isSelected = formData.doctor === doc.id;
+      {facultyList.map(fac => {
+        const isSelected = formData.faculty === fac.id;
 
         return (
           <Pressable 
-            key={doc.id} 
+            key={fac.id} 
             style={[styles.card, isSelected && styles.selected]} 
             onPress={() => {
-              setFormData({...formData, doctor: doc.id});
-              setTimeout(() => setStep(3), 150);
+              setFormData({...formData, faculty: fac.id});
             }}
           >
             <Text style={[styles.cardText, isSelected && { color: '#FFF', fontWeight: 'bold' }]}>
-              {doc.full_name}
+              {fac.full_name}
             </Text>
           </Pressable>
         );
@@ -311,25 +329,40 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
   );
 
   // STEP 4: Additional Info 
-  const renderStep4 = () => (
-    <View>
-      <Text style={styles.modalTitle}>Patient Information</Text>
-      
-      <TextInput 
-        placeholder="Please describe your current condition"
-        style={styles.inputMultiline}
-        value={formData.condition}
-        onChangeText={v => setFormData({...formData, condition: v})} 
-        multiline={true}
-        numberOfLines={4}  
-        textAlignVertical="top"
-      />
-    </View>
-  );
+  const renderStep4 = () => {
+    const textLength = formData.condition.trim().length;
+    const isError = textLength < 256;
+
+    return (
+      <View>
+        <Text style={styles.modalTitle}>Appointment Notes</Text>
+        
+        <TextInput 
+          placeholder="What would you like to discuss during your appointment?"
+          style={[styles.inputMultiline, isError && formData.condition.length > 0 && { borderColor: '#EF4444' }]}
+          value={formData.condition}
+          onChangeText={v => setFormData({...formData, condition: v})} 
+          multiline={true}
+          numberOfLines={4}  
+          textAlignVertical="top"
+        />
+        <Text style={{
+          fontSize: 12,
+          color: isError ? '#EF4444' : '#10B981',
+          marginTop: 6,
+          fontWeight: '600'
+        }}>
+          {textLength < 256 
+            ? `At least ${256 - textLength} more characters required` 
+            : `Requirement met! (${textLength} characters)`}
+        </Text>
+      </View>
+    );
+  };
 
   // STEP 5: Review & Confirm
   const renderStep5 = () => {
-    const selectedDoctor = doctors.find(d => d.id === formData.doctor);
+    const selectedFaculty = facultyList.find(f => f.id === formData.faculty);
 
     return (
       <View>
@@ -341,8 +374,8 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
-            <Text style={styles.summaryLabel}>Doctor:</Text>
-            <Text style={styles.summaryValue}>{selectedDoctor?.full_name || 'Not selected'}</Text>
+            <Text style={styles.summaryLabel}>Faculty:</Text>
+            <Text style={styles.summaryValue}>{selectedFaculty?.full_name || 'Not selected'}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
@@ -355,9 +388,13 @@ export default function BookingModal({ isVisible, onClose, doctors, onBookingSuc
             <Text style={styles.summaryValue}>{selectedTime}</Text>
           </View>
           <View style={styles.divider} />
-          <View style={styles.row}>
-            <Text style={styles.summaryLabel}>Condition:</Text>
-            <Text style={styles.summaryValue}>{formData.condition}</Text>
+          <View style={{ flexDirection: 'column', paddingVertical: 12, gap: 6 }}>
+            <Text style={styles.summaryLabel}>Appointment Notes:</Text>
+            <View style={{ backgroundColor: '#F1F5F9', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 4 }}>
+              <Text style={{ ...Typography.body, fontSize: 13, color: '#334155', fontStyle: 'italic', lineHeight: 18 }}>
+                {formData.condition}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
