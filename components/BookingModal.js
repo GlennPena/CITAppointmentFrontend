@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput} from "
 
 import api from "../utils/api";
 import InlineAlert from "../components/InlineAlert";
+import { Toast } from "../components/Toast";
 import { Typography } from "../styles/theme";
 
 
@@ -277,7 +278,12 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
   const renderStep3 = () => (
     <View>
       <Text style={styles.modalTitle}>Date & Time</Text>
-      <InlineAlert message={alert.message} type={alert.type} />
+      <Toast
+        visible={!!alert.message}
+        message={alert.message}
+        type={alert.type}
+        onHide={() => setAlert({ message: "", type: "" })}
+      />
       
       <View style={styles.dateGrid}>
         {availableDates.map(d => (

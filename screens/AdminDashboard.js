@@ -577,10 +577,11 @@ export default function AdminDashboard({ navigation }) {
                       System Administration
                     </Text>
 
-                    <InlineAlert
+                    <Toast
+                      visible={!!error}
                       message={error}
                       type="error"
-                      onClose={() => setError(null)}
+                      onHide={() => setError(null)}
                     />
 
                     <View style={styles.searchContainer}>

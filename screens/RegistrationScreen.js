@@ -202,7 +202,12 @@ export default function RegistrationScreen({ navigation, route }) {
             </Text>
           </View>
 
-          <InlineAlert message={alertConfig.message} type={alertConfig.type} />
+          <Toast 
+            visible={!!alertConfig.message} 
+            message={alertConfig.message} 
+            type={alertConfig.type}
+            onHide={() => setAlertConfig({ message: "", type: "" })}
+          />
 
           {/* PERSONAL */}
           <Text style={[styles.sectionTitle, { marginTop: 0 }]}>Personal Information</Text>

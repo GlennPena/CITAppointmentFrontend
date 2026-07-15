@@ -1,28 +1,51 @@
-/*
-  Toast — slides up from the bottom, displays a message with icon,
-  auto-dismisses after 3s with a progress bar indicator.
-*/
-
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const DURATION = 3000;
+const DURATION = 3500;
 
 export const Toast = ({ message, visible, onHide, type = 'success' }) => {
-  const translateY = useRef(new Animated.Value(120)).current;
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
+  const translateY = useRef(new Animated.Value(-120)).current;
+  const translateX = useRef(new Animated.Value(400)).current;
   const opacity    = useRef(new Animated.Value(0)).current;
+  const scale      = useRef(new Animated.Value(0.85)).current;
   const progress   = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (visible) {
       progress.setValue(1);
-      translateY.setValue(120);
+      translateY.setValue(-120);
+      translateX.setValue(isMobile ? 0 : 400);
       opacity.setValue(0);
+      scale.setValue(0.85);
 
       Animated.parallel([
-        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
-        Animated.timing(opacity,    { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 80,
+          friction: 9,
+        }),
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 80,
+          friction: 9,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 80,
+          friction: 9,
+        }),
       ]).start();
 
       Animated.timing(progress, {
@@ -33,14 +56,32 @@ export const Toast = ({ message, visible, onHide, type = 'success' }) => {
 
       const timer = setTimeout(() => {
         Animated.parallel([
-          Animated.timing(translateY, { toValue: 120, duration: 300, useNativeDriver: true }),
-          Animated.timing(opacity,    { toValue: 0,   duration: 300, useNativeDriver: true }),
+          Animated.timing(translateY, {
+            toValue: -120,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateX, {
+            toValue: isMobile ? 0 : 400,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scale, {
+            toValue: 0.85,
+            duration: 200,
+            useNativeDriver: true,
+          }),
         ]).start(() => onHide());
       }, DURATION);
 
       return () => clearTimeout(timer);
     }
-  }, [visible]);
+  }, [visible, isMobile]);
 
   if (!visible) return null;
 
@@ -53,7 +94,16 @@ export const Toast = ({ message, visible, onHide, type = 'success' }) => {
   return (
     <Animated.View style={[
       styles.container,
-      { backgroundColor: config.bg, opacity, transform: [{ translateY }] }
+      isMobile ? styles.containerMobile : styles.containerDesktop,
+      {
+        backgroundColor: config.bg,
+        opacity,
+        transform: [
+          { translateY },
+          { translateX },
+          { scale }
+        ]
+      }
     ]}>
       {/* Left accent bar */}
       <View style={[styles.accentBar, { backgroundColor: config.accent }]} />
@@ -69,7 +119,10 @@ export const Toast = ({ message, visible, onHide, type = 'success' }) => {
       {/* Progress bar */}
       <Animated.View style={[
         styles.progressBar,
-        { backgroundColor: config.accent, width: progress.interpolate({ inputRange: [0,1], outputRange: ['0%', '100%'] }) }
+        {
+          backgroundColor: config.accent,
+          width: progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
+        }
       ]} />
     </Animated.View>
   );
@@ -78,9 +131,6 @@ export const Toast = ({ message, visible, onHide, type = 'success' }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
     zIndex: 9999,
     flexDirection: 'row',
     alignItems: 'center',
@@ -94,6 +144,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 20,
     elevation: 14,
+  },
+  containerDesktop: {
+    top: 24,
+    right: 24,
+    width: 360,
+  },
+  containerMobile: {
+    top: 16,
+    left: 16,
+    right: 16,
   },
   accentBar: {
     position: 'absolute',

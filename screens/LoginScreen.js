@@ -17,6 +17,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import InlineAlert from "../components/InlineAlert";
+import { Toast } from "../components/Toast";
 import { AppInput } from "../components/AppInput";
 
 import api, { GOOGLE_WEB_CLIENT_ID } from "../utils/api";
@@ -108,13 +109,13 @@ export default function LoginScreen({ navigation }) {
   };
 
   useEffect(() => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID) {
       const initializeGoogle = () => {
         if (window.google) {
           window.google.accounts.id.initialize({
             client_id: GOOGLE_WEB_CLIENT_ID,
             callback: handleWebGoogleResponse,
-            use_fedcm_for_prompt: true,
+            use_fedcm_for_prompt: false,
           });
         }
       };
@@ -143,6 +144,32 @@ export default function LoginScreen({ navigation }) {
   const handleGoogleLogin = async () => {
     setAlertConfig({ message: "", type: "" });
     if (Platform.OS === 'web') {
+      if (!GOOGLE_WEB_CLIENT_ID) {
+        if (__DEV__) {
+          const mockEmail = window.prompt(
+            "Google Client ID is not configured in your .env file.\n\nFor local development, enter a mock @ua.edu.ph email to bypass Google verification:",
+            "student@ua.edu.ph"
+          );
+          if (mockEmail) {
+            if (!mockEmail.toLowerCase().endsWith("@ua.edu.ph")) {
+              setAlertConfig({ message: "Only @ua.edu.ph emails are allowed.", type: "error" });
+              return;
+            }
+            setGoogleLoading(true);
+            try {
+              const backendRes = await api.post("google-auth/", { id_token: `mock_token_${mockEmail.trim()}` });
+              handleBackendResponse(backendRes.data);
+            } catch (err) {
+              setAlertConfig({ message: "Mock verification failed with server.", type: "error" });
+            } finally {
+              setGoogleLoading(false);
+            }
+          }
+        } else {
+          setAlertConfig({ message: "Google Client ID is not configured in .env", type: "error" });
+        }
+        return;
+      }
       if (window.google) {
         window.google.accounts.id.prompt((notification) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
@@ -175,6 +202,12 @@ export default function LoginScreen({ navigation }) {
   if (!isMobile) {
     return (
       <View style={styles.desktopRoot}>
+        <Toast
+          visible={!!alertConfig.message}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onHide={() => setAlertConfig({ message: "", type: "" })}
+        />
 
         {/* LEFT PANEL — Branding */}
         <LinearGradient
@@ -207,7 +240,7 @@ export default function LoginScreen({ navigation }) {
 
             {/* Feature pills */}
             <View style={styles.pillRow}>
-              {['🩺 Book Appointments', '📋 View History', '🔒 Secure & Private'].map(f => (
+              {['Book Appointments', 'View History', 'Secure & Private'].map(f => (
                 <View key={f} style={styles.pill}>
                   <Text style={styles.pillText}>{f}</Text>
                 </View>
@@ -231,8 +264,6 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.formGreeting}>Good to see you!</Text>
             <Text style={styles.formTitle}>Sign In</Text>
             <Text style={styles.formSubtitle}>to Book an Appointment</Text>
-
-            <InlineAlert message={alertConfig.message} type={alertConfig.type} />
 
             <View style={styles.inputSection}>
               <AppInput
@@ -330,6 +361,12 @@ export default function LoginScreen({ navigation }) {
   // ── MOBILE: navy hero top + white form below ──────────────────────────────
   return (
     <View style={styles.mobileRoot}>
+      <Toast
+        visible={!!alertConfig.message}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onHide={() => setAlertConfig({ message: "", type: "" })}
+      />
 
       {/* ── HERO SECTION (always navy, no gradient needed) ── */}
       <View style={styles.mobileHero}>
@@ -356,8 +393,6 @@ export default function LoginScreen({ navigation }) {
 
         <Text style={styles.mobileCardTitle}>Welcome!</Text>
         <Text style={styles.mobileCardSubtitle}>Sign in to Book an Appointment</Text>
-
-        <InlineAlert message={alertConfig.message} type={alertConfig.type} />
 
         <AppInput
           label="Username"
