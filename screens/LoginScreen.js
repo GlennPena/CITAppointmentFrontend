@@ -251,7 +251,7 @@ export default function LoginScreen({ navigation }) {
             </View>
 
             {/* Main copy */}
-            <Text style={styles.leftTitle}>UA Appointment</Text>
+            <Text style={styles.leftTitle}>CIT Appointment</Text>
             <Text style={styles.leftSubtitle}>College of Information Technology</Text>
             <Text style={styles.leftBody}>
               Book, manage, and track your clinic appointments at the University of the Assumption — all in one place.
@@ -408,7 +408,7 @@ export default function LoginScreen({ navigation }) {
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.mobileAppName}>UA APPOINTMENT</Text>
+        <Text style={styles.mobileAppName}>CIT APPOINTMENT</Text>
         <Text style={styles.mobileTagline}>College of Information Technology</Text>
       </View>
 

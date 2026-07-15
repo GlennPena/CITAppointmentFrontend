@@ -39,7 +39,7 @@ const HeaderLogo = ({ isMobile }) => (
       fontFamily: 'Inter_900Black',
       letterSpacing: 0.5,
     }}>
-      UA APPOINTMENT
+      CIT APPOINTMENT
     </Text>
   </View>
 );

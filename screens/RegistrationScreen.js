@@ -188,7 +188,7 @@ export default function RegistrationScreen({ navigation, route }) {
             style={styles.citLogo} 
             resizeMode="contain"
           />
-          <Text style={styles.appTitle}>UA APPOINTMENT</Text>
+          <Text style={styles.appTitle}>CIT APPOINTMENT</Text>
         </View>
  
         {/* CARD */}
@@ -198,7 +198,7 @@ export default function RegistrationScreen({ navigation, route }) {
           <View style={styles.hero}>
             <Text style={styles.heroTitle}>Create Account</Text>
             <Text style={styles.heroSubtitle}>
-              {isGoogle ? "Complete your UA Google Profile" : "Join UA Appointment System"}
+              {isGoogle ? "Complete your UA Google Profile" : "Join CIT Appointment System"}
             </Text>
           </View>
 
