@@ -50,10 +50,11 @@ export default function FacultyTabs() {
           justifyContent: 'center',
           paddingHorizontal: isDesktop ? 14 : 4,
         },
-        
+
         tabBarLabelStyle: {
           ...Typography.title,
-          fontSize: isDesktop? 17 : isMobile ? 13 : 15,
+          color: undefined,
+          fontSize: isDesktop ? 17 : isMobile ? 13 : 15,
           fontWeight: '400',
           paddingVertical: isMobile ? 0 : 10,
           marginLeft: 15,
@@ -71,21 +72,21 @@ export default function FacultyTabs() {
             iconName = 'account-group';
           }
 
-          return <MaterialCommunityIcons name={iconName} size={isDesktop ? 28 : 26} color={color} style={{ marginLeft: isDesktop ? 30 : 0}}/>;
+          return <MaterialCommunityIcons name={iconName} size={isDesktop ? 28 : 26} color={color} style={{ marginLeft: isDesktop ? 30 : 0 }} />;
         },
       })}
     >
-      <Tab.Screen 
-        name="Dashboard" 
-        component={FacultyDashboard} 
+      <Tab.Screen
+        name="Dashboard"
+        component={FacultyDashboard}
       />
-      <Tab.Screen 
-        name="Schedule" 
-        component={FacultySchedule} 
+      <Tab.Screen
+        name="Schedule"
+        component={FacultySchedule}
       />
-      <Tab.Screen 
-        name="Students" 
-        component={StudentHistory} 
+      <Tab.Screen
+        name="Students"
+        component={StudentHistory}
       />
     </Tab.Navigator>
   );

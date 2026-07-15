@@ -173,24 +173,24 @@ export default function FacultyDashboard({ navigation }) {
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#002366',
-                    paddingVertical: 14,
-                    paddingHorizontal: 24,
-                    borderRadius: 16,
+                    backgroundColor: '#FFFFFF',
+                    paddingVertical: 13,
+                    paddingHorizontal: 20,
+                    borderRadius: 14,
                     gap: 8,
-                    shadowColor: '#002366',
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.15,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.12,
                     shadowRadius: 10,
                     elevation: 4,
                   },
-                  pressed && { opacity: 0.9, transform: [{ scale: 0.96 }] }
+                  pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
                 ]}
                 hitSlop={15}
                 onPress={() => setIsBookingVisible(true)}
               >
-                <MaterialCommunityIcons name="calendar-plus" size={20} color="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '800', letterSpacing: 0.2 }}>Book Meeting</Text>
+                <MaterialCommunityIcons name="calendar-plus" size={20} color="#002366" />
+                <Text style={{ color: '#002366', fontSize: 15, fontWeight: '800', marginLeft: 7, letterSpacing: 0.3 }}>Book Meeting</Text>
               </Pressable>
             </View>
             <View style={styles.glassAccent} />

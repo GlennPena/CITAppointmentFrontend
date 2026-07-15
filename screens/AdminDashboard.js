@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions} from "react-native";
+import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import AdminAppointmentRow from "../components/AdminAppointmentTable";
@@ -179,10 +179,10 @@ export default function AdminDashboard({ navigation }) {
       loadPersonnel();
       setToast({ visible: true, message: "Account created successfully", type: "success" });
     } catch (error) {
-      setToast({ 
-        visible: true, 
-        message: error.response?.data?.username || "Failed to create account", 
-        type: "error" 
+      setToast({
+        visible: true,
+        message: error.response?.data?.username || "Failed to create account",
+        type: "error"
       });
     }
   };
@@ -221,8 +221,8 @@ export default function AdminDashboard({ navigation }) {
     }
   };
 
-  const filteredAppointments = Array.isArray(appointments) 
-  ? appointments.filter(item => {
+  const filteredAppointments = Array.isArray(appointments)
+    ? appointments.filter(item => {
       const matchesSearch = item.student_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const now = new Date();
@@ -243,7 +243,7 @@ export default function AdminDashboard({ navigation }) {
 
       return matchesSearch && matchesStatus;
     })
-  : [];
+    : [];
 
   const filteredPersonnel = personnel.filter(p => {
     const matchesSearch =
@@ -486,10 +486,10 @@ export default function AdminDashboard({ navigation }) {
               contentContainerStyle={styles.mobileNavScroll}
             >
               {[
-                { key: 'Overview',   icon: 'view-dashboard-outline', label: 'Overview' },
-                { key: 'Students',   icon: 'account-group',           label: 'Students' },
-                { key: 'Personnel',  icon: 'account-circle',          label: 'Accounts' },
-                { key: 'Analytics',  icon: 'chart-bar',               label: 'Analytics' },
+                { key: 'Overview', icon: 'view-dashboard-outline', label: 'Overview' },
+                { key: 'Students', icon: 'account-group', label: 'Students' },
+                { key: 'Personnel', icon: 'account-circle', label: 'Accounts' },
+                { key: 'Analytics', icon: 'chart-bar', label: 'Analytics' },
               ].map((item) => (
                 <Pressable
                   key={item.key}
@@ -516,18 +516,18 @@ export default function AdminDashboard({ navigation }) {
             // Desktop: vertical sidebar items
             <View style={{ flexDirection: 'column' }}>
               {[
-                { key: 'Overview',   icon: 'view-dashboard-outline', label: 'Overview' },
-                { key: 'Students',   icon: 'account-group',           label: 'Students' },
-                { key: 'Personnel',  icon: 'account-circle',          label: 'Accounts' },
-                { key: 'Analytics',  icon: 'chart-bar',               label: 'Analytics' },
+                { key: 'Overview', icon: 'view-dashboard-outline', label: 'Overview' },
+                { key: 'Students', icon: 'account-group', label: 'Students' },
+                { key: 'Personnel', icon: 'account-circle', label: 'Accounts' },
+                { key: 'Analytics', icon: 'chart-bar', label: 'Analytics' },
               ].map((item) => (
                 <Pressable
                   key={item.key}
                   onPress={() => setSidebarSelection(item.key)}
                   style={({ pressed, hovered }) => [
                     styles.sidebarItem,
-                    sidebarSelection === item.key && styles.sidebarItemActive,
-                    hovered && styles.sidebarItemHover,
+                    sidebarSelection === item.key ? styles.sidebarItemActive : (hovered && styles.sidebarItemHover),
+                    sidebarSelection === item.key && hovered && styles.sidebarItemActiveHover,
                     pressed && styles.sidebarItemPressed,
                   ]}
                 >
@@ -596,7 +596,7 @@ export default function AdminDashboard({ navigation }) {
                     </View>
                     <View style={styles.glassAccent} />
                   </View>
-                
+
 
                   <View style={[
                     styles.statsRow,
@@ -629,7 +629,7 @@ export default function AdminDashboard({ navigation }) {
                 />
               )}
             />
-          
+
           ) : sidebarSelection === 'Students' ? (
             <FlatList
               data={students.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))}
@@ -705,25 +705,25 @@ export default function AdminDashboard({ navigation }) {
 
 
                   <View style={[styles.row]}>
-                      <View style={[styles.flex, { marginRight: 80 } ]}>
-                        <Text style={styles.sectionTitle}>User Accounts ({personnel.length})</Text>
-                      </View>
+                    <View style={[styles.flex, { marginRight: 80 }]}>
+                      <Text style={styles.sectionTitle}>User Accounts ({personnel.length})</Text>
+                    </View>
 
-                      <View style={styles.flex}>
-                        <Pressable
-                          onPress={() => setShowAddPersonnelModal(true)}
-                          style={({ pressed }) => [
-                            styles.addButton,
-                            pressed && styles.addButtonPressed
-                          ]}
-                        >
-                          <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
-                          <Text style={styles.addButtonText}>Add</Text>
-                        </Pressable>
+                    <View style={styles.flex}>
+                      <Pressable
+                        onPress={() => setShowAddPersonnelModal(true)}
+                        style={({ pressed }) => [
+                          styles.addButton,
+                          pressed && styles.addButtonPressed
+                        ]}
+                      >
+                        <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+                        <Text style={styles.addButtonText}>Add</Text>
+                      </Pressable>
                     </View>
                   </View>
-                  
-                  <View style={styles.filter}> 
+
+                  <View style={styles.filter}>
                     <StatusFilter
                       options={accountFilterOptions}
                       activeFilter={accountFilter}
@@ -794,7 +794,7 @@ export default function AdminDashboard({ navigation }) {
         visible={detailVisible}
         item={selectedStudent}
         onClose={() => setDetailVisible(false)}
-        onAction={() => {}}
+        onAction={() => { }}
       />
 
       {/* Add Personnel Modal */}
@@ -1104,18 +1104,25 @@ const getStyles = (isMobile) => StyleSheet.create({
   sidebarItem: {
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     marginBottom: 12,
     backgroundColor: '#F8FAFC'
   },
   sidebarItemActive: {
-    backgroundColor: '#002366'
+    backgroundColor: '#002366',
+    borderRadius: 14,
+  },
+  sidebarItemActiveHover: {
+    backgroundColor: '#002D80',
+    borderRadius: 14,
   },
   sidebarItemHover: {
-    backgroundColor: '#CBD5E1'
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14,
   },
   sidebarItemPressed: {
-    backgroundColor: '#94A3B8'
+    backgroundColor: '#CBD5E1',
+    borderRadius: 14,
   },
   sidebarItemRow: {
     flexDirection: 'row',
@@ -1524,13 +1531,5 @@ const getStyles = (isMobile) => StyleSheet.create({
   progressBarFill: {
     height: '100%',
     borderRadius: 4,
-  },
-  sidebarItemActive: {
-    backgroundColor: '#002366',
-    borderRadius: 14,
-  },
-  sidebarItemHover: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 14
   }
 });
