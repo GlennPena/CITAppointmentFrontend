@@ -239,8 +239,13 @@ export default function LoginScreen({ navigation }) {
             {/* Logo */}
             <View style={styles.leftLogoRow}>
               <Image
+                source={require('../assets/ua-logo.png')}
+                style={styles.uaLogo}
+                resizeMode="contain"
+              />
+              <Image
                 source={require('../assets/cit-logo.png')}
-                style={styles.leftLogo}
+                style={styles.citLogo}
                 resizeMode="contain"
               />
             </View>
@@ -391,11 +396,18 @@ export default function LoginScreen({ navigation }) {
       <View style={styles.mobileHero}>
         {/* subtle decorative circle */}
         <View style={styles.mobileHeroOrb} />
-        <Image
-          source={require('../assets/cit-logo.png')}
-          style={styles.mobileLogo}
-          resizeMode="contain"
-        />
+        <View style={styles.mobileLogoRow}>
+          <Image
+            source={require('../assets/ua-logo.png')}
+            style={styles.mobileUaLogo}
+            resizeMode="contain"
+          />
+          <Image
+            source={require('../assets/cit-logo.png')}
+            style={styles.mobileCitLogo}
+            resizeMode="contain"
+          />
+        </View>
         <Text style={styles.mobileAppName}>UA APPOINTMENT</Text>
         <Text style={styles.mobileTagline}>College of Information Technology</Text>
       </View>
@@ -524,9 +536,16 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     justifyContent: 'center',
   },
   leftLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 36,
+    gap: 16,
   },
-  leftLogo: {
+  uaLogo: {
+    width: 92,
+    height: 92,
+  },
+  citLogo: {
     width: 110,
     height: 110,
   },
@@ -659,10 +678,20 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     top: -70,
     right: -50,
   },
-  mobileLogo: {
+  mobileUaLogo: {
+    width: 74,
+    height: 74,
+  },
+  mobileCitLogo: {
     width: 88,
     height: 88,
+  },
+  mobileLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
+    gap: 12,
   },
   mobileAppName: {
     fontFamily: 'Inter_900Black',
