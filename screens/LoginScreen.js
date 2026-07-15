@@ -117,6 +117,20 @@ export default function LoginScreen({ navigation }) {
             callback: handleWebGoogleResponse,
             use_fedcm_for_prompt: false,
           });
+
+          // Wait briefly for DOM rendering to complete, then render the official button
+          setTimeout(() => {
+            const btnId = isMobile ? "googleButtonDivMobile" : "googleButtonDiv";
+            const btnDiv = document.getElementById(btnId);
+            if (btnDiv) {
+              window.google.accounts.id.renderButton(btnDiv, {
+                theme: "outline",
+                size: "large",
+                text: "continue_with",
+                width: 320,
+              });
+            }
+          }, 100);
         }
       };
       if (window.google) {
@@ -127,7 +141,7 @@ export default function LoginScreen({ navigation }) {
         }, 1000);
       }
     }
-  }, []);
+  }, [isMobile]);
 
   const handleWebGoogleResponse = async (response) => {
     setGoogleLoading(true);
@@ -323,22 +337,27 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.divider} />
             </View>
 
-            {/* Google */}
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleLogin}
-              disabled={googleLoading}
-              activeOpacity={0.85}
-            >
-              {googleLoading ? (
-                <ActivityIndicator color="#444" />
-              ) : (
-                <View style={styles.googleContent}>
-                  <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
-                  <Text style={styles.googleButtonText}>Continue with UA Email</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            {Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID ? (
+              <View style={{ alignItems: 'center', marginVertical: 8 }}>
+                <div id="googleButtonDiv" style={{ width: '320px', height: '44px' }} />
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={handleGoogleLogin}
+                disabled={googleLoading}
+                activeOpacity={0.85}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator color="#444" />
+                ) : (
+                  <View style={styles.googleContent}>
+                    <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
+                    <Text style={styles.googleButtonText}>Continue with UA Email</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
 
             {/* Footer */}
             <View style={styles.footerRow}>
@@ -447,21 +466,27 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.divider} />
         </View>
 
-        <TouchableOpacity
-          style={styles.googleButton}
-          onPress={handleGoogleLogin}
-          disabled={googleLoading}
-          activeOpacity={0.85}
-        >
-          {googleLoading ? (
-            <ActivityIndicator color="#444" />
-          ) : (
-            <View style={styles.googleContent}>
-              <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
-              <Text style={styles.googleButtonText}>Continue with UA Email</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID ? (
+          <View style={{ alignItems: 'center', marginVertical: 8 }}>
+            <div id="googleButtonDivMobile" style={{ width: '320px', height: '44px' }} />
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleLogin}
+            disabled={googleLoading}
+            activeOpacity={0.85}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color="#444" />
+            ) : (
+              <View style={styles.googleContent}>
+                <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
+                <Text style={styles.googleButtonText}>Continue with UA Email</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
 
         <View style={styles.footerRow}>
           <MaterialCommunityIcons name="shield-check-outline" size={13} color="#94A3B8" />
