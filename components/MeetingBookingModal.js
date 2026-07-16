@@ -44,10 +44,15 @@ const generateDates = () => {
   let temp = new Date();
   while (dates.length < 7) {
     if (temp.getDay() !== 0) { // Exclude Sunday
+      const year = temp.getFullYear();
+      const month = String(temp.getMonth() + 1).padStart(2, '0');
+      const date = String(temp.getDate()).padStart(2, '0');
+      const localFullDate = `${year}-${month}-${date}`;
+      
       dates.push({
         dayName: temp.toLocaleDateString('en-US', { weekday: 'short' }),
         dayNum: temp.getDate(),
-        fullDate: temp.toISOString().split('T')[0]
+        fullDate: localFullDate
       });
     }
     temp.setDate(temp.getDate() + 1);
