@@ -34,7 +34,7 @@ export default function MeetingReportModal({ visible, onClose, data }) {
 
   const rawBaseUrl = api.defaults.baseURL || "";
   const cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-  const verificationUrl = `${cleanBaseUrl}/verify-slip/${data.id}/`;
+  const verificationUrl = `${cleanBaseUrl}/verify-meeting-report/${data.id}/`;
 
   const agendaText = data.condition || "No agenda details provided.";
   const participantsList = data.participants_attendance || [];
@@ -56,7 +56,7 @@ export default function MeetingReportModal({ visible, onClose, data }) {
       const qrBase64 = await getQRCodeBase64();
       const meetingDateObj = data.date_time ? new Date(data.date_time) : null;
 
-      const meetingDate = meetingDateObj 
+      const meetingDate = meetingDateObj
         ? meetingDateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         : "N/A";
 
@@ -159,7 +159,7 @@ export default function MeetingReportModal({ visible, onClose, data }) {
         participantsList.forEach((p) => {
           doc.text(p.full_name, leftPadding, currentY);
           doc.text(p.role === 'dean' ? 'Dean' : 'Faculty', leftPadding + 70, currentY);
-          
+
           doc.setFont("helvetica", "bold");
           if (p.attended) {
             doc.setTextColor(16, 185, 129); // Green
@@ -352,7 +352,7 @@ export default function MeetingReportModal({ visible, onClose, data }) {
               {/* ATTENDANCE TABLE */}
               <Text style={[styles.sectionHeading, { marginTop: 16 }]}>PARTICIPANTS ATTENDANCE RECORD</Text>
               <View style={styles.sectionDivider} />
-              
+
               <View style={styles.table}>
                 <View style={styles.tableHeaderRow}>
                   <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Participant Name</Text>
@@ -367,7 +367,7 @@ export default function MeetingReportModal({ visible, onClose, data }) {
                       <Text style={[styles.tableCell, { flex: 2, fontWeight: '700' }]}>{p.full_name}</Text>
                       <Text style={[styles.tableCell, { flex: 1, textTransform: 'capitalize' }]}>{p.role}</Text>
                       <Text style={[
-                        styles.tableCell, 
+                        styles.tableCell,
                         { flex: 1.5, textAlign: 'right', fontWeight: 'bold' },
                         p.attended ? { color: '#10B981' } : { color: '#EF4444' }
                       ]}>

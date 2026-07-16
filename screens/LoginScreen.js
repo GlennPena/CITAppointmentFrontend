@@ -425,6 +425,221 @@ export default function LoginScreen({ navigation }) {
     return (
       <Animated.View style={{ flex: 1, opacity: entryAnim }}>
         <View style={styles.desktopRoot}>
+          <Toast
+            visible={!!alertConfig.message}
+            message={alertConfig.message}
+            type={alertConfig.type}
+            onHide={() => setAlertConfig({ message: "", type: "" })}
+          />
+
+          <Animated.View style={{ flex: 1, flexDirection: 'row', opacity: mainOpacity, transform: [{ scale: mainScale }] }}>
+            {/* LEFT PANEL — Branding */}
+            <LinearGradient
+              colors={['#001848', '#002B6B', '#003DA5']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.leftPanel}
+            >
+              {/* Decorative orbs */}
+              <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} delay={0} />
+              <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} delay={1500} />
+              <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} delay={3000} />
+
+              <View style={styles.leftContent}>
+                {/* Logo */}
+                <View style={styles.leftLogoRow}>
+                  <HoverScaleItem>
+                    <Image
+                      source={require('../assets/ua-logo.png')}
+                      style={styles.uaLogo}
+                      resizeMode="contain"
+                    />
+                  </HoverScaleItem>
+                  <HoverScaleItem>
+                    <Image
+                      source={require('../assets/cit-logo.png')}
+                      style={styles.citLogo}
+                      resizeMode="contain"
+                    />
+                  </HoverScaleItem>
+                </View>
+
+                {/* Main copy */}
+                <Text style={styles.leftTitle}>CIT Appointment</Text>
+                <Text style={styles.leftSubtitle}>College of Information Technology</Text>
+                <TypingText
+                  text="Book, manage, and track your academic appointments with ease — all in one platform."
+                  style={styles.leftBody}
+                  onTypingComplete={() => setTypingCycles(c => c + 1)}
+                />
+
+                {/* Feature pills */}
+                <View style={styles.pillRow}>
+                  {['Book Appointments', 'Track Appointments', 'Secure & Reliable'].map((f, index) => (
+                    <BouncingPill key={f} delay={index * 150} bounceTrigger={typingCycles}>
+                      <HoverScaleItem style={styles.pill}>
+                        <Text style={styles.pillText}>{f}</Text>
+                      </HoverScaleItem>
+                    </BouncingPill>
+                  ))}
+                </View>
+              </View>
+
+              {/* Bottom watermark */}
+              <Text style={styles.watermark}>University of the Assumption · College of Information Technology</Text>
+            </LinearGradient>
+
+            {/* RIGHT PANEL — Form */}
+            <ScrollView
+              contentContainerStyle={styles.rightPanel}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.formContainer}>
+                {/* Top accent line */}
+                <View style={styles.accentBar} />
+
+                <Text style={styles.formGreeting}>Good to see you!</Text>
+                <Text style={styles.formTitle}>Sign In</Text>
+                <Text style={styles.formSubtitle}>to Book an Appointment</Text>
+
+                <View style={styles.inputSection}>
+                  <AppInput
+                    label="Username"
+                    value={username}
+                    onChangeText={setUsername}
+                    setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
+                  />
+                  <AppInput
+                    label="Password"
+                    value={password}
+                    secureTextEntry={!showPassword}
+                    onChangeText={setPassword}
+                    setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
+                  />
+                </View>
+
+                {/* Remember me row */}
+                <View style={[styles.row, { justifyContent: 'space-between', width: '100%' }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Pressable
+                      onPress={() => setRememberMe(!rememberMe)}
+                      style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
+                    >
+                      {rememberMe && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
+                    </Pressable>
+                    <Text style={styles.rememberText}>Remember me</Text>
+                  </View>
+                  <Pressable onPress={() => navigation.navigate("ForgotPassword")}>
+                    <Text style={styles.forgotPasswordLink}>Forgot password?</Text>
+                  </Pressable>
+                </View>
+
+                {/* Sign In CTA */}
+                <ShineButton onPress={handleLogin} loading={loading} styles={styles} />
+
+                {/* Divider */}
+                <View style={styles.dividerContainer}>
+                  <View style={styles.divider} />
+                  <Text style={styles.dividerText}>or continue with</Text>
+                  <View style={styles.divider} />
+                </View>
+
+                {Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID ? (
+                  <View style={{ alignItems: 'center', marginVertical: 8 }}>
+                    <div ref={renderGoogleButton} style={{ width: '320px', height: '44px' }} />
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.googleButton}
+                    onPress={handleGoogleLogin}
+                    disabled={googleLoading}
+                    activeOpacity={0.85}
+                  >
+                    {googleLoading ? (
+                      <ActivityIndicator color="#444" />
+                    ) : (
+                      <View style={styles.googleContent}>
+                        <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
+                        <Text style={styles.googleButtonText}>Continue with UA Email</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+
+                {/* Footer */}
+                <View style={styles.footerRow}>
+                  <MaterialCommunityIcons name="shield-check-outline" size={14} color="#94A3B8" />
+                  <Text style={styles.securityText}>  Secured with end-to-end encryption</Text>
+                </View>
+
+                <Pressable onPress={() => navigation.navigate("Register")}>
+                  <Text style={styles.registerText}>
+                    Don't have an account?{'  '}
+                    <Text style={styles.link}>Register here</Text>
+                  </Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </Animated.View>
+
+          {isTransitioning && (
+            <Animated.View style={[
+              StyleSheet.absoluteFillObject,
+              {
+                opacity: transitionAnim,
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 9999,
+              }
+            ]}>
+              <LinearGradient
+                colors={['#FFFFFF', '#F5F7FA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <Animated.View style={{
+                alignItems: 'center',
+                transform: [{
+                  scale: transitionAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1],
+                  })
+                }]
+              }}>
+                <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20, alignItems: 'center' }}>
+                  <Image source={require('../assets/ua-logo.png')} style={{ width: 80, height: 80 }} resizeMode="contain" />
+                  <Image source={require('../assets/cit-logo.png')} style={{ width: 80, height: 80 }} resizeMode="contain" />
+                </View>
+                <Text style={{
+                  fontFamily: 'Inter_700Bold',
+                  color: '#002366',
+                  fontSize: 24,
+                  marginBottom: 8,
+                }}>
+                  Welcome back!
+                </Text>
+                <Text style={{
+                  fontFamily: 'Roboto_400Regular',
+                  color: '#475569',
+                  fontSize: 14,
+                  marginBottom: 24,
+                }}>
+                  Preparing your workspace...
+                </Text>
+                <ActivityIndicator size="large" color="#002366" />
+              </Animated.View>
+            </Animated.View>
+          )}
+        </View>
+      </Animated.View>
+    );
+  }
+
+  // ── MOBILE: navy hero top + white form below ──────────────────────────────
+  return (
+    <Animated.View style={{ flex: 1, opacity: entryAnim }}>
+      <View style={styles.mobileRoot}>
         <Toast
           visible={!!alertConfig.message}
           message={alertConfig.message}
@@ -432,93 +647,58 @@ export default function LoginScreen({ navigation }) {
           onHide={() => setAlertConfig({ message: "", type: "" })}
         />
 
-        <Animated.View style={{ flex: 1, flexDirection: 'row', opacity: mainOpacity, transform: [{ scale: mainScale }] }}>
-          {/* LEFT PANEL — Branding */}
-          <LinearGradient
-          colors={['#001848', '#002B6B', '#003DA5']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.leftPanel}
-        >
-          {/* Decorative orbs */}
-          <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} delay={0} />
-          <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} delay={1500} />
-          <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} delay={3000} />
-
-          <View style={styles.leftContent}>
-            {/* Logo */}
-            <View style={styles.leftLogoRow}>
+        <Animated.View style={{ flex: 1, opacity: mainOpacity, transform: [{ scale: mainScale }] }}>
+          {/* ── HERO SECTION (always navy, no gradient needed) ── */}
+          <View style={styles.mobileHero}>
+            {/* subtle decorative circle */}
+            <Orb style={[styles.mobileHeroOrb, { opacity: 1 }]} delay={0} />
+            <View style={styles.mobileLogoRow}>
               <HoverScaleItem>
                 <Image
                   source={require('../assets/ua-logo.png')}
-                  style={styles.uaLogo}
+                  style={styles.mobileUaLogo}
                   resizeMode="contain"
                 />
               </HoverScaleItem>
               <HoverScaleItem>
                 <Image
                   source={require('../assets/cit-logo.png')}
-                  style={styles.citLogo}
+                  style={styles.mobileCitLogo}
                   resizeMode="contain"
                 />
               </HoverScaleItem>
             </View>
-
-            {/* Main copy */}
-            <Text style={styles.leftTitle}>CIT Appointment</Text>
-            <Text style={styles.leftSubtitle}>College of Information Technology</Text>
-            <TypingText
-              text="Book, manage, and track your academic appointments with ease — all in one platform."
-              style={styles.leftBody}
-              onTypingComplete={() => setTypingCycles(c => c + 1)}
-            />
-
-            {/* Feature pills */}
-            <View style={styles.pillRow}>
-              {['Book Appointments', 'Track Appointments', 'Secure & Reliable'].map((f, index) => (
-                <BouncingPill key={f} delay={index * 150} bounceTrigger={typingCycles}>
-                  <HoverScaleItem style={styles.pill}>
-                    <Text style={styles.pillText}>{f}</Text>
-                  </HoverScaleItem>
-                </BouncingPill>
-              ))}
-            </View>
+            <Text style={styles.mobileAppName}>CIT APPOINTMENT</Text>
+            <Text style={styles.mobileTagline}>College of Information Technology</Text>
           </View>
 
-          {/* Bottom watermark */}
-          <Text style={styles.watermark}>University of the Assumption · College of Information Technology</Text>
-        </LinearGradient>
+          {/* ── FORM SECTION (white, scrollable) ── */}
+          <ScrollView
+            style={styles.mobileFormScroll}
+            contentContainerStyle={styles.mobileFormContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Notch / pill handle */}
+            <View style={styles.mobileNotch} />
 
-        {/* RIGHT PANEL — Form */}
-        <ScrollView
-          contentContainerStyle={styles.rightPanel}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.formContainer}>
-            {/* Top accent line */}
-            <View style={styles.accentBar} />
+            <Text style={styles.mobileCardTitle}>Welcome!</Text>
+            <Text style={styles.mobileCardSubtitle}>Sign in to Book an Appointment</Text>
 
-            <Text style={styles.formGreeting}>Good to see you!</Text>
-            <Text style={styles.formTitle}>Sign In</Text>
-            <Text style={styles.formSubtitle}>to Book an Appointment</Text>
+            <AppInput
+              label="Username"
+              value={username}
+              onChangeText={setUsername}
+              setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
+            />
+            <AppInput
+              label="Password"
+              value={password}
+              secureTextEntry={!showPassword}
+              onChangeText={setPassword}
+              setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
+            />
 
-            <View style={styles.inputSection}>
-              <AppInput
-                label="Username"
-                value={username}
-                onChangeText={setUsername}
-                setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
-              />
-              <AppInput
-                label="Password"
-                value={password}
-                secureTextEntry={!showPassword}
-                onChangeText={setPassword}
-                setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
-              />
-            </View>
-
-            {/* Remember me row */}
             <View style={[styles.row, { justifyContent: 'space-between', width: '100%' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Pressable
@@ -534,10 +714,8 @@ export default function LoginScreen({ navigation }) {
               </Pressable>
             </View>
 
-            {/* Sign In CTA */}
             <ShineButton onPress={handleLogin} loading={loading} styles={styles} />
 
-            {/* Divider */}
             <View style={styles.dividerContainer}>
               <View style={styles.divider} />
               <Text style={styles.dividerText}>or continue with</Text>
@@ -566,9 +744,8 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             )}
 
-            {/* Footer */}
             <View style={styles.footerRow}>
-              <MaterialCommunityIcons name="shield-check-outline" size={14} color="#94A3B8" />
+              <MaterialCommunityIcons name="shield-check-outline" size={13} color="#94A3B8" />
               <Text style={styles.securityText}>  Secured with end-to-end encryption</Text>
             </View>
 
@@ -578,8 +755,7 @@ export default function LoginScreen({ navigation }) {
                 <Text style={styles.link}>Register here</Text>
               </Text>
             </Pressable>
-          </View>
-        </ScrollView>
+          </ScrollView>
         </Animated.View>
 
         {isTransitioning && (
@@ -631,182 +807,6 @@ export default function LoginScreen({ navigation }) {
             </Animated.View>
           </Animated.View>
         )}
-        </View>
-      </Animated.View>
-    );
-  }
-
-  // ── MOBILE: navy hero top + white form below ──────────────────────────────
-  return (
-    <Animated.View style={{ flex: 1, opacity: entryAnim }}>
-      <View style={styles.mobileRoot}>
-      <Toast
-        visible={!!alertConfig.message}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        onHide={() => setAlertConfig({ message: "", type: "" })}
-      />
-
-      <Animated.View style={{ flex: 1, opacity: mainOpacity, transform: [{ scale: mainScale }] }}>
-        {/* ── HERO SECTION (always navy, no gradient needed) ── */}
-        <View style={styles.mobileHero}>
-        {/* subtle decorative circle */}
-        <Orb style={[styles.mobileHeroOrb, { opacity: 1 }]} delay={0} />
-        <View style={styles.mobileLogoRow}>
-          <HoverScaleItem>
-            <Image
-              source={require('../assets/ua-logo.png')}
-              style={styles.mobileUaLogo}
-              resizeMode="contain"
-            />
-          </HoverScaleItem>
-          <HoverScaleItem>
-            <Image
-              source={require('../assets/cit-logo.png')}
-              style={styles.mobileCitLogo}
-              resizeMode="contain"
-            />
-          </HoverScaleItem>
-        </View>
-        <Text style={styles.mobileAppName}>CIT APPOINTMENT</Text>
-        <Text style={styles.mobileTagline}>College of Information Technology</Text>
-      </View>
-
-      {/* ── FORM SECTION (white, scrollable) ── */}
-      <ScrollView
-        style={styles.mobileFormScroll}
-        contentContainerStyle={styles.mobileFormContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Notch / pill handle */}
-        <View style={styles.mobileNotch} />
-
-        <Text style={styles.mobileCardTitle}>Welcome!</Text>
-        <Text style={styles.mobileCardSubtitle}>Sign in to Book an Appointment</Text>
-
-        <AppInput
-          label="Username"
-          value={username}
-          onChangeText={setUsername}
-          setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
-        />
-        <AppInput
-          label="Password"
-          value={password}
-          secureTextEntry={!showPassword}
-          onChangeText={setPassword}
-          setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
-        />
-
-        <View style={[styles.row, { justifyContent: 'space-between', width: '100%' }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Pressable
-              onPress={() => setRememberMe(!rememberMe)}
-              style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
-            >
-              {rememberMe && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
-            </Pressable>
-            <Text style={styles.rememberText}>Remember me</Text>
-          </View>
-          <Pressable onPress={() => navigation.navigate("ForgotPassword")}>
-            <Text style={styles.forgotPasswordLink}>Forgot password?</Text>
-          </Pressable>
-        </View>
-
-        <ShineButton onPress={handleLogin} loading={loading} styles={styles} />
-
-        <View style={styles.dividerContainer}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>or continue with</Text>
-          <View style={styles.divider} />
-        </View>
-
-        {Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID ? (
-          <View style={{ alignItems: 'center', marginVertical: 8 }}>
-            <div ref={renderGoogleButton} style={{ width: '320px', height: '44px' }} />
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleLogin}
-            disabled={googleLoading}
-            activeOpacity={0.85}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color="#444" />
-            ) : (
-              <View style={styles.googleContent}>
-                <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
-                <Text style={styles.googleButtonText}>Continue with UA Email</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.footerRow}>
-          <MaterialCommunityIcons name="shield-check-outline" size={13} color="#94A3B8" />
-          <Text style={styles.securityText}>  Secured with end-to-end encryption</Text>
-        </View>
-
-        <Pressable onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.registerText}>
-            Don't have an account?{'  '}
-            <Text style={styles.link}>Register here</Text>
-          </Text>
-        </Pressable>
-      </ScrollView>
-      </Animated.View>
-
-      {isTransitioning && (
-        <Animated.View style={[
-          StyleSheet.absoluteFillObject,
-          {
-            opacity: transitionAnim,
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          }
-        ]}>
-          <LinearGradient
-            colors={['#FFFFFF', '#F5F7FA']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-          <Animated.View style={{
-            alignItems: 'center',
-            transform: [{
-              scale: transitionAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.8, 1],
-              })
-            }]
-          }}>
-            <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20, alignItems: 'center' }}>
-              <Image source={require('../assets/ua-logo.png')} style={{ width: 80, height: 80 }} resizeMode="contain" />
-              <Image source={require('../assets/cit-logo.png')} style={{ width: 80, height: 80 }} resizeMode="contain" />
-            </View>
-            <Text style={{
-              fontFamily: 'Inter_700Bold',
-              color: '#002366',
-              fontSize: 24,
-              marginBottom: 8,
-            }}>
-              Welcome back!
-            </Text>
-            <Text style={{
-              fontFamily: 'Roboto_400Regular',
-              color: '#475569',
-              fontSize: 14,
-              marginBottom: 24,
-            }}>
-              Preparing your workspace...
-            </Text>
-            <ActivityIndicator size="large" color="#002366" />
-          </Animated.View>
-        </Animated.View>
-      )}
       </View>
     </Animated.View>
   );

@@ -338,7 +338,11 @@ export default function AdminDashboard({ navigation }) {
     });
 
     return (
-      <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 40 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={[styles.title, styles.pageTitle]}>Reports & Analytics</Text>
           <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 4 }}>
@@ -363,6 +367,7 @@ export default function AdminDashboard({ navigation }) {
               <MaterialCommunityIcons name="trophy-outline" size={20} color="#F59E0B" />
               <Text style={styles.analyticsCardTitle}>Top Faculty (Most Consultations)</Text>
             </View>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
             <View style={styles.analyticsCardBody}>
               {topFaculty.length === 0 ? (
                 <Text style={styles.emptyText}>No consultation data available.</Text>
@@ -381,6 +386,7 @@ export default function AdminDashboard({ navigation }) {
                 ))
               )}
             </View>
+            </ScrollView>
           </View>
 
           {/* TOP STUDENTS */}
@@ -389,6 +395,7 @@ export default function AdminDashboard({ navigation }) {
               <MaterialCommunityIcons name="account-star-outline" size={20} color="#0052FF" />
               <Text style={styles.analyticsCardTitle}>Top Students (Most Consultations)</Text>
             </View>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
             <View style={styles.analyticsCardBody}>
               {topStudents.length === 0 ? (
                 <Text style={styles.emptyText}>No student data available.</Text>
@@ -407,6 +414,7 @@ export default function AdminDashboard({ navigation }) {
                 ))
               )}
             </View>
+            </ScrollView>
           </View>
         </View>
 
@@ -418,6 +426,7 @@ export default function AdminDashboard({ navigation }) {
               <MaterialCommunityIcons name="medical-bag" size={20} color="#10B981" />
               <Text style={styles.analyticsCardTitle}>Service Distribution</Text>
             </View>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
             <View style={styles.analyticsCardBody}>
               {topServices.length === 0 ? (
                 <Text style={styles.emptyText}>No services logged.</Text>
@@ -438,6 +447,7 @@ export default function AdminDashboard({ navigation }) {
                 })
               )}
             </View>
+            </ScrollView>
           </View>
 
           {/* STATUS DISTRIBUTION */}

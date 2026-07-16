@@ -17,7 +17,7 @@ export default function MeetingHistory() {
   const numColumns = isDesktop ? 2 : 1;
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [meetings, setMeetings] = useState([]);
+  const [allMeetings, setAllMeetings] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -29,24 +29,29 @@ export default function MeetingHistory() {
     }
   }, [isFocused]);
 
-  const loadMeetings = async (query = "") => {
+  const loadMeetings = async () => {
     setLoading(true);
     try {
-      const url = query 
-        ? `appointments/?status=Completed&search=${query}` 
-        : `appointments/?status=Completed`;
-      
-      const res = await api.get(url);
-      
+      const res = await api.get(`appointments/?status=Completed`);
       // Filter ONLY internal faculty/dean meetings (student is null)
       const internalMeetings = res.data.filter(appt => appt.student === null);
-      setMeetings(internalMeetings);
+      setAllMeetings(internalMeetings);
     } catch (err) {
       console.error("Failed to load completed meetings:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Client-side filter by meeting title or faculty name
+  const filteredMeetings = searchQuery.trim()
+    ? allMeetings.filter(m => {
+        const q = searchQuery.toLowerCase();
+        const title = (m.service || "").toLowerCase();
+        const host = (m.faculty_name || "").toLowerCase();
+        return title.includes(q) || host.includes(q);
+      })
+    : allMeetings;
 
   const handleOpenDetails = (meeting) => {
     setSelectedMeeting(meeting);
@@ -68,18 +73,24 @@ export default function MeetingHistory() {
               placeholderTextColor="#94A3B8"
               style={styles.searchInput}
               value={searchQuery}
-              onChangeText={(text) => {
-                setSearchQuery(text);
-                loadMeetings(text);
-              }}
+              onChangeText={setSearchQuery}
             />
+            {searchQuery.length > 0 && (
+              <MaterialCommunityIcons
+                name="close-circle"
+                size={20}
+                color="#94A3B8"
+                onPress={() => setSearchQuery("")}
+                style={{ cursor: 'pointer' }}
+              />
+            )}
           </View>
 
-          {loading && meetings.length === 0 ? (
+          {loading && allMeetings.length === 0 ? (
             <ActivityIndicator size="large" color="#002366" style={{ marginTop: 40 }} />
           ) : (
             <FlatList
-              data={meetings}
+              data={filteredMeetings}
               key={numColumns}
               numColumns={numColumns}
               keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
@@ -96,8 +107,14 @@ export default function MeetingHistory() {
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <MaterialCommunityIcons name="calendar-blank-outline" size={48} color="#94A3B8" />
-                  <Text style={styles.emptyTitle}>No Completed Meetings</Text>
-                  <Text style={styles.emptyText}>No completed faculty meetings match your search query.</Text>
+                  <Text style={styles.emptyTitle}>
+                    {searchQuery.trim() ? "No Results Found" : "No Completed Meetings"}
+                  </Text>
+                  <Text style={styles.emptyText}>
+                    {searchQuery.trim()
+                      ? `No meetings match "${searchQuery}".`
+                      : "No completed faculty meetings yet."}
+                  </Text>
                 </View>
               }
             />
@@ -113,6 +130,7 @@ export default function MeetingHistory() {
     </ScrollView>
   );
 }
+
 
 const getStyles = (isMobile, isDesktop, width) => StyleSheet.create({
   scrollContainer: {
