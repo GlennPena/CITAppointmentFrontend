@@ -22,7 +22,6 @@ const InlineAlert = ({ message, type = 'info', onClose }) => {
     <View style={[styles.container, {
       backgroundColor: cfg.bg,
       borderColor: cfg.border,
-      borderLeftColor: cfg.accent,
     }]}>
       <MaterialCommunityIcons name={cfg.icon} size={18} color={cfg.accent} style={styles.icon} />
 
@@ -48,7 +47,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderLeftWidth: 4,
     marginVertical: 8,
   },
   icon: {

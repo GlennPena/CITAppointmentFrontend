@@ -21,6 +21,7 @@ export default function FacultyDashboard({ navigation }) {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [disapproveModal, setDisapproveModal] = useState({ visible: false, id: null, reason: "" });
+  const [detailsModal, setDetailsModal] = useState({ visible: false, appointment: null });
   const [isBookingVisible, setIsBookingVisible] = useState(false);
   
 
@@ -217,7 +218,12 @@ export default function FacultyDashboard({ navigation }) {
                       </View>
                       <Text style={styles.requestService}>{item.service}</Text>
 
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#64748B', marginBottom: 4 }}>NOTES PREVIEW:</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: '#64748B' }}>NOTES PREVIEW:</Text>
+                        <Pressable onPress={() => setDetailsModal({ visible: true, appointment: item })}>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#003DA5' }}>SEE MORE</Text>
+                        </Pressable>
+                      </View>
                       <View style={{ backgroundColor: '#F8FAFC', padding: 8, borderRadius: 8, marginBottom: 12, height: 60, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9' }}>
                         <Text style={{ fontSize: 11, color: '#475569', fontStyle: 'italic', lineHeight: 15 }} numberOfLines={3}>
                           {item.condition || "No notes provided."}
@@ -295,6 +301,71 @@ export default function FacultyDashboard({ navigation }) {
               )}
           </View>
         </View>
+
+        <Modal visible={detailsModal.visible} transparent animationType="fade">
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}>
+            <View style={{
+              backgroundColor: '#FFF',
+              borderRadius: 20,
+              padding: 24,
+              width: '90%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 5
+            }}>
+              <Text style={{ ...Typography.header, fontSize: 18, fontWeight: '800', color: '#002366', marginBottom: 16 }}>
+                Appointment Details
+              </Text>
+
+              {detailsModal.appointment && (
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748B', marginBottom: 4 }}>STUDENT NAME</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#1E293B', marginBottom: 16 }}>
+                    {detailsModal.appointment.student_name}
+                  </Text>
+
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748B', marginBottom: 4 }}>DATE & TIME</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#1E293B', marginBottom: 16 }}>
+                    {new Date(detailsModal.appointment.date_time).toLocaleString([], { 
+                      month: 'long', day: 'numeric', year: 'numeric', 
+                      hour: 'numeric', minute: '2-digit' 
+                    })}
+                  </Text>
+
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748B', marginBottom: 4 }}>SERVICE</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#1E293B', marginBottom: 16 }}>
+                    {detailsModal.appointment.service}
+                  </Text>
+
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748B', marginBottom: 4 }}>NOTES / CONCERN</Text>
+                  <View style={{ backgroundColor: '#F8FAFC', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0', minHeight: 80 }}>
+                    <Text style={{ fontSize: 13, color: '#475569', lineHeight: 20 }}>
+                      {detailsModal.appointment.condition || "No specific notes or concerns provided."}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <Pressable
+                  style={{ flex: 1, backgroundColor: '#002366', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                  onPress={() => setDetailsModal({ visible: false, appointment: null })}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Close</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         <Modal visible={disapproveModal.visible} transparent animationType="fade">
           <View style={{

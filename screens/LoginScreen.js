@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   Platform,
   ScrollView,
+  Animated,
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -32,19 +33,196 @@ if (Platform.OS !== 'web') {
 }
 
 // ── Decorative Floating Orb ─────────────────────────────────────────────────
-const Orb = ({ style }) => (
-  <View style={[{
-    position: 'absolute',
-    borderRadius: 999,
-    opacity: 0.18,
-  }, style]} />
-);
+const Orb = ({ style, delay = 0 }) => {
+  const [translateY] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    const float = Animated.loop(
+      Animated.sequence([
+        Animated.timing(translateY, { toValue: 15, duration: 4000, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: -15, duration: 4000, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: 4000, useNativeDriver: true }),
+      ])
+    );
+    const timeout = setTimeout(() => float.start(), delay);
+    return () => {
+      clearTimeout(timeout);
+      float.stop();
+    };
+  }, [delay, translateY]);
+
+  return (
+    <Animated.View style={[{
+      position: 'absolute',
+      borderRadius: 999,
+      opacity: 0.18,
+    }, style, { transform: [{ translateY }] }]} />
+  );
+};
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const HoverScaleItem = ({ children, style, scaleTo = 1.05 }) => {
+  const [scale] = useState(() => new Animated.Value(1));
+  return (
+    <AnimatedPressable
+      onHoverIn={() => Animated.spring(scale, { toValue: scaleTo, useNativeDriver: true }).start()}
+      onHoverOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()}
+      style={[style, { transform: [{ scale }] }]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+};
+
+const BouncingPill = ({ children, bounceTrigger, delay = 0 }) => {
+  const [translateY] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    if (bounceTrigger > 0) {
+      const timeout = setTimeout(() => {
+        translateY.setValue(0);
+        Animated.sequence([
+          Animated.timing(translateY, { toValue: -3, duration: 250, useNativeDriver: true }),
+          Animated.spring(translateY, { toValue: 0, friction: 6, tension: 80, useNativeDriver: true })
+        ]).start();
+      }, delay);
+      return () => clearTimeout(timeout);
+    }
+  }, [bounceTrigger, delay, translateY]);
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
+const ShineButton = ({ onPress, loading, styles }) => {
+  const [hovered, setHovered] = useState(false);
+  const shineAnim = useState(() => new Animated.Value(-1))[0];
+  const scale = useState(() => new Animated.Value(1))[0];
+
+  useEffect(() => {
+    if (hovered) {
+      Animated.spring(scale, { toValue: 1.05, useNativeDriver: true }).start();
+      shineAnim.setValue(-1);
+      Animated.timing(shineAnim, {
+        toValue: 2,
+        duration: 450,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+      shineAnim.stopAnimation();
+      shineAnim.setValue(-1);
+    }
+  }, [hovered, shineAnim, scale]);
+
+  const translateX = shineAnim.interpolate({
+    inputRange: [-1, 2],
+    outputRange: [-150, 450],
+  });
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      disabled={loading}
+      style={[styles.button, loading && { opacity: 0.7 }, { transform: [{ scale }] }]}
+    >
+      <LinearGradient
+        colors={['#003DA5', '#001E5C']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.buttonGradient}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <View style={styles.buttonInner}>
+            <Text style={styles.buttonText}>Sign In</Text>
+            <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
+          </View>
+        )}
+        {hovered && (
+          <Animated.View style={{
+            position: 'absolute',
+            top: 0, left: 0, bottom: 0, width: 120,
+            transform: [{ translateX }, { skewX: '-25deg' }],
+          }}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
+        )}
+      </LinearGradient>
+    </AnimatedPressable>
+  );
+};
+
+const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay = 3000, onTypingComplete }) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [showCursor, setShowCursor] = useState(true);
+
+  useEffect(() => {
+    let i = 0;
+    let isErasing = false;
+    let timeout;
+
+    const tick = () => {
+      if (!isErasing) {
+        if (i <= text.length) {
+          setDisplayedText(text.substring(0, i));
+          i++;
+          timeout = setTimeout(tick, typingSpeed);
+        } else {
+          isErasing = true;
+          if (onTypingComplete) onTypingComplete();
+          timeout = setTimeout(tick, pauseDelay);
+        }
+      } else {
+        if (i >= 0) {
+          setDisplayedText(text.substring(0, i));
+          i--;
+          timeout = setTimeout(tick, eraseSpeed);
+        } else {
+          isErasing = false;
+          timeout = setTimeout(tick, 500);
+        }
+      }
+    };
+
+    tick();
+    return () => clearTimeout(timeout);
+  }, [text, typingSpeed, eraseSpeed, pauseDelay]);
+
+  useEffect(() => {
+    const blink = setInterval(() => setShowCursor(v => !v), 500);
+    return () => clearInterval(blink);
+  }, []);
+
+  return (
+    <View style={{ position: 'relative' }}>
+      <Text style={[style, { opacity: 0 }]}>{text}</Text>
+      <Text style={[style, { position: 'absolute', top: 0, left: 0 }]}>
+        {displayedText}
+        <Text style={{ opacity: showCursor ? 1 : 0, color: '#60A5FA' }}>|</Text>
+      </Text>
+    </View>
+  );
+};
 
 export default function LoginScreen({ navigation }) {
 
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const styles = getStyles(isMobile, width);
+
+  const [typingCycles, setTypingCycles] = useState(0);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -231,44 +409,52 @@ export default function LoginScreen({ navigation }) {
           style={styles.leftPanel}
         >
           {/* Decorative orbs */}
-          <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} />
-          <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} />
-          <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} />
+          <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} delay={0} />
+          <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} delay={1500} />
+          <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} delay={3000} />
 
           <View style={styles.leftContent}>
             {/* Logo */}
             <View style={styles.leftLogoRow}>
-              <Image
-                source={require('../assets/ua-logo.png')}
-                style={styles.uaLogo}
-                resizeMode="contain"
-              />
-              <Image
-                source={require('../assets/cit-logo.png')}
-                style={styles.citLogo}
-                resizeMode="contain"
-              />
+              <HoverScaleItem>
+                <Image
+                  source={require('../assets/ua-logo.png')}
+                  style={styles.uaLogo}
+                  resizeMode="contain"
+                />
+              </HoverScaleItem>
+              <HoverScaleItem>
+                <Image
+                  source={require('../assets/cit-logo.png')}
+                  style={styles.citLogo}
+                  resizeMode="contain"
+                />
+              </HoverScaleItem>
             </View>
 
             {/* Main copy */}
             <Text style={styles.leftTitle}>CIT Appointment</Text>
             <Text style={styles.leftSubtitle}>College of Information Technology</Text>
-            <Text style={styles.leftBody}>
-              Book, manage, and track your clinic appointments at the University of the Assumption — all in one place.
-            </Text>
+            <TypingText
+              text="Book, manage, and track your academic appointments with ease — all in one platform."
+              style={styles.leftBody}
+              onTypingComplete={() => setTypingCycles(c => c + 1)}
+            />
 
             {/* Feature pills */}
             <View style={styles.pillRow}>
-              {['Book Appointments', 'View History', 'Secure & Private'].map(f => (
-                <View key={f} style={styles.pill}>
-                  <Text style={styles.pillText}>{f}</Text>
-                </View>
+              {['Book Appointments', 'Track Appointments', 'Secure & Reliable'].map((f, index) => (
+                <BouncingPill key={f} delay={index * 150} bounceTrigger={typingCycles}>
+                  <HoverScaleItem style={styles.pill}>
+                    <Text style={styles.pillText}>{f}</Text>
+                  </HoverScaleItem>
+                </BouncingPill>
               ))}
             </View>
           </View>
 
           {/* Bottom watermark */}
-          <Text style={styles.watermark}>University of the Assumption · CIT</Text>
+          <Text style={styles.watermark}>University of the Assumption · College of Information Technology</Text>
         </LinearGradient>
 
         {/* RIGHT PANEL — Form */}
@@ -312,28 +498,7 @@ export default function LoginScreen({ navigation }) {
             </View>
 
             {/* Sign In CTA */}
-            <TouchableOpacity
-              style={[styles.button, loading && { opacity: 0.7 }]}
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#003DA5', '#001E5C']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.buttonGradient}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <View style={styles.buttonInner}>
-                    <Text style={styles.buttonText}>Sign In</Text>
-                    <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
-                  </View>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+            <ShineButton onPress={handleLogin} loading={loading} styles={styles} />
 
             {/* Divider */}
             <View style={styles.dividerContainer}>
@@ -395,18 +560,22 @@ export default function LoginScreen({ navigation }) {
       {/* ── HERO SECTION (always navy, no gradient needed) ── */}
       <View style={styles.mobileHero}>
         {/* subtle decorative circle */}
-        <View style={styles.mobileHeroOrb} />
+        <Orb style={[styles.mobileHeroOrb, { opacity: 1 }]} delay={0} />
         <View style={styles.mobileLogoRow}>
-          <Image
-            source={require('../assets/ua-logo.png')}
-            style={styles.mobileUaLogo}
-            resizeMode="contain"
-          />
-          <Image
-            source={require('../assets/cit-logo.png')}
-            style={styles.mobileCitLogo}
-            resizeMode="contain"
-          />
+          <HoverScaleItem>
+            <Image
+              source={require('../assets/ua-logo.png')}
+              style={styles.mobileUaLogo}
+              resizeMode="contain"
+            />
+          </HoverScaleItem>
+          <HoverScaleItem>
+            <Image
+              source={require('../assets/cit-logo.png')}
+              style={styles.mobileCitLogo}
+              resizeMode="contain"
+            />
+          </HoverScaleItem>
         </View>
         <Text style={styles.mobileAppName}>CIT APPOINTMENT</Text>
         <Text style={styles.mobileTagline}>College of Information Technology</Text>
@@ -449,28 +618,7 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.rememberText}>Remember me</Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.button, loading && { opacity: 0.7 }]}
-          onPress={handleLogin}
-          disabled={loading}
-          activeOpacity={0.85}
-        >
-          <LinearGradient
-            colors={['#003DA5', '#001E5C']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.buttonGradient}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <View style={styles.buttonInner}>
-                <Text style={styles.buttonText}>Sign In</Text>
-                <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
-              </View>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+        <ShineButton onPress={handleLogin} loading={loading} styles={styles} />
 
         <View style={styles.dividerContainer}>
           <View style={styles.divider} />
@@ -528,7 +676,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     width: '44%',
     minHeight: '100%',
     justifyContent: 'space-between',
-    padding: 56,
+    padding: 80,
     overflow: 'hidden',
   },
   leftContent: {
@@ -635,7 +783,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     fontFamily: 'Roboto_400Regular',
     fontSize: 13,
     color: '#94A3B8',
-    marginBottom: 2,
+    marginBottom: 5,
     letterSpacing: 0.3,
   },
   formTitle: {
@@ -643,13 +791,13 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     fontSize: 30,
     color: '#0F172A',
     letterSpacing: -0.8,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   formSubtitle: {
     fontFamily: 'Roboto_400Regular',
     fontSize: 13,
     color: '#94A3B8',
-    marginBottom: 28,
+    marginBottom: 20,
     lineHeight: 20,
   },
   inputSection: {
@@ -664,8 +812,8 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   mobileHero: {
     backgroundColor: '#001233',
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 56,
+    paddingTop: 45,
+    paddingBottom: 46,
     paddingHorizontal: 24,
     overflow: 'hidden',
   },
@@ -744,7 +892,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 6,
-    marginBottom: isMobile ? 22 : 26,
+    marginBottom: isMobile ? 22 : 35,
   },
   checkbox: {
     width: 20,
@@ -796,7 +944,8 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginVertical: 16,
+    marginTop: 12,
   },
   divider: {
     flex: 1,
@@ -840,7 +989,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 18,
     gap: 4,
   },
   securityText: {

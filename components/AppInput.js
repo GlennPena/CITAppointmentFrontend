@@ -4,7 +4,7 @@
 */
 
 import { useState, useRef, useEffect } from 'react';
-import { View, TextInput, Animated, StyleSheet, Pressable } from 'react-native';
+import { View, TextInput, Animated, StyleSheet, Pressable, Platform } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 
 export const AppInput = ({
@@ -56,7 +56,7 @@ export const AppInput = ({
     fontWeight: '600',
     color: animatedIsFocused.interpolate({
       inputRange: [0, 1],
-      outputRange: ['#94A3B8', isFocused ? '#002366' : '#475569'],
+      outputRange: ['#94A3B8', isFocused ? '#003DA5' : '#475569'],
     }),
     backgroundColor: isForcedDisabledLook ? resolvedDisabledLabelBg : '#FFFFFF',
     paddingHorizontal: 4,
@@ -70,10 +70,10 @@ export const AppInput = ({
         {label === 'Date of Birth' && showHint
           ? 'Date of Birth (YYYY-MM-DD)'
           : label === 'Course' && showHint
-          ? 'Course (BSN, STEM, High School)'
-          : label === 'Year' && showHint
-          ? 'Year / Grade Level'
-          : label}
+            ? 'Course (BSN, STEM, High School)'
+            : label === 'Year' && showHint
+              ? 'Year / Grade Level'
+              : label}
       </Animated.Text>
 
       <TextInput
@@ -103,7 +103,7 @@ export const AppInput = ({
         >
           {isPasswordVisible
             ? <EyeOff size={19} color="#94A3B8" />
-            : <Eye    size={19} color="#94A3B8" />}
+            : <Eye size={19} color="#94A3B8" />}
         </Pressable>
       )}
     </View>
@@ -127,13 +127,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#0F172A',
     letterSpacing: 0.2,
+    ...(Platform.OS === 'web' && { outlineStyle: 'none' }),
   },
   inputFocused: {
-    borderColor: '#002366',
+    borderColor: '#003DA5',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#002366',
+    shadowColor: '#003DA5',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 2,
   },

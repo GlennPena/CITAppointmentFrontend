@@ -105,9 +105,6 @@ export const Toast = ({ message, visible, onHide, type = 'success' }) => {
         ]
       }
     ]}>
-      {/* Left accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: config.accent }]} />
-
       {/* Icon */}
       <View style={[styles.iconWrap, { backgroundColor: config.accent + '22' }]}>
         <MaterialCommunityIcons name={config.icon} size={22} color={config.accent} />
