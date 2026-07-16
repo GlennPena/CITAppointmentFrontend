@@ -278,12 +278,6 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
   const renderStep3 = () => (
     <View>
       <Text style={styles.modalTitle}>Date & Time</Text>
-      <Toast
-        visible={!!alert.message}
-        message={alert.message}
-        type={alert.type}
-        onHide={() => setAlert({ message: "", type: "" })}
-      />
 
       <View style={styles.dateGrid}>
         {availableDates.map(d => (
@@ -411,6 +405,12 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
     <Modal visible={isVisible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
+          <Toast
+            visible={!!alert.message}
+            message={alert.message}
+            type={alert.type}
+            onHide={() => setAlert({ message: "", type: "" })}
+          />
           <View style={styles.headerRow}>
             <Pressable onPress={handleCancel}>
               <Text style={{ ...Typography.body, color: '#6B7280', fontSize: 16 }}>✕ Cancel</Text>
