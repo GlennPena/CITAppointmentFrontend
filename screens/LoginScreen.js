@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -22,7 +22,9 @@ import { Toast } from "../components/Toast";
 import { AppInput } from "../components/AppInput";
 
 import api, { GOOGLE_WEB_CLIENT_ID } from "../utils/api";
-import { Typography } from "../styles/theme";
+import { Typography, Colors } from "../styles/theme";
+
+let isGoogleInitialized = false;
 
 
 if (Platform.OS !== 'web') {
@@ -217,12 +219,49 @@ const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay
 };
 
 export default function LoginScreen({ navigation }) {
-
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const styles = getStyles(isMobile, width);
 
+  const googleCallbackRef = useRef(handleWebGoogleResponse);
+  googleCallbackRef.current = handleWebGoogleResponse;
+
   const [typingCycles, setTypingCycles] = useState(0);
+
+  const entryAnim = useState(() => new Animated.Value(0))[0];
+
+  useEffect(() => {
+    Animated.timing(entryAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const transitionAnim = useState(() => new Animated.Value(0))[0];
+
+  const triggerTransition = (role) => {
+    setIsTransitioning(true);
+    Animated.timing(transitionAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start(() => {
+      if (role === "admin") navigation.replace("AdminDashboard");
+      else if (role === "faculty" || role === "dean") navigation.replace("FacultyHome");
+      else navigation.replace("StudentDashboard");
+    });
+  };
+
+  const mainOpacity = transitionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+  const mainScale = transitionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0.96],
+  });
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -252,10 +291,8 @@ export default function LoginScreen({ navigation }) {
       }
       setAlertConfig({ message: "Welcome back!", type: "success" });
       setTimeout(() => {
-        if (role === "admin") navigation.replace("AdminDashboard");
-        else if (role === "faculty" || role === "dean") navigation.replace("FacultyHome");
-        else navigation.replace("StudentDashboard");
-      }, 800);
+        triggerTransition(role);
+      }, 300);
     } catch (error) {
       const errorMsg = error.response?.data?.detail || "Invalid username or password.";
       setAlertConfig({ message: errorMsg, type: "error" });
@@ -274,10 +311,8 @@ export default function LoginScreen({ navigation }) {
       await AsyncStorage.setItem('last_name', user.last_name);
       setAlertConfig({ message: "Welcome back!", type: "success" });
       setTimeout(() => {
-        if (user.role === "admin") navigation.replace("AdminDashboard");
-        else if (user.role === "faculty" || user.role === "dean") navigation.replace("FacultyHome");
-        else navigation.replace("StudentDashboard");
-      }, 800);
+        triggerTransition(user.role);
+      }, 300);
     } else if (action === "register") {
       setAlertConfig({ message: "Almost there! Please complete your profile.", type: "success" });
       setTimeout(() => {
@@ -286,42 +321,37 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    if (Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID) {
-      const initializeGoogle = () => {
-        if (window.google) {
-          window.google.accounts.id.initialize({
-            client_id: GOOGLE_WEB_CLIENT_ID,
-            callback: handleWebGoogleResponse,
-            use_fedcm_for_prompt: false,
-          });
+  const renderGoogleButton = (el) => {
+    if (!el || Platform.OS !== 'web' || !GOOGLE_WEB_CLIENT_ID) return;
 
-          // Wait briefly for DOM rendering to complete, then render the official button
-          setTimeout(() => {
-            const btnId = isMobile ? "googleButtonDivMobile" : "googleButtonDiv";
-            const btnDiv = document.getElementById(btnId);
-            if (btnDiv) {
-              window.google.accounts.id.renderButton(btnDiv, {
-                theme: "outline",
-                size: "large",
-                text: "continue_with",
-                width: 320,
-              });
-            }
-          }, 100);
-        }
-      };
-      if (window.google) {
-        initializeGoogle();
-      } else {
-        const interval = setInterval(() => {
-          if (window.google) { initializeGoogle(); clearInterval(interval); }
-        }, 1000);
+    const runRender = () => {
+      if (!window.google) {
+        setTimeout(runRender, 100);
+        return;
       }
-    }
-  }, [isMobile]);
 
-  const handleWebGoogleResponse = async (response) => {
+      if (!isGoogleInitialized) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_WEB_CLIENT_ID,
+          callback: (res) => googleCallbackRef.current?.(res),
+          use_fedcm_for_prompt: false,
+        });
+        isGoogleInitialized = true;
+      }
+
+      el.innerHTML = ""; // Clear old iframe and contents
+      window.google.accounts.id.renderButton(el, {
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        width: 320,
+      });
+    };
+
+    runRender();
+  };
+
+  async function handleWebGoogleResponse(response) {
     setGoogleLoading(true);
     try {
       const backendRes = await api.post("google-auth/", { id_token: response.credential });
@@ -331,7 +361,7 @@ export default function LoginScreen({ navigation }) {
     } finally {
       setGoogleLoading(false);
     }
-  };
+  }
 
   const handleGoogleLogin = async () => {
     setAlertConfig({ message: "", type: "" });
@@ -341,7 +371,7 @@ export default function LoginScreen({ navigation }) {
           const mockEmail = window.prompt(
             "Google Client ID is not configured in your .env file.\n\nFor local development, enter a mock @ua.edu.ph email to bypass Google verification:",
             "student@ua.edu.ph"
-          );
+          ) || "admin@ua.edu.ph";
           if (mockEmail) {
             if (!mockEmail.toLowerCase().endsWith("@ua.edu.ph")) {
               setAlertConfig({ message: "Only @ua.edu.ph emails are allowed.", type: "error" });
@@ -393,7 +423,8 @@ export default function LoginScreen({ navigation }) {
   // ── DESKTOP: split-panel layout ─────────────────────────────────────────
   if (!isMobile) {
     return (
-      <View style={styles.desktopRoot}>
+      <Animated.View style={{ flex: 1, opacity: entryAnim }}>
+        <View style={styles.desktopRoot}>
         <Toast
           visible={!!alertConfig.message}
           message={alertConfig.message}
@@ -401,8 +432,9 @@ export default function LoginScreen({ navigation }) {
           onHide={() => setAlertConfig({ message: "", type: "" })}
         />
 
-        {/* LEFT PANEL — Branding */}
-        <LinearGradient
+        <Animated.View style={{ flex: 1, flexDirection: 'row', opacity: mainOpacity, transform: [{ scale: mainScale }] }}>
+          {/* LEFT PANEL — Branding */}
+          <LinearGradient
           colors={['#001848', '#002B6B', '#003DA5']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -487,14 +519,19 @@ export default function LoginScreen({ navigation }) {
             </View>
 
             {/* Remember me row */}
-            <View style={styles.row}>
-              <Pressable
-                onPress={() => setRememberMe(!rememberMe)}
-                style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
-              >
-                {rememberMe && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
+            <View style={[styles.row, { justifyContent: 'space-between', width: '100%' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Pressable
+                  onPress={() => setRememberMe(!rememberMe)}
+                  style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
+                >
+                  {rememberMe && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
+                </Pressable>
+                <Text style={styles.rememberText}>Remember me</Text>
+              </View>
+              <Pressable onPress={() => navigation.navigate("ForgotPassword")}>
+                <Text style={styles.forgotPasswordLink}>Forgot password?</Text>
               </Pressable>
-              <Text style={styles.rememberText}>Remember me</Text>
             </View>
 
             {/* Sign In CTA */}
@@ -509,7 +546,7 @@ export default function LoginScreen({ navigation }) {
 
             {Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID ? (
               <View style={{ alignItems: 'center', marginVertical: 8 }}>
-                <div id="googleButtonDiv" style={{ width: '320px', height: '44px' }} />
+                <div ref={renderGoogleButton} style={{ width: '320px', height: '44px' }} />
               </View>
             ) : (
               <TouchableOpacity
@@ -543,13 +580,66 @@ export default function LoginScreen({ navigation }) {
             </Pressable>
           </View>
         </ScrollView>
-      </View>
+        </Animated.View>
+
+        {isTransitioning && (
+          <Animated.View style={[
+            StyleSheet.absoluteFillObject,
+            {
+              opacity: transitionAnim,
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+            }
+          ]}>
+            <LinearGradient
+              colors={['#FFFFFF', '#F5F7FA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <Animated.View style={{
+              alignItems: 'center',
+              transform: [{
+                scale: transitionAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.8, 1],
+                })
+              }]
+            }}>
+              <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20, alignItems: 'center' }}>
+                <Image source={require('../assets/ua-logo.png')} style={{ width: 80, height: 80 }} resizeMode="contain" />
+                <Image source={require('../assets/cit-logo.png')} style={{ width: 80, height: 80 }} resizeMode="contain" />
+              </View>
+              <Text style={{
+                fontFamily: 'Inter_700Bold',
+                color: '#002366',
+                fontSize: 24,
+                marginBottom: 8,
+              }}>
+                Welcome back!
+              </Text>
+              <Text style={{
+                fontFamily: 'Roboto_400Regular',
+                color: '#475569',
+                fontSize: 14,
+                marginBottom: 24,
+              }}>
+                Preparing your workspace...
+              </Text>
+              <ActivityIndicator size="large" color="#002366" />
+            </Animated.View>
+          </Animated.View>
+        )}
+        </View>
+      </Animated.View>
     );
   }
 
   // ── MOBILE: navy hero top + white form below ──────────────────────────────
   return (
-    <View style={styles.mobileRoot}>
+    <Animated.View style={{ flex: 1, opacity: entryAnim }}>
+      <View style={styles.mobileRoot}>
       <Toast
         visible={!!alertConfig.message}
         message={alertConfig.message}
@@ -557,8 +647,9 @@ export default function LoginScreen({ navigation }) {
         onHide={() => setAlertConfig({ message: "", type: "" })}
       />
 
-      {/* ── HERO SECTION (always navy, no gradient needed) ── */}
-      <View style={styles.mobileHero}>
+      <Animated.View style={{ flex: 1, opacity: mainOpacity, transform: [{ scale: mainScale }] }}>
+        {/* ── HERO SECTION (always navy, no gradient needed) ── */}
+        <View style={styles.mobileHero}>
         {/* subtle decorative circle */}
         <Orb style={[styles.mobileHeroOrb, { opacity: 1 }]} delay={0} />
         <View style={styles.mobileLogoRow}>
@@ -608,14 +699,19 @@ export default function LoginScreen({ navigation }) {
           setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
         />
 
-        <View style={styles.row}>
-          <Pressable
-            onPress={() => setRememberMe(!rememberMe)}
-            style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
-          >
-            {rememberMe && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
+        <View style={[styles.row, { justifyContent: 'space-between', width: '100%' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Pressable
+              onPress={() => setRememberMe(!rememberMe)}
+              style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
+            >
+              {rememberMe && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
+            </Pressable>
+            <Text style={styles.rememberText}>Remember me</Text>
+          </View>
+          <Pressable onPress={() => navigation.navigate("ForgotPassword")}>
+            <Text style={styles.forgotPasswordLink}>Forgot password?</Text>
           </Pressable>
-          <Text style={styles.rememberText}>Remember me</Text>
         </View>
 
         <ShineButton onPress={handleLogin} loading={loading} styles={styles} />
@@ -628,7 +724,7 @@ export default function LoginScreen({ navigation }) {
 
         {Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID ? (
           <View style={{ alignItems: 'center', marginVertical: 8 }}>
-            <div id="googleButtonDivMobile" style={{ width: '320px', height: '44px' }} />
+            <div ref={renderGoogleButton} style={{ width: '320px', height: '44px' }} />
           </View>
         ) : (
           <TouchableOpacity
@@ -660,7 +756,59 @@ export default function LoginScreen({ navigation }) {
           </Text>
         </Pressable>
       </ScrollView>
-    </View>
+      </Animated.View>
+
+      {isTransitioning && (
+        <Animated.View style={[
+          StyleSheet.absoluteFillObject,
+          {
+            opacity: transitionAnim,
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          }
+        ]}>
+          <LinearGradient
+            colors={['#FFFFFF', '#F5F7FA']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <Animated.View style={{
+            alignItems: 'center',
+            transform: [{
+              scale: transitionAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.8, 1],
+              })
+            }]
+          }}>
+            <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20, alignItems: 'center' }}>
+              <Image source={require('../assets/ua-logo.png')} style={{ width: 80, height: 80 }} resizeMode="contain" />
+              <Image source={require('../assets/cit-logo.png')} style={{ width: 80, height: 80 }} resizeMode="contain" />
+            </View>
+            <Text style={{
+              fontFamily: 'Inter_700Bold',
+              color: '#002366',
+              fontSize: 24,
+              marginBottom: 8,
+            }}>
+              Welcome back!
+            </Text>
+            <Text style={{
+              fontFamily: 'Roboto_400Regular',
+              color: '#475569',
+              fontSize: 14,
+              marginBottom: 24,
+            }}>
+              Preparing your workspace...
+            </Text>
+            <ActivityIndicator size="large" color="#002366" />
+          </Animated.View>
+        </Animated.View>
+      )}
+      </View>
+    </Animated.View>
   );
 }
 
@@ -912,6 +1060,11 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     fontFamily: 'Roboto_400Regular',
     marginLeft: 8,
     color: '#64748B',
+    fontSize: 13,
+  },
+  forgotPasswordLink: {
+    fontFamily: 'Inter_500Medium',
+    color: '#002366',
     fontSize: 13,
   },
   button: {

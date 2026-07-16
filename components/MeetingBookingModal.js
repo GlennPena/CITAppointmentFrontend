@@ -4,16 +4,16 @@
 */
 
 import { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Modal, 
-  Pressable, 
-  ScrollView, 
-  ActivityIndicator, 
-  TextInput, 
-  Alert 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  TextInput,
+  Alert
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -22,7 +22,7 @@ import api from "../utils/api";
 import { Typography } from "../styles/theme";
 
 const timeSlots = [
-  "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
+  "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
   "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
 ];
 
@@ -70,10 +70,10 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [isEveryoneSelected, setIsEveryoneSelected] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
-  
+
   const [alert, setAlert] = useState({ message: "", type: "" });
   const [bookedSlots, setBookedSlots] = useState([]);
-  
+
   const availableDates = generateDates();
   const [selectedDate, setSelectedDate] = useState(availableDates[0].fullDate);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -164,7 +164,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
       case 1: return selectedParticipants.length > 0;
       case 2: return formData.service !== "";
       case 3: return selectedTime !== null;
-      case 4: return formData.condition.trim().length >= 256;
+      case 4: return formData.condition.trim().length >= 1;
       case 5: return true;
       default: return false;
     }
@@ -177,7 +177,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
       // Validate slot availability
       const normalize = (time) => time.replace(/^0/, '').replace(/\s+/g, '').toUpperCase();
       const normalizedSelected = normalize(selectedTime);
-      
+
       const isStillTaken = bookedSlots.some(booked => normalize(booked) === normalizedSelected);
       const isNowPast = new Date(`${selectedDate}T${convertTo24Hour(selectedTime)}`) < new Date();
 
@@ -186,9 +186,9 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
         setSelectedTime(null);
         return;
       }
-      
-      setFormData({ 
-        ...formData, 
+
+      setFormData({
+        ...formData,
         date_time: `${selectedDate}T${convertTo24Hour(selectedTime)}`,
         faculty: currentUserId // Host
       });
@@ -211,7 +211,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
       };
 
       await api.post("appointments/", payload);
-      
+
       if (onBookingSuccess) {
         onBookingSuccess({ message: "Meeting Scheduled!", type: "success" });
       }
@@ -244,12 +244,12 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
     return (
       <View style={styles.progressContainer}>
         {[...Array(totalSteps)].map((_, i) => (
-          <View 
-            key={i} 
+          <View
+            key={i}
             style={[
-              styles.progressSegment, 
+              styles.progressSegment,
               i + 1 <= currentStep ? styles.segmentActive : styles.segmentInactive
-            ]} 
+            ]}
           />
         ))}
       </View>
@@ -260,7 +260,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
     <Modal visible={isVisible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          
+
           <View style={styles.modalHeader}>
             <Text style={styles.mainTitle}>Schedule CIT Meeting</Text>
             <Pressable onPress={onClose} style={styles.closeIcon}>
@@ -280,7 +280,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
             {step === 1 && (
               <View>
                 <Text style={styles.stepTitle}>Step 1: Select Participants</Text>
-                
+
                 {/* SELECT EVERYONE TOGGLE */}
                 <Pressable style={styles.everyoneRow} onPress={toggleSelectEveryone}>
                   <View style={[styles.checkbox, isEveryoneSelected && styles.checkboxSelected]}>
@@ -294,8 +294,8 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
                     otherFaculty.map((fac) => {
                       const isSelected = selectedParticipants.includes(fac.id);
                       return (
-                        <Pressable 
-                          key={fac.id} 
+                        <Pressable
+                          key={fac.id}
                           style={[styles.participantItem, isSelected && styles.participantItemActive]}
                           onPress={() => toggleParticipant(fac.id)}
                         >
@@ -332,7 +332,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
                   {meetingServices.map((srv) => {
                     const isSelected = formData.service === srv;
                     return (
-                      <Pressable 
+                      <Pressable
                         key={srv}
                         style={[styles.serviceCard, isSelected && styles.serviceCardActive]}
                         onPress={() => setFormData({ ...formData, service: srv })}
@@ -350,14 +350,14 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
             {step === 3 && (
               <View>
                 <Text style={styles.stepTitle}>Date & Time</Text>
-                
+
                 {/* DATE SELECTOR GRID */}
                 <View style={styles.dateGrid}>
                   {availableDates.map((date) => {
                     const isSelected = selectedDate === date.fullDate;
                     return (
-                      <Pressable 
-                        key={date.fullDate} 
+                      <Pressable
+                        key={date.fullDate}
                         style={[styles.dateBtnGrid, isSelected && styles.selected]}
                         onPress={() => {
                           setSelectedDate(date.fullDate);
@@ -378,7 +378,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
                     const normalizedUI = normalize(time);
 
                     const isTaken = bookedSlots.some(booked => normalize(booked) === normalizedUI);
-                    
+
                     const now = new Date();
                     const slotDateTime = new Date(`${selectedDate}T${convertTo24Hour(time)}`);
                     const isPast = slotDateTime < now;
@@ -386,12 +386,12 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
                     const isSelected = selectedTime === time;
 
                     return (
-                      <Pressable 
+                      <Pressable
                         key={time}
                         disabled={isTaken || isPast}
                         style={[
-                          styles.timeBtn, 
-                          isSelected && styles.selected, 
+                          styles.timeBtn,
+                          isSelected && styles.selected,
                           isTaken && styles.booked,
                           isPast && { backgroundColor: '#E5E7EB', opacity: 0.5 }
                         ]}
@@ -414,8 +414,8 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
               <View>
                 <Text style={styles.stepTitle}>Step 4: Meeting Agenda & Notes</Text>
                 <Text style={styles.subLabel}>What is the agenda or discussion topic for this meeting?</Text>
-                
-                <TextInput 
+
+                <TextInput
                   placeholder="Please describe the meeting topic or items you would like to discuss (minimum 256 characters)..."
                   placeholderTextColor="#94A3B8"
                   style={styles.textArea}
@@ -439,7 +439,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
             {step === 5 && (
               <View>
                 <Text style={styles.stepTitle}>Step 5: Confirm Meeting Details</Text>
-                
+
                 <View style={styles.confirmContainer}>
                   <View style={styles.confirmRow}>
                     <Text style={styles.confirmLabel}>Meeting Type:</Text>
@@ -483,16 +483,16 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
             )}
 
             {step < 5 ? (
-              <Pressable 
-                style={[styles.btnNext, !isStepValid() && styles.btnDisabled]} 
+              <Pressable
+                style={[styles.btnNext, !isStepValid() && styles.btnDisabled]}
                 disabled={!isStepValid()}
                 onPress={handleNext}
               >
                 <Text style={styles.btnNextText}>Next</Text>
               </Pressable>
             ) : (
-              <Pressable 
-                style={[styles.btnSubmit, loading && styles.btnDisabled]} 
+              <Pressable
+                style={[styles.btnSubmit, loading && styles.btnDisabled]}
                 disabled={loading}
                 onPress={handleFinish}
               >
@@ -680,13 +680,13 @@ const styles = StyleSheet.create({
   dateGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between', 
-    rowGap: 10,  
+    justifyContent: 'space-between',
+    rowGap: 10,
     marginBottom: 20,
   },
   dateBtnGrid: {
-    width: '13.5%',  
-    aspectRatio: 0.85, 
+    width: '13.5%',
+    aspectRatio: 0.85,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
   },
   dayText: {
     ...Typography.body,
-    fontSize: 11,  
+    fontSize: 11,
     fontWeight: '700',
     color: '#64748B',
   },

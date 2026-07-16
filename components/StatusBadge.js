@@ -8,14 +8,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useWindowDimensions } from 'react-native';
 
 const STATUS_CONFIG = {
-  approved:    { bg: '#D1FAE5', text: '#065F46', border: '#A7F3D0', icon: 'check-circle-outline' },
-  pending:     { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A', icon: 'clock-outline' },
-  cancelled:   { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA', icon: 'close-circle-outline' },
-  completed:   { bg: '#DBEAFE', text: '#1E40AF', border: '#BFDBFE', icon: 'checkbox-marked-circle-outline' },
-  rejected:    { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1', icon: 'minus-circle-outline' },
-  expired:     { bg: '#F1F5F9', text: '#64748B', border: '#E2E8F0', icon: 'calendar-remove-outline' },
-  upcoming:    { bg: '#EDE9FE', text: '#5B21B6', border: '#DDD6FE', icon: 'calendar-clock' },
-  'checked-in':{ bg: '#D1FAE5', text: '#065F46', border: '#A7F3D0', icon: 'account-check-outline' },
+  approved: { bg: '#D1FAE5', text: '#065F46', border: '#A7F3D0', icon: 'check-circle-outline' },
+  pending: { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A', icon: 'clock-outline' },
+  cancelled: { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA', icon: 'close-circle-outline' },
+  completed: { bg: '#DBEAFE', text: '#1E40AF', border: '#BFDBFE', icon: 'checkbox-marked-circle-outline' },
+  rejected: { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1', icon: 'minus-circle-outline' },
+  expired: { bg: '#F1F5F9', text: '#64748B', border: '#E2E8F0', icon: 'calendar-remove-outline' },
+  upcoming: { bg: '#EDE9FE', text: '#5B21B6', border: '#DDD6FE', icon: 'calendar-clock' },
+  'checked-in': { bg: '#D1FAE5', text: '#065F46', border: '#A7F3D0', icon: 'account-check-outline' },
 };
 
 const ONGOING_CONFIG = {

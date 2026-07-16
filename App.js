@@ -9,10 +9,11 @@ import { useFonts, Inter_900Black, Inter_700Bold, Inter_500Medium } from '@expo-
 import { Roboto_400Regular } from '@expo-google-fonts/roboto';
 
 import { handleLogout } from "./utils/auth";
-import { Typography } from "./styles/theme";
+import { Typography, Colors, Radius } from "./styles/theme";
 
 import LoginScreen from "./screens/LoginScreen";
 import RegistrationScreen from "./screens/RegistrationScreen";
+import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import StudentDashboard from "./screens/StudentDashboard";
 import AdminDashboard from "./screens/AdminDashboard";
 import FacultyNavigation from "./screens/FacultyNavigation";
@@ -23,13 +24,13 @@ const Stack = createNativeStackNavigator();
 // Header Logo Component
 const HeaderLogo = ({ isMobile }) => (
   <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: isMobile ? 0 : 20 }}>
-    <Image 
+    <Image
       source={require('./assets/cit-logo.png')}
       style={{
         width: isMobile ? 35 : 45,
         height: isMobile ? 35 : 45,
         marginRight: 8,
-      }} 
+      }}
       resizeMode="contain"
     />
     <Text style={{
@@ -47,14 +48,14 @@ const HeaderLogo = ({ isMobile }) => (
 // Logout Button Component
 const LogoutButton = ({ navigation, isMobile }) => (
   <Pressable
-    style={({ pressed }) => [
+    style={({ pressed, hovered }) => [
       styles.logoutButton,
       { marginRight: isMobile ? 10 : 30 },
-      pressed && styles.logoutButtonPressed
+      (hovered || pressed) && styles.logoutButtonActive
     ]}
     onPress={() => handleLogout(navigation)}
   >
-    <MaterialCommunityIcons name="logout" size={18} color="#ffffff" />
+    <MaterialCommunityIcons name="logout" size={16} color={Colors.error} />
     <Text style={styles.logoutButtonText}>Log Out</Text>
   </Pressable>
 );
@@ -101,60 +102,61 @@ export default function App() {
   }, []);
 
   if (!fontsLoaded || initialRoute === null) {
-    return null; 
+    return null;
   }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRoute}>
-        
+      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ animation: 'fade' }}>
+
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Register" component={RegistrationScreen} options={{ headerShown: false }}  />
+        <Stack.Screen name="Register" component={RegistrationScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
 
-        <Stack.Screen 
-          name="AdminDashboard" 
-          component={AdminDashboard} 
+        <Stack.Screen
+          name="AdminDashboard"
+          component={AdminDashboard}
           options={({ navigation }) => ({
             headerTitle: () => <HeaderLogo isMobile={isMobile} />,
             headerLeft: () => null,
             headerTitleAlign: 'left',
             headerRight: () => <LogoutButton navigation={navigation} isMobile={isMobile} />,
             headerStyle: {
-              backgroundColor: '#FFFFFF', 
-              height: isMobile ? 70 : 90,
-            }
-        })}
-        />
-
-        <Stack.Screen 
-          name="FacultyHome" 
-          component={FacultyNavigation} 
-          options={({ navigation }) => ({
-            headerTitle: () => <HeaderLogo isMobile={isMobile} />,
-            headerTitleAlign: 'left',
-            headerRight: () => <LogoutButton navigation={navigation} isMobile={isMobile} />,
-            headerStyle: {
-              backgroundColor: '#FFFFFF', 
+              backgroundColor: '#FFFFFF',
               height: isMobile ? 70 : 90,
             }
           })}
         />
 
-        <Stack.Screen 
-          name="StudentDashboard" 
-          component={StudentDashboard} 
+        <Stack.Screen
+          name="FacultyHome"
+          component={FacultyNavigation}
+          options={({ navigation }) => ({
+            headerTitle: () => <HeaderLogo isMobile={isMobile} />,
+            headerTitleAlign: 'left',
+            headerRight: () => <LogoutButton navigation={navigation} isMobile={isMobile} />,
+            headerStyle: {
+              backgroundColor: '#FFFFFF',
+              height: isMobile ? 70 : 90,
+            }
+          })}
+        />
+
+        <Stack.Screen
+          name="StudentDashboard"
+          component={StudentDashboard}
           options={({ navigation }) => ({
             headerTitle: () => <HeaderLogo isMobile={isMobile} />,
             headerLeft: () => null,
             headerTitleAlign: 'left',
             headerRight: () => <LogoutButton navigation={navigation} isMobile={isMobile} />,
             headerStyle: {
-              backgroundColor: '#FFFFFF', 
+              backgroundColor: '#FFFFFF',
               height: isMobile ? 70 : 90,
             }
           })}
         />
-      
+
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -164,22 +166,25 @@ const styles = StyleSheet.create({
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: '#F87171',
-    borderRadius: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(220, 38, 38, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.12)',
+    borderRadius: Radius.sm,
     marginRight: 70
   },
-  logoutButtonPressed: {
-    backgroundColor: '#DC2626',
+  logoutButtonActive: {
+    backgroundColor: 'rgba(220, 38, 38, 0.15)',
+    borderColor: 'rgba(220, 38, 38, 0.25)',
   },
   logoutButtonText: {
-    ...Typography.label,
-    color: '#FFFFFF',
-    marginLeft: 5,
+    color: Colors.error,
+    marginLeft: 6,
     fontSize: 12,
-    lineHeight: 20,
+    fontWeight: '600',
     fontFamily: 'Inter_500Medium',
+    letterSpacing: 0.2,
   },
 });
 

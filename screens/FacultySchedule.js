@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { View, FlatList, StyleSheet, Text, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions, Modal, TextInput, Alert} from "react-native";
+import { View, FlatList, StyleSheet, Text, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions, Modal, TextInput, Alert } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 
 import AppointmentRow from "../components/AppointmentTable";
 import StudentDetailModal from "../components/StudentDetailModal";
@@ -29,7 +30,7 @@ export default function FacultySchedule({ route }) {
   const [dateStr, setDateStr] = useState(getLocalDateStr());
   const [loading, setLoading] = useState(false);
 
-  const [isModalVisible, setIsModalVisible] = useState(false); 
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [cancelModal, setCancelModal] = useState({ visible: false, id: null, reason: "" });
 
@@ -38,21 +39,37 @@ export default function FacultySchedule({ route }) {
   const [sortOrder, setSortOrder] = useState('newest');
   const [activeTab, setActiveTab] = useState('students'); // 'students' or 'meetings'
 
+  const isFocused = useIsFocused();
+
   useEffect(() => {
     if (route?.params?.date) {
       setDateStr(route.params.date);
     }
   }, [route?.params]);
 
+  // Load data immediately when focused, or when date or sort order changes
   useEffect(() => {
-    loadData();
-  }, [dateStr, sortOrder]);
+    if (isFocused) {
+      loadData();
+    }
+  }, [isFocused, dateStr, sortOrder]);
+
+  // Setup background polling interval (every 10s) when screen is active
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const interval = setInterval(() => {
+      loadData();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isFocused, dateStr, sortOrder]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const res = await api.get(`appointments/?date=${dateStr}`);
-      
+
       let data = res.data;
 
       data.sort((a, b) => {
@@ -119,13 +136,19 @@ export default function FacultySchedule({ route }) {
 
   const handleConfirmCompletion = async (data) => {
     try {
-      await api.post(`appointments/${selectedItem.id}/complete_appointment/`, {
+      const isMeeting = !selectedItem?.student_name || selectedItem?.student_name === "N/A";
+      const payload = {
         outcome: data.outcome,
         consultation_notes: data.consultation_notes,
-      });
-      
+      };
+      if (isMeeting && data.attendance) {
+        payload.attendance = data.attendance;
+      }
+
+      await api.post(`appointments/${selectedItem.id}/complete_appointment/`, payload);
+
       setIsCompleteModalVisible(false);
-      loadData(); 
+      loadData();
     } catch (err) {
       console.error("Completion error:", err);
       alert("Failed to save consultation records.");
@@ -176,7 +199,7 @@ export default function FacultySchedule({ route }) {
       </View>
 
       <View style={{ flex: 2 }}>
-        <Text style={[styles.headerCell, {textAlign: 'right', paddingRight:10 }]}>Actions</Text>
+        <Text style={[styles.headerCell, { textAlign: 'right', paddingRight: 10 }]}>Actions</Text>
       </View>
     </View>
   );
@@ -184,199 +207,200 @@ export default function FacultySchedule({ route }) {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-      <ImageBackground 
-        source={require('../assets/redox-01.png')} 
+      <ImageBackground
+        source={require('../assets/redox-01.png')}
         style={[styles.container]}
         resizeMode="repeat"
       >
 
-      <View style={styles.mainWrapper} contentContainerStyle={{ padding: 25 }}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.pageTitle}>Today's Schedule</Text>
+        <View style={styles.mainWrapper} contentContainerStyle={{ padding: 25 }}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.pageTitle}>Today's Schedule</Text>
 
-            <Text style={styles.dateSubtext}>
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </Text>
-          </View>
-          <View style={styles.glassAccent} />
-        </View>
-        
-        <View style={styles.filterRow}>
-          <View style={styles.filterGroup}>
-            <View style={styles.datePickerBox}>
-              <input
-                type="date"
-                value={dateStr}
-                onChange={(e) => setDateStr(e.target.value)}
-                style={styles.dateInput}
-              />
+              <Text style={styles.dateSubtext}>
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </Text>
             </View>
+            <View style={styles.glassAccent} />
+          </View>
 
-            <Pressable 
-              style={styles.sortBtn} 
-              onPress={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+          <View style={styles.filterRow}>
+            <View style={styles.filterGroup}>
+              <View style={styles.datePickerBox}>
+                <input
+                  type="date"
+                  value={dateStr}
+                  onChange={(e) => setDateStr(e.target.value)}
+                  style={styles.dateInput}
+                />
+              </View>
+
+              <Pressable
+                style={styles.sortBtn}
+                onPress={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+              >
+                <MaterialCommunityIcons
+                  name={sortOrder === 'newest' ? "sort-calendar-descending" : "sort-calendar-ascending"}
+                  size={22}
+                  color="#000000"
+                />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* SEGMENTED TAB SELECTOR */}
+          <View style={styles.tabContainer}>
+            <Pressable
+              style={[styles.tabButton, activeTab === 'students' && styles.tabButtonActive]}
+              onPress={() => setActiveTab('students')}
             >
-              <MaterialCommunityIcons 
-                name={sortOrder === 'newest' ? "sort-calendar-descending" : "sort-calendar-ascending"} 
-                size={22} 
-                color="#000000" 
+              <MaterialCommunityIcons
+                name="account-school"
+                size={18}
+                color={activeTab === 'students' ? '#FFF' : '#475569'}
               />
+              <Text style={[styles.tabButtonText, activeTab === 'students' && styles.tabButtonTextActive]}>
+                Student Consultations
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.tabButton, activeTab === 'meetings' && styles.tabButtonActive]}
+              onPress={() => setActiveTab('meetings')}
+            >
+              <MaterialCommunityIcons
+                name="account-group"
+                size={18}
+                color={activeTab === 'meetings' ? '#FFF' : '#475569'}
+              />
+              <Text style={[styles.tabButtonText, activeTab === 'meetings' && styles.tabButtonTextActive]}>
+                CIT Meetings
+              </Text>
             </Pressable>
           </View>
-        </View>
-      
-        {/* SEGMENTED TAB SELECTOR */}
-        <View style={styles.tabContainer}>
-          <Pressable 
-            style={[styles.tabButton, activeTab === 'students' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('students')}
-          >
-            <MaterialCommunityIcons 
-              name="account-school" 
-              size={18} 
-              color={activeTab === 'students' ? '#FFF' : '#475569'} 
-            />
-            <Text style={[styles.tabButtonText, activeTab === 'students' && styles.tabButtonTextActive]}>
-              Student Consultations
-            </Text>
-          </Pressable>
 
-          <Pressable 
-            style={[styles.tabButton, activeTab === 'meetings' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('meetings')}
-          >
-            <MaterialCommunityIcons 
-              name="account-group" 
-              size={18} 
-              color={activeTab === 'meetings' ? '#FFF' : '#475569'} 
-            />
-            <Text style={[styles.tabButtonText, activeTab === 'meetings' && styles.tabButtonTextActive]}>
-              CIT Meetings
-            </Text>
-          </Pressable>
-        </View>
+          <ScrollView horizontal={!isDesktop} showsHorizontalScrollIndicator={!isDesktop}>
+            <View style={{ width: '100%' }}>
+              {loading ? (
+                <ActivityIndicator size="large" color="#002366" style={{ marginTop: 40 }} />
+              ) : (
+                <FlatList
+                  data={appointments.filter(item => {
+                    const isMeeting = !item.student_name || item.student_name === "N/A";
+                    return activeTab === 'meetings' ? isMeeting : !isMeeting;
+                  })}
+                  keyExtractor={(item) => item.id.toString()}
+                  ListHeaderComponent={TableHeader}
+                  contentContainerStyle={{ paddingBottom: 40 }}
+                  renderItem={({ item }) => (
+                    <AppointmentRow
+                      item={item}
+                      onViewDetails={() => handleViewDetails(item)}
+                      onAction={handleAction}
+                      onCompletePress={handleOpenCompleteModal}
+                      onDelete={handleDelete}
+                      isHighlighted={route?.params?.highlightId === item.id}
+                    />
+                  )}
+                  ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                      <Text style={styles.emptyTitle}>
+                        {activeTab === 'meetings' ? 'No CIT Meetings' : 'No Appointments'}
+                      </Text>
+                      <Text style={styles.emptyText}>
+                        {activeTab === 'meetings'
+                          ? 'There are no CIT meetings scheduled for this date.'
+                          : 'There are no scheduled student consultations for this date.'}
+                      </Text>
+                    </View>
+                  }
+                />
+              )}
+            </View>
+          </ScrollView>
 
-        <ScrollView horizontal={!isDesktop} showsHorizontalScrollIndicator={!isDesktop}>
-          <View style={{ width: '100%' }}>
-            {loading ? (
-              <ActivityIndicator size="large" color="#002366" style={{ marginTop: 40 }} />
-            ) : (
-              <FlatList
-                data={appointments.filter(item => {
-                  const isMeeting = !item.student_name || item.student_name === "N/A";
-                  return activeTab === 'meetings' ? isMeeting : !isMeeting;
-                })}
-                keyExtractor={(item) => item.id.toString()}
-                ListHeaderComponent={TableHeader}
-                contentContainerStyle={{ paddingBottom: 40 }}
-                renderItem={({ item }) => (
-                  <AppointmentRow
-                    item={item}
-                    onViewDetails={() => handleViewDetails(item)}
-                    onAction={handleAction}
-                    onCompletePress={handleOpenCompleteModal}
-                    onDelete={handleDelete}
-                    isHighlighted={route?.params?.highlightId === item.id}
-                  />
-                )}
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyTitle}>
-                      {activeTab === 'meetings' ? 'No CIT Meetings' : 'No Appointments'}
-                    </Text>
-                    <Text style={styles.emptyText}>
-                      {activeTab === 'meetings' 
-                        ? 'There are no CIT meetings scheduled for this date.' 
-                        : 'There are no scheduled student consultations for this date.'}
-                    </Text>
-                  </View>
-                }
-              />
-            )}
-          </View>
-        </ScrollView>
+          <StudentDetailModal
+            visible={isModalVisible}
+            item={selectedItem}
+            onClose={() => setIsModalVisible(false)}
+            onAction={handleAction}
+          />
 
-        <StudentDetailModal 
-          visible={isModalVisible} 
-          item={selectedItem} 
-          onClose={() => setIsModalVisible(false)} 
-          onAction={handleAction}
-        />
+          <CompleteAppointmentModal
+            visible={isCompleteModalVisible}
+            isMeeting={!selectedItem?.student_name || selectedItem?.student_name === "N/A"}
+            participants={selectedItem?.participants_detail || []}
+            onClose={() => setIsCompleteModalVisible(false)}
+            onConfirm={handleConfirmCompletion}
+          />
 
-        <CompleteAppointmentModal
-          visible={isCompleteModalVisible}
-          studentName={selectedItem?.student_name}
-          onClose={() => setIsCompleteModalVisible(false)}
-          onConfirm={handleConfirmCompletion}
-        />
-
-        <Modal visible={cancelModal.visible} transparent animationType="fade">
-          <View style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 20
-          }}>
+          <Modal visible={cancelModal.visible} transparent animationType="fade">
             <View style={{
-              backgroundColor: '#FFF',
-              borderRadius: 20,
-              padding: 24,
-              width: '90%',
-              maxWidth: 400,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 5
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 20
             }}>
-              <Text style={{ ...Typography.header, fontSize: 18, fontWeight: '800', color: '#002366', marginBottom: 8 }}>
-                Cancel Appointment
-              </Text>
-              <Text style={{ ...Typography.body, fontSize: 13, color: '#64748B', marginBottom: 16 }}>
-                Please provide a reason for cancelling this appointment:
-              </Text>
-              <TextInput
-                placeholder="e.g. Schedule conflict with department faculty meeting."
-                style={{
-                  borderWidth: 1.5,
-                  borderColor: '#E2E8F0',
-                  borderRadius: 10,
-                  padding: 12,
-                  fontSize: 14,
-                  color: '#1E293B',
-                  minHeight: 100,
-                  textAlignVertical: 'top',
-                  marginBottom: 20,
-                  backgroundColor: '#F8FAFC'
-                }}
-                multiline={true}
-                numberOfLines={4}
-                value={cancelModal.reason}
-                onChangeText={(txt) => setCancelModal({ ...cancelModal, reason: txt })}
-              />
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <Pressable
-                  style={{ flex: 1, backgroundColor: '#F1F5F9', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
-                  onPress={() => setCancelModal({ visible: false, id: null, reason: "" })}
-                >
-                  <Text style={{ color: '#475569', fontWeight: '700', fontSize: 14 }}>Go Back</Text>
-                </Pressable>
-                <Pressable
-                  style={{ flex: 1, backgroundColor: '#EF4444', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
-                  onPress={submitCancellation}
-                >
-                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Cancel Appt</Text>
-                </Pressable>
+              <View style={{
+                backgroundColor: '#FFF',
+                borderRadius: 20,
+                padding: 24,
+                width: '90%',
+                maxWidth: 400,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 12,
+                elevation: 5
+              }}>
+                <Text style={{ ...Typography.header, fontSize: 18, fontWeight: '800', color: '#002366', marginBottom: 8 }}>
+                  Cancel Appointment
+                </Text>
+                <Text style={{ ...Typography.body, fontSize: 13, color: '#64748B', marginBottom: 16 }}>
+                  Please provide a reason for cancelling this appointment:
+                </Text>
+                <TextInput
+                  placeholder="e.g. Schedule conflict with department faculty meeting."
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: '#E2E8F0',
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 14,
+                    color: '#1E293B',
+                    minHeight: 100,
+                    textAlignVertical: 'top',
+                    marginBottom: 20,
+                    backgroundColor: '#F8FAFC'
+                  }}
+                  multiline={true}
+                  numberOfLines={4}
+                  value={cancelModal.reason}
+                  onChangeText={(txt) => setCancelModal({ ...cancelModal, reason: txt })}
+                />
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <Pressable
+                    style={{ flex: 1, backgroundColor: '#F1F5F9', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                    onPress={() => setCancelModal({ visible: false, id: null, reason: "" })}
+                  >
+                    <Text style={{ color: '#475569', fontWeight: '700', fontSize: 14 }}>Go Back</Text>
+                  </Pressable>
+                  <Pressable
+                    style={{ flex: 1, backgroundColor: '#EF4444', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                    onPress={submitCancellation}
+                  >
+                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Cancel Appt</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
+          </Modal>
         </View>
       </ImageBackground>
     </ScrollView>

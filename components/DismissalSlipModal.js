@@ -52,7 +52,7 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
       }
     });
   };
-  
+
   const handleAction = async () => {
     console.log("DEBUG: Appointment Data Object:", data);
     try {
@@ -64,22 +64,22 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
 
       const appointmentDateObj = data.date_time ? new Date(data.date_time) : null;
 
-      const appointmentDate = appointmentDateObj 
-      ? appointmentDateObj.toLocaleDateString('en-US', { 
-          month: 'long', 
-          day: 'numeric', 
-          year: 'numeric' 
+      const appointmentDate = appointmentDateObj
+        ? appointmentDateObj.toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
         })
-      : "N/A";
-      
+        : "N/A";
+
       let timeOutStr = "--:-- --";
       if (appointmentDateObj) {
         const timeOutDate = new Date(appointmentDateObj);
         timeOutDate.setHours(timeOutDate.getHours() + 1);
-        
-        timeOutStr = timeOutDate.toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+
+        timeOutStr = timeOutDate.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
         });
       }
 
@@ -101,14 +101,14 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
         const logoWidth = 16;
         const logoHeight = 16;
         const gap = 4;
-        
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        
+
         const universityName = "University of the Assumption";
         const textWidth = doc.getTextWidth(universityName);
         const totalHeaderWidth = logoWidth + gap + textWidth;
-        
+
         const startXHeader = (pageWidth - totalHeaderWidth) / 2;
         const headerY = 18;
 
@@ -143,7 +143,7 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
 
         const lineStartX = centerX - (titleWidth / 2);
         const lineEndX = centerX + (titleWidth / 2);
-        
+
         doc.line(lineStartX, titleY + 1, lineEndX, titleY + 1);
 
         let currentY = 55;
@@ -154,19 +154,19 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...primaryBlack);
-          
+
           const labelText = `${label}:`;
           const labelWidth = doc.getTextWidth(labelText);
           doc.text(labelText, leftPadding, currentY);
 
-          
+
           doc.setFont("helvetica", "normal");
           const valueX = leftPadding + labelWidth + 2;
           doc.text(`${value}`, valueX, currentY);
 
           doc.line(valueX, currentY + textLinePadding, endX, currentY + textLinePadding);
-          
-          currentY += rowSpacing; 
+
+          currentY += rowSpacing;
         };
 
         addPdfRow("Name of Student", `${data.first_name} ${data.last_name}`);
@@ -178,7 +178,7 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
         currentY += 10;
         if (qrBase64) {
           doc.addImage(qrBase64, 'PNG', leftPadding, currentY, 25, 25);
-          
+
           doc.setTextColor(...subLabelGray);
           doc.setFontSize(9);
           doc.text("Scan to verify", leftPadding + 12, currentY + 30, { align: "center" });
@@ -261,7 +261,7 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
     <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          
+
           <View style={{ position: 'absolute', opacity: 0, left: -1000 }} pointerEvents="none">
             <QRCode
               value={verificationUrl}
@@ -271,22 +271,22 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
           </View>
 
           <Text style={styles.modalTitle}>Slip Preview</Text>
-          
+
           <ScrollView style={styles.previewScroll} showsVerticalScrollIndicator={false}>
             <View style={styles.paper}>
-              
+
               {/* HEADER */}
               <View style={styles.previewHeader}>
                 {logoUri ? (
-                  <Image 
-                    source={{ uri: logoUri }} 
-                    style={styles.previewLogo} 
-                    resizeMode="contain" 
+                  <Image
+                    source={{ uri: logoUri }}
+                    style={styles.previewLogo}
+                    resizeMode="contain"
                   />
                 ) : (
                   <View style={[styles.previewLogo, { backgroundColor: '#E2E8F0' }]} />
                 )}
-                
+
                 <View style={styles.headerTextContainer}>
                   <Text style={styles.previewUniName}>University of the Assumption</Text>
                   <Text style={styles.previewLocation}>City of San Fernando, Pampanga</Text>
@@ -294,7 +294,7 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
               </View>
 
               <Text style={styles.previewTitle}>EARLY DISMISSAL SLIP</Text>
-              
+
               {/* INFO ROWS */}
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Name of Student:</Text>
@@ -325,24 +325,24 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Date:</Text>
                 <Text style={styles.infoValueUnderlined}>
-                  {data.date_time ? new Date(data.date_time).toLocaleDateString('en-US', { 
-                    month: 'long', 
-                    day: 'numeric', 
-                    year: 'numeric' 
+                  {data.date_time ? new Date(data.date_time).toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
                   }) : 'N/A'}
                 </Text>
               </View>
 
               <View style={styles.previewFooter}>
-                 <View style={styles.qrSide}>
-                    <QRCode value={verificationUrl} size={60} />
-                    <Text style={styles.qrLabel}>Scan to verify</Text>
-                 </View>
-                 <View style={styles.signatureSide}>
-                    <Text style={styles.facultyName}>{data.faculty_name || ''}</Text>
-                    <View style={styles.signatureLine} />
-                    <Text style={styles.facultyLabel}>Faculty Member</Text>
-                 </View>
+                <View style={styles.qrSide}>
+                  <QRCode value={verificationUrl} size={60} />
+                  <Text style={styles.qrLabel}>Scan to verify</Text>
+                </View>
+                <View style={styles.signatureSide}>
+                  <Text style={styles.facultyName}>{data.faculty_name || ''}</Text>
+                  <View style={styles.signatureLine} />
+                  <Text style={styles.facultyLabel}>Faculty Member</Text>
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -364,37 +364,37 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
 }
 
 const getStyles = (isMobile) => StyleSheet.create({
-  overlay: { 
-    flex: 1, 
-    backgroundColor: 'rgba(15, 23, 42, 0.7)', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 20 
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
   },
-  modalCard: { 
-    width: '100%', 
-    maxWidth: 500, 
-    backgroundColor: '#FFF', 
-    borderRadius: 24, 
-    padding: isMobile ? 10 : 20, 
+  modalCard: {
+    width: '100%',
+    maxWidth: 500,
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: isMobile ? 10 : 20,
     maxHeight: '90%',
   },
-  modalTitle: { 
-    ...Typography.header, 
-    fontSize: isMobile ? 20 : 22, 
-    color: '#002366', 
-    marginBottom: isMobile ? 10 : 15, 
-    textAlign: 'center' ,
+  modalTitle: {
+    ...Typography.header,
+    fontSize: isMobile ? 20 : 22,
+    color: '#002366',
+    marginBottom: isMobile ? 10 : 15,
+    textAlign: 'center',
     letterSpacing: 0.3,
   },
-  previewScroll: { 
-    backgroundColor: '#F1F5F9', 
-    borderRadius: 12, 
-    padding: 10 
+  previewScroll: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    padding: 10
   },
-  paper: { 
-    backgroundColor: '#FFF', 
-    padding: isMobile ? 20 : 40, 
+  paper: {
+    backgroundColor: '#FFF',
+    padding: isMobile ? 20 : 40,
     paddingHorizontal: isMobile ? 30 : 60,
     borderRadius: 4,
     borderWidth: 1,
@@ -414,7 +414,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     justifyContent: 'left'
   },
   headerTextContainer: {
-    flexShrink: 1, 
+    flexShrink: 1,
     justifyContent: 'center',
   },
   previewUniName: {
@@ -438,25 +438,25 @@ const getStyles = (isMobile) => StyleSheet.create({
     marginBottom: 25,
     color: '#000',
   },
-  infoRow: { 
-    flexDirection: 'row', 
+  infoRow: {
+    flexDirection: 'row',
     marginBottom: 15,
     alignItems: 'flex-end'
   },
-  infoLabel: { 
+  infoLabel: {
     ...Typography.body,
-    fontSize: 12, 
-    fontWeight: '700', 
+    fontSize: 12,
+    fontWeight: '700',
     color: '#000000',
     marginRight: 5,
     lineHeight: 20,
   },
-  infoValueUnderlined: { 
+  infoValueUnderlined: {
     ...Typography.body,
     lineHeight: 18,
     letterSpacing: 1,
-    flex: 1, 
-    fontSize: 12, 
+    flex: 1,
+    fontSize: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#000',
     color: '#000',
@@ -495,36 +495,36 @@ const getStyles = (isMobile) => StyleSheet.create({
     fontSize: 10,
     color: '#000'
   },
-  buttonRow: { 
-    flexDirection: 'row', 
-    gap: 12, 
-    marginTop: 20 
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20
   },
-  btnCancel: { 
+  btnCancel: {
     ...Typography.label,
-    flex: 1, 
-    padding: isMobile ? 12 : 14, 
-    borderRadius: 12, 
-    borderWidth: 1, 
-    borderColor: '#E2E8F0', 
-    alignItems: 'center' 
+    flex: 1,
+    padding: isMobile ? 12 : 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center'
   },
-  btnDownload: { 
+  btnDownload: {
     ...Typography.label,
-    flex: 2, 
-    padding: isMobile ? 12 :14, 
-    borderRadius: 12, 
-    backgroundColor: '#002366', 
-    alignItems: 'center' 
+    flex: 2,
+    padding: isMobile ? 12 : 14,
+    borderRadius: 12,
+    backgroundColor: '#002366',
+    alignItems: 'center'
   },
-  btnTextCancel: { 
+  btnTextCancel: {
     fontSize: isMobile ? 12 : 'none',
-    color: '#64748B', 
-    fontWeight: '700' 
+    color: '#64748B',
+    fontWeight: '700'
   },
-  btnTextDownload: { 
+  btnTextDownload: {
     fontSize: isMobile ? 12 : 'none',
-    color: '#FFF', 
-    fontWeight: 'bold' 
+    color: '#FFF',
+    fontWeight: 'bold'
   },
 });

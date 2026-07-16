@@ -16,17 +16,17 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
   const styles = getStyles(isMobile);
 
   const dt = new Date(item.date_time);
-  
-  const dateString = dt.toLocaleDateString(undefined, { 
-    weekday: 'short', 
-    month: 'long', 
-    day: 'numeric', 
-    year: 'numeric' 
+
+  const dateString = dt.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
   });
 
-  const timeString = dt.toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  const timeString = dt.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
   });
 
   return (
@@ -36,94 +36,94 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
       android_ripple={{ color: '#F1F5F9' }}
     >
 
-    {/* HEADER */}
-    <View style={styles.headerRow}>
-      <Text style={styles.serviceHeader}>{item.service || "General Consultation"}</Text>
-      <StatusBadge 
-        status={item.status || "Pending"} 
-        dateTime={item.date_time} 
-      />
-    </View>
-
-    <View style={styles.divider} />
-
-    {/* FACULTY INFO */}
-    <View style={styles.infoRow}>
-      <MaterialCommunityIcons name="account" size={16} color="#002366" style={styles.icons} />
-      <Text style={styles.label}>Faculty:</Text>
-      <Text style={styles.facultyName}>{item.faculty_name}</Text>
-    </View>
-
-    {/* DATE*/}
-    <View style={styles.infoRow}>
-      <MaterialCommunityIcons name="calendar-month" size={16} color="#002366" style={styles.icons} />
-      <Text style={styles.label}>Date:</Text>
-      <Text style={styles.value}>{dateString}</Text>
-    </View>
-
-    {/* TIME */}
-    <View style={styles.infoRow}>
-      <MaterialCommunityIcons name="clock-outline" size={16} color="#002366" style={styles.icons} />
-      <Text style={styles.label}>Time:</Text>
-      <Text style={styles.value}>{timeString}</Text>
-    </View>
-    
-    {/* STUDENT NOTE */}
-    <View style={styles.conditionBox}>
-      <View style={styles.noteLabelRow}>
-        <MaterialCommunityIcons name="clipboard-text-outline" size={16} color="#002366" style={styles.icons}/>
-        <Text style={styles.studentNoteLabel}>Appointment notes:</Text>
+      {/* HEADER */}
+      <View style={styles.headerRow}>
+        <Text style={styles.serviceHeader}>{item.service || "General Consultation"}</Text>
+        <StatusBadge
+          status={item.status || "Pending"}
+          dateTime={item.date_time}
+        />
       </View>
-      <Text style={styles.conditionText}>{item.condition || "No description provided"}</Text>
-    </View>
 
-    {(item.status === "Completed" && userRole === 'faculty') && (
-      <View style={styles.historySection}>
-        <View style={styles.divider} />
-        
-        <Text style={styles.labelTiny}>OUTCOME</Text>
-        <Text style={styles.outcomeText}>{item.outcome || "No outcome notes provided"}</Text>
+      <View style={styles.divider} />
 
-        <Text style={styles.labelTiny}>CONSULTATION NOTES</Text>
-        <View style={styles.noteBox}>
-          <Text style={styles.noteText}>
-            "{item.consultation_notes || "No specific notes provided."}"
-          </Text>
+      {/* FACULTY INFO */}
+      <View style={styles.infoRow}>
+        <MaterialCommunityIcons name="account" size={16} color="#002366" style={styles.icons} />
+        <Text style={styles.label}>Faculty:</Text>
+        <Text style={styles.facultyName}>{item.faculty_name}</Text>
+      </View>
+
+      {/* DATE*/}
+      <View style={styles.infoRow}>
+        <MaterialCommunityIcons name="calendar-month" size={16} color="#002366" style={styles.icons} />
+        <Text style={styles.label}>Date:</Text>
+        <Text style={styles.value}>{dateString}</Text>
+      </View>
+
+      {/* TIME */}
+      <View style={styles.infoRow}>
+        <MaterialCommunityIcons name="clock-outline" size={16} color="#002366" style={styles.icons} />
+        <Text style={styles.label}>Time:</Text>
+        <Text style={styles.value}>{timeString}</Text>
+      </View>
+
+      {/* STUDENT NOTE */}
+      <View style={styles.conditionBox}>
+        <View style={styles.noteLabelRow}>
+          <MaterialCommunityIcons name="clipboard-text-outline" size={16} color="#002366" style={styles.icons} />
+          <Text style={styles.studentNoteLabel}>Appointment notes:</Text>
         </View>
+        <Text style={styles.conditionText}>{item.condition || "No description provided"}</Text>
       </View>
-    )}
 
-    {item.status === "Rejected" && (
-      <View style={styles.historySection}>
-        <View style={styles.divider} />
-        
-        <Text style={[styles.labelTiny, { color: '#EF4444' }]}>REASON FOR DISAPPROVAL</Text>
-        <View style={[styles.noteBox, { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
-          <Text style={[styles.noteText, { color: '#991B1B' }]}>
-            "{item.consultation_notes || "No specific reason provided."}"
-          </Text>
+      {(item.status === "Completed" && userRole === 'faculty') && (
+        <View style={styles.historySection}>
+          <View style={styles.divider} />
+
+          <Text style={styles.labelTiny}>OUTCOME</Text>
+          <Text style={styles.outcomeText}>{item.outcome || "No outcome notes provided"}</Text>
+
+          <Text style={styles.labelTiny}>CONSULTATION NOTES</Text>
+          <View style={styles.noteBox}>
+            <Text style={styles.noteText}>
+              "{item.consultation_notes || "No specific notes provided."}"
+            </Text>
+          </View>
         </View>
-      </View>
-    )}
+      )}
 
-    {item.status === "Cancelled" && item.consultation_notes && (
-      <View style={styles.historySection}>
-        <View style={styles.divider} />
-        
-        <Text style={[styles.labelTiny, { color: '#EF4444' }]}>REASON FOR CANCELLATION</Text>
-        <View style={[styles.noteBox, { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
-          <Text style={[styles.noteText, { color: '#991B1B' }]}>
-            "{item.consultation_notes}"
-          </Text>
+      {item.status === "Rejected" && (
+        <View style={styles.historySection}>
+          <View style={styles.divider} />
+
+          <Text style={[styles.labelTiny, { color: '#EF4444' }]}>REASON FOR DISAPPROVAL</Text>
+          <View style={[styles.noteBox, { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
+            <Text style={[styles.noteText, { color: '#991B1B' }]}>
+              "{item.consultation_notes || "No specific reason provided."}"
+            </Text>
+          </View>
         </View>
-      </View>
-    )}
+      )}
 
-    {/* ACTION BUTTONS */}
-    <View style={styles.actions}>
-      {children}
-    </View>
-  </Pressable>
+      {item.status === "Cancelled" && item.consultation_notes && (
+        <View style={styles.historySection}>
+          <View style={styles.divider} />
+
+          <Text style={[styles.labelTiny, { color: '#EF4444' }]}>REASON FOR CANCELLATION</Text>
+          <View style={[styles.noteBox, { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
+            <Text style={[styles.noteText, { color: '#991B1B' }]}>
+              "{item.consultation_notes}"
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* ACTION BUTTONS */}
+      <View style={styles.actions}>
+        {children}
+      </View>
+    </Pressable>
   );
 };
 
@@ -183,7 +183,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     marginBottom: 6,
     alignItems: 'center'
   },
-  icons: { 
+  icons: {
     marginRight: 10
   },
   label: {
@@ -196,14 +196,14 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   facultyName: {
     ...Typography.body,
-    fontSize: isMobile ? 15: 16,
+    fontSize: isMobile ? 15 : 16,
     fontWeight: 'bold',
     color: '#0F172A',
     lineHeight: 18
   },
   value: {
     ...Typography.body,
-    fontSize: isMobile ? 13: 15,
+    fontSize: isMobile ? 13 : 15,
     color: '#334155'
   },
   conditionBox: {
@@ -234,34 +234,34 @@ const getStyles = (isMobile) => StyleSheet.create({
     ...Typography.label,
     marginTop: 12,
   },
-  historySection: { 
-    marginTop: 8 
+  historySection: {
+    marginTop: 8
   },
-  labelTiny: { 
-    fontSize: 10, 
-    fontWeight: '800', 
-    color: '#94A3B8', 
-    marginTop: 8 
+  labelTiny: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+    marginTop: 8
   },
-  outcomeText: { 
-    fontSize: 14, 
-    fontWeight: 'bold', 
-    color: '#0F172A', 
-    marginTop: 2, 
-    lineHeight: 18 
+  outcomeText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#0F172A',
+    marginTop: 2,
+    lineHeight: 18
   },
-  noteBox: { 
-    backgroundColor: '#F8FAFC', 
-    padding: 10, 
+  noteBox: {
+    backgroundColor: '#F8FAFC',
+    padding: 10,
     borderRadius: 8,
-    marginTop: 4, 
-    borderLeftWidth: 3, 
-    borderLeftColor: '#0052FF' 
-  },  
-  noteText: { 
-    fontSize: 13, 
-    color: '#475569', 
-    fontStyle: 'italic' 
+    marginTop: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: '#0052FF'
+  },
+  noteText: {
+    fontSize: 13,
+    color: '#475569',
+    fontStyle: 'italic'
   },
 });
 

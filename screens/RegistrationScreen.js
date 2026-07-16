@@ -216,6 +216,21 @@ export default function RegistrationScreen({ navigation, route }) {
   const isMobile = width < 768;
   const styles = getStyles(isMobile, width);
 
+  const entryAnim = useState(() => new Animated.Value(0))[0];
+
+  useEffect(() => {
+    Animated.timing(entryAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const entryScale = entryAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.99, 1],
+  });
+
   const googleData = route.params?.googleData;
   const isGoogle = route.params?.isGoogle || false;
 
@@ -590,7 +605,8 @@ export default function RegistrationScreen({ navigation, route }) {
   // ── DESKTOP LAYOUT ──
   if (!isMobile) {
     return (
-      <View style={styles.desktopRoot}>
+      <Animated.View style={{ flex: 1, opacity: entryAnim, transform: [{ scale: entryScale }] }}>
+        <View style={styles.desktopRoot}>
         <Toast
           visible={!!alertConfig.message}
           message={alertConfig.message}
@@ -659,13 +675,15 @@ export default function RegistrationScreen({ navigation, route }) {
             </Pressable>
           </View>
         </ScrollView>
-      </View>
+        </View>
+      </Animated.View>
     );
   }
 
   // ── MOBILE LAYOUT ──
   return (
-    <View style={styles.mobileRoot}>
+    <Animated.View style={{ flex: 1, opacity: entryAnim, transform: [{ scale: entryScale }] }}>
+      <View style={styles.mobileRoot}>
       <Toast
         visible={!!alertConfig.message}
         message={alertConfig.message}
@@ -711,7 +729,8 @@ export default function RegistrationScreen({ navigation, route }) {
           </Text>
         </Pressable>
       </ScrollView>
-    </View>
+      </View>
+    </Animated.View>
   );
 }
 

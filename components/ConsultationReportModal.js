@@ -307,13 +307,16 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
           
-          <View style={{ position: 'absolute', opacity: 0, left: -1000 }} pointerEvents="none">
-            <QRCode
-              value={verificationUrl}
-              getRef={qrRef}
-              size={200}
-            />
-          </View>
+          {data?.id && (
+            <View style={{ position: 'absolute', opacity: 0, left: -1000 }} pointerEvents="none">
+              <QRCode
+                key={data.id}
+                value={verificationUrl}
+                getRef={qrRef}
+                size={200}
+              />
+            </View>
+          )}
 
           <Text style={styles.modalTitle}>Consultation Report Preview</Text>
           

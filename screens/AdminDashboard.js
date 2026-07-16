@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, Pressable, ScrollView, ImageBackground, useWindowDimensions, Animated } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import AdminAppointmentRow from "../components/AdminAppointmentTable";
@@ -19,6 +19,21 @@ export default function AdminDashboard({ navigation }) {
   const isMobile = width < 768;
 
   const styles = getStyles(isMobile);
+
+  const fadeAnim = useState(() => new Animated.Value(0))[0];
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const entryScale = fadeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.99, 1],
+  });
 
   const [appointments, setAppointments] = useState([]);
   const [students, setStudents] = useState([]);
@@ -460,12 +475,13 @@ export default function AdminDashboard({ navigation }) {
   };
 
   return (
-    <ImageBackground
-      source={require("../assets/redox-01.png")}
-      style={styles.screenWrapper}
-      imageStyle={styles.backgroundImage}
-      resizeMode="cover"
-    >
+    <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ scale: entryScale }] }}>
+      <ImageBackground
+        source={require("../assets/redox-01.png")}
+        style={styles.screenWrapper}
+        imageStyle={styles.backgroundImage}
+        resizeMode="cover"
+      >
       <View style={[
         styles.dashboardLayout,
         isMobile && { flexDirection: 'column' }
@@ -959,7 +975,8 @@ export default function AdminDashboard({ navigation }) {
           </View>
         </View>
       )}
-    </ImageBackground>
+      </ImageBackground>
+    </Animated.View>
   );
 }
 

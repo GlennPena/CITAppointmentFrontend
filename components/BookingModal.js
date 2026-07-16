@@ -4,7 +4,7 @@
 */
 
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput} from "react-native";
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput } from "react-native";
 
 import api from "../utils/api";
 import InlineAlert from "../components/InlineAlert";
@@ -20,16 +20,16 @@ const generateDates = () => {
 
   let i = 0;
 
-  while (dateArray.length < 12) { 
+  while (dateArray.length < 12) {
     const d = new Date();
     d.setDate(d.getDate() + i);
 
     if (d.getDay() !== 0) {
       const localFullDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-      dateArray.push({ 
-        fullDate: localFullDate, 
-        dayName: days[d.getDay()], 
+      dateArray.push({
+        fullDate: localFullDate,
+        dayName: days[d.getDay()],
         dateNum: d.getDate().toString()
       });
     }
@@ -52,7 +52,7 @@ const convertTo24Hour = (timeStr) => {
 
 // Available appointment time slots
 const timeSlots = [
-  "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
+  "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
   "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
 ];
 
@@ -62,18 +62,18 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ message: "", type: "" });
   const [bookedSlots, setBookedSlots] = useState([]);
-  
+
   const availableDates = generateDates();
   const [selectedDate, setSelectedDate] = useState(availableDates[0].fullDate);
   const [selectedTime, setSelectedTime] = useState(null);
 
-    const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     service: "",
     faculty: null,
     date_time: "",
     condition: "",
-    });
-  
+  });
+
   const isStepValid = () => {
     switch (step) {
       case 1: return formData.service !== "";
@@ -87,12 +87,12 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
 
   // Reset alert when moving steps
   useEffect(() => { setAlert({ message: "", type: "" }); }, [step]);
-  
+
   // Reset when modal is closed
   useEffect(() => {
-  if (!isVisible) {
-    resetModal();
-  }
+    if (!isVisible) {
+      resetModal();
+    }
   }, [isVisible]);
 
   // Fetch booked slots whenever faculty, date, or modal visibility changes
@@ -107,7 +107,7 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
             const minutes = String(dt.getMinutes()).padStart(2, '0');
             const ampm = hours >= 12 ? 'PM' : 'AM';
             hours = hours % 12;
-            hours = hours ? hours : 12; 
+            hours = hours ? hours : 12;
             return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
           });
           setBookedSlots(booked);
@@ -115,31 +115,31 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
         .catch(err => {
           setError("Could not load available times.");
           setBookedSlots([]);
-        }); 
+        });
     }
   }, [formData.faculty, selectedDate, isVisible]);
 
   const handleNext = () => {
-  if (!isStepValid()) return;
+    if (!isStepValid()) return;
 
-  if (step === 3) {
-    // Re-verify availability at the exact moment of clicking "Next"
-    const normalize = (time) => time.replace(/^0/, '').replace(/\s+/g, '').toUpperCase();
-    const normalizedSelected = normalize(selectedTime);
-    
-    const isStillTaken = bookedSlots.some(booked => normalize(booked) === normalizedSelected);
-    const isNowPast = new Date(`${selectedDate}T${convertTo24Hour(selectedTime)}`) < new Date();
+    if (step === 3) {
+      // Re-verify availability at the exact moment of clicking "Next"
+      const normalize = (time) => time.replace(/^0/, '').replace(/\s+/g, '').toUpperCase();
+      const normalizedSelected = normalize(selectedTime);
 
-    if (isStillTaken || isNowPast) {
-      setAlert({ message: "This slot just became unavailable. Please select another.", type: "error" });
-      setSelectedTime(null);
-      return;
+      const isStillTaken = bookedSlots.some(booked => normalize(booked) === normalizedSelected);
+      const isNowPast = new Date(`${selectedDate}T${convertTo24Hour(selectedTime)}`) < new Date();
+
+      if (isStillTaken || isNowPast) {
+        setAlert({ message: "This slot just became unavailable. Please select another.", type: "error" });
+        setSelectedTime(null);
+        return;
+      }
+
+      setFormData({ ...formData, date_time: `${selectedDate}T${convertTo24Hour(selectedTime)}` });
     }
-    
-    setFormData({ ...formData, date_time: `${selectedDate}T${convertTo24Hour(selectedTime)}` });
-  }
-  setStep(step + 1);
-};
+    setStep(step + 1);
+  };
 
   // Handles final submission of the booking form
   const handleFinish = async () => {
@@ -148,7 +148,7 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
 
     try {
       await api.post("appointments/", formData);
-      
+
       if (onBookingSuccess) {
         onBookingSuccess({ message: "Appointment Booked!", type: "success" });
       }
@@ -157,7 +157,7 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
       setTimeout(() => {
         setStep(1);
         resetModal();
-      }, 100); 
+      }, 100);
 
     } catch (e) {
       const msg = e.response?.data ? JSON.stringify(e.response.data) : "Failed to book.";
@@ -172,12 +172,12 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
     return (
       <View style={styles.progressContainer}>
         {[...Array(totalSteps)].map((_, i) => (
-          <View 
-            key={i} 
+          <View
+            key={i}
             style={[
-              styles.progressSegment, 
+              styles.progressSegment,
               i + 1 <= currentStep ? styles.segmentActive : styles.segmentInactive
-            ]} 
+            ]}
           />
         ))}
       </View>
@@ -232,11 +232,11 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
       ].map(s => {
         const isSelected = formData.service === s;
         return (
-          <Pressable 
-            key={s} 
-            style={[styles.card, isSelected && styles.selected]} 
+          <Pressable
+            key={s}
+            style={[styles.card, isSelected && styles.selected]}
             onPress={() => {
-              setFormData({...formData, service: s});
+              setFormData({ ...formData, service: s });
             }}
           >
             <Text style={[styles.cardText, isSelected && { color: '#FFF', fontWeight: 'bold' }]}>
@@ -252,16 +252,16 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
   const renderStep2 = () => (
     <View>
       <Text style={styles.modalTitle}>Choose Faculty</Text>
-      
+
       {facultyList.map(fac => {
         const isSelected = formData.faculty === fac.id;
 
         return (
-          <Pressable 
-            key={fac.id} 
-            style={[styles.card, isSelected && styles.selected]} 
+          <Pressable
+            key={fac.id}
+            style={[styles.card, isSelected && styles.selected]}
             onPress={() => {
-              setFormData({...formData, faculty: fac.id});
+              setFormData({ ...formData, faculty: fac.id });
             }}
           >
             <Text style={[styles.cardText, isSelected && { color: '#FFF', fontWeight: 'bold' }]}>
@@ -284,12 +284,12 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
         type={alert.type}
         onHide={() => setAlert({ message: "", type: "" })}
       />
-      
+
       <View style={styles.dateGrid}>
         {availableDates.map(d => (
-          <Pressable 
-            key={d.fullDate} 
-            style={[styles.dateBtnGrid, selectedDate === d.fullDate && styles.selected]} 
+          <Pressable
+            key={d.fullDate}
+            style={[styles.dateBtnGrid, selectedDate === d.fullDate && styles.selected]}
             onPress={() => { setSelectedDate(d.fullDate); setSelectedTime(null); }}
           >
             <Text style={[styles.dayText, selectedDate === d.fullDate && { color: '#FFF' }]}>{d.dayName}</Text>
@@ -304,21 +304,21 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
           const normalizedUI = normalize(t);
 
           const isTaken = bookedSlots.some(booked => normalize(booked) === normalizedUI);
-          
+
           const now = new Date();
           const slotDateTime = new Date(`${selectedDate}T${convertTo24Hour(t)}`);
           const isPast = slotDateTime < now;
 
           return (
-            <Pressable 
-              key={t} 
-              disabled={isTaken || isPast} 
+            <Pressable
+              key={t}
+              disabled={isTaken || isPast}
               style={[
-                styles.timeBtn, 
-                selectedTime === t && styles.selected, 
+                styles.timeBtn,
+                selectedTime === t && styles.selected,
                 isTaken && styles.booked,
                 isPast && { backgroundColor: '#E5E7EB', opacity: 0.5 }
-              ]} 
+              ]}
               onPress={() => setSelectedTime(t)}
             >
               <Text style={[
@@ -331,7 +331,7 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
           );
         })}
       </View>
-          </View>
+    </View>
   );
 
   // STEP 4: Additional Info 
@@ -342,14 +342,14 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
     return (
       <View>
         <Text style={styles.modalTitle}>Appointment Notes</Text>
-        
-        <TextInput 
+
+        <TextInput
           placeholder="What would you like to discuss during your appointment?"
           style={[styles.inputMultiline, isError && formData.condition.length > 0 && { borderColor: '#EF4444' }]}
           value={formData.condition}
-          onChangeText={v => setFormData({...formData, condition: v})} 
+          onChangeText={v => setFormData({ ...formData, condition: v })}
           multiline={true}
-          numberOfLines={4}  
+          numberOfLines={4}
           textAlignVertical="top"
         />
         <Text style={{
@@ -358,8 +358,8 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
           marginTop: 6,
           fontWeight: '600'
         }}>
-          {textLength < 256 
-            ? `At least ${256 - textLength} more characters required` 
+          {textLength < 256
+            ? `At least ${256 - textLength} more characters required`
             : `Requirement met! (${textLength} characters)`}
         </Text>
       </View>
@@ -413,35 +413,35 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
         <View style={styles.modalContainer}>
           <View style={styles.headerRow}>
             <Pressable onPress={handleCancel}>
-              <Text style={{...Typography.body, color: '#6B7280', fontSize: 16}}>✕ Cancel</Text>
+              <Text style={{ ...Typography.body, color: '#6B7280', fontSize: 16 }}>✕ Cancel</Text>
             </Pressable>
             <ProgressHeader currentStep={step} />
           </View>
 
-          <ScrollView style={styles.scrollViewContent} contentContainerStyle={{padding: 20}}>
-              {step === 1 && renderStep1()}
-              {step === 2 && renderStep2()}
-              {step === 3 && renderStep3()}
-              {step === 4 && renderStep4()}
-              {step === 5 && renderStep5()}
+          <ScrollView style={styles.scrollViewContent} contentContainerStyle={{ padding: 20 }}>
+            {step === 1 && renderStep1()}
+            {step === 2 && renderStep2()}
+            {step === 3 && renderStep3()}
+            {step === 4 && renderStep4()}
+            {step === 5 && renderStep5()}
           </ScrollView>
 
           <View style={styles.footer}>
             {step > 1 ? (
               <Pressable style={styles.backButton} onPress={() => setStep(step - 1)}>
-                <Text style={{color: '#002366', fontWeight: 'bold'}}>Back</Text>
+                <Text style={{ color: '#002366', fontWeight: 'bold' }}>Back</Text>
               </Pressable>
             ) : <View style={{ width: 80 }} />}
 
-            <Pressable 
-              disabled={!isStepValid() || loading} 
+            <Pressable
+              disabled={!isStepValid() || loading}
               style={[
-                styles.nextBtn, 
-                (!isStepValid() || loading) && { backgroundColor: '#A5C4FF' } 
-              ]} 
+                styles.nextBtn,
+                (!isStepValid() || loading) && { backgroundColor: '#A5C4FF' }
+              ]}
               onPress={step === 5 ? handleFinish : handleNext}
             >
-              <Text style={{color: '#fff', fontWeight: 'bold'}}>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>
                 {step === 5 ? (loading ? "..." : "Confirm") : "Next"}
               </Text>
             </Pressable>
@@ -477,145 +477,145 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'column'
   },
-  modalTitle: { 
-    ...Typography.title, 
-    fontSize: 22, 
-    fontWeight: '800', 
-    marginBottom: 20, 
-    textAlign: 'center', 
-    color: '#002366' 
+  modalTitle: {
+    ...Typography.title,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#002366'
   },
-  card: { 
-    padding: 15, 
-    borderWidth: 1.5, 
-    borderColor: '#E2E8F0', 
-    borderRadius: 12, 
-    marginBottom: 10, 
+  card: {
+    padding: 15,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    marginBottom: 10,
     backgroundColor: '#FFF'
   },
-  selected: { 
-    backgroundColor: '#002366', 
-    borderColor: '#002366' 
+  selected: {
+    backgroundColor: '#002366',
+    borderColor: '#002366'
   },
-  cardText: { 
-    ...Typography.body, 
-    fontSize: 16, 
+  cardText: {
+    ...Typography.body,
+    fontSize: 16,
     color: '#1E293B'
   },
-  dateBtn: { 
-    width: 60, 
-    height: 70, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    borderWidth: 1, 
-    marginRight: 10, 
-    borderRadius: 10, 
-    borderColor: '#DDD' 
+  dateBtn: {
+    width: 60,
+    height: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    marginRight: 10,
+    borderRadius: 10,
+    borderColor: '#DDD'
   },
-  timeGrid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    justifyContent: 'space-between' 
+  timeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
-  timeBtn: { 
-    width: '48%', 
-    padding: 15, 
-    borderWidth: 1, 
-    borderColor: '#DDD', 
-    borderRadius: 10, 
-    marginBottom: 10, 
-    alignItems: 'center' 
+  timeBtn: {
+    width: '48%',
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    marginBottom: 10,
+    alignItems: 'center'
   },
-  booked: { 
-    backgroundColor: '#002366', 
-    borderColor: '#E2E8F0', 
+  booked: {
+    backgroundColor: '#002366',
+    borderColor: '#E2E8F0',
     opacity: 0.5
   },
-  bold: { 
-    fontWeight: 'bold', 
-    fontSize: 18 
+  bold: {
+    fontWeight: 'bold',
+    fontSize: 18
   },
-  input: { 
-    borderWidth: 1.5, 
-    borderColor: '#E2E8F0', 
-    borderRadius: 10, 
-    padding: 12, 
+  input: {
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
     fontSize: 16,
     color: '#002366',
     backgroundColor: '#F8FAFC'
   },
-  inputMultiline: { 
-    borderWidth: 1.5, 
-    borderColor: '#E2E8F0', 
-    borderRadius: 10, 
-    padding: 12, 
+  inputMultiline: {
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
     fontSize: 16,
     color: '#002366',
     backgroundColor: '#F8FAFC',
-    
+
     minHeight: 120,
     textAlignVertical: 'top',
-    paddingTop: 12, 
+    paddingTop: 12,
   },
-  row: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'flex-start', 
-    paddingVertical: 12 
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 12
   },
-  backButton: { 
-    backgroundColor: '#fff', 
-    padding: 10, 
-    borderRadius: 10, 
-    alignItems: 'center', 
-    color: '#002366', 
-    width: 80, 
-    textAlign: 'center', 
-    borderWidth: 1.5, 
+  backButton: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    color: '#002366',
+    width: 80,
+    textAlign: 'center',
+    borderWidth: 1.5,
     borderColor: '#002366'
   },
-  nextBtn: { 
-    backgroundColor: '#002366', 
-    padding: 10, 
-    borderRadius: 10, 
-    alignItems: 'center', 
-    color: '#fff', 
-    width: 80, 
+  nextBtn: {
+    backgroundColor: '#002366',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    color: '#fff',
+    width: 80,
     textAlign: 'center'
   },
-  submitBtn: { 
-    backgroundColor: '#002366', 
-    padding: 15, 
-    borderRadius: 10, 
-    marginTop: 20, 
-    alignItems: 'center' 
+  submitBtn: {
+    backgroundColor: '#002366',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: 'center'
   },
-  reviewBox: { 
-    backgroundColor: '#F9F9F9', 
-    padding: 15, 
-    borderRadius: 10 
+  reviewBox: {
+    backgroundColor: '#F9F9F9',
+    padding: 15,
+    borderRadius: 10
   },
-  closeBtn: { 
-    padding: 20, 
-    alignItems: 'center' 
+  closeBtn: {
+    padding: 20,
+    alignItems: 'center'
   },
   summaryLabel: {
     ...Typography.body,
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',            
-    flex: 1,            
-    },         
+    color: '#64748B',
+    flex: 1,
+  },
   summaryValue: {
     ...Typography.body,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',             
-    flex: 2,                 
-    textAlign: 'right',          
+    color: '#0F172A',
+    flex: 2,
+    textAlign: 'right',
   },
   summaryContainer: {
-    backgroundColor: '#F8FAFC',      
+    backgroundColor: '#F8FAFC',
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
@@ -648,13 +648,13 @@ const styles = StyleSheet.create({
   dateGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between', 
-    rowGap: 10,  
+    justifyContent: 'space-between',
+    rowGap: 10,
     marginBottom: 20,
   },
   dateBtnGrid: {
-    width: '15.5%',  
-    aspectRatio: 0.85, 
+    width: '15.5%',
+    aspectRatio: 0.85,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
@@ -668,30 +668,30 @@ const styles = StyleSheet.create({
   },
   dayText: {
     ...Typography.body,
-    fontSize: 12,  
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
   },
   dateNumText: {
     ...Typography.body,
-    fontSize:18,
+    fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
     marginTop: 2,
   },
   serviceNextBtn: {
-    backgroundColor: '#002366', 
-    padding: 10, 
-    borderRadius: 10, 
-    alignItems: 'center', 
-    color: '#fff', 
-    width: 80, 
+    backgroundColor: '#002366',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    color: '#fff',
+    width: 80,
     textAlign: 'center',
-    alignSelf: 'flex-end', 
+    alignSelf: 'flex-end',
     marginTop: 15,
   },
   scrollViewContent: {
-    flex: 1, 
+    flex: 1,
   },
   footer: {
     flexDirection: 'row',
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6', 
+    borderTopColor: '#F3F4F6',
     backgroundColor: '#FFF',
   },
   divider: {

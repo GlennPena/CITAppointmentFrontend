@@ -1,4 +1,5 @@
-import { useWindowDimensions } from "react-native";
+import { useState, useEffect } from "react";
+import { useWindowDimensions, Animated } from "react-native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -7,6 +8,7 @@ import { Typography } from "../styles/theme";
 import FacultyDashboard from './FacultyDashboard';
 import FacultySchedule from './FacultySchedule';
 import StudentHistory from './StudentHistory';
+import MeetingHistory from './MeetingHistory';
 
 
 const Tab = createBottomTabNavigator();
@@ -17,8 +19,24 @@ export default function FacultyTabs() {
   const isMobile = width < 768;
   const isDesktop = width >= 1200;
 
+  const fadeAnim = useState(() => new Animated.Value(0))[0];
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const entryScale = fadeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.99, 1],
+  });
+
   return (
-    <Tab.Navigator
+    <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ scale: entryScale }] }}>
+      <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarPosition: isMobile ? 'bottom' : 'left',
@@ -70,6 +88,8 @@ export default function FacultyTabs() {
             iconName = 'calendar-clock';
           } else if (route.name === 'Students') {
             iconName = 'account-group';
+          } else if (route.name === 'Meetings') {
+            iconName = 'calendar-check';
           }
 
           return <MaterialCommunityIcons name={iconName} size={isDesktop ? 28 : 26} color={color} style={{ marginLeft: isDesktop ? 30 : 0 }} />;
@@ -88,6 +108,11 @@ export default function FacultyTabs() {
         name="Students"
         component={StudentHistory}
       />
+      <Tab.Screen
+        name="Meetings"
+        component={MeetingHistory}
+      />
     </Tab.Navigator>
+    </Animated.View>
   );
 }
