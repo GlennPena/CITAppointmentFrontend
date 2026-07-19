@@ -4,7 +4,9 @@
 */
 
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput } from "react-native";
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Animated, Platform } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import api from "../utils/api";
 import InlineAlert from "../components/InlineAlert";
@@ -56,6 +58,97 @@ const timeSlots = [
   "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
 ];
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const ShineButton = ({ onPress, disabled, text, style }) => {
+  const [hovered, setHovered] = useState(false);
+  const shineAnim = useState(() => new Animated.Value(-1))[0];
+  const scale = useState(() => new Animated.Value(1))[0];
+
+  useEffect(() => {
+    if (hovered && !disabled) {
+      Animated.spring(scale, { toValue: 1.05, useNativeDriver: true }).start();
+      shineAnim.setValue(-1);
+      Animated.timing(shineAnim, {
+        toValue: 2,
+        duration: 450,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+      shineAnim.stopAnimation();
+      shineAnim.setValue(-1);
+    }
+  }, [hovered, disabled, shineAnim, scale]);
+
+  const translateX = shineAnim.interpolate({
+    inputRange: [-1, 2],
+    outputRange: [-150, 450],
+  });
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        style, 
+        disabled && { opacity: 0.6 }, 
+        { transform: [{ scale }], overflow: 'hidden' }
+      ]}
+    >
+      <LinearGradient
+        colors={disabled ? ['#A5C4FF', '#A5C4FF'] : ['#003DA5', '#001E5C']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 10, paddingHorizontal: 16 }}>
+        <Text style={{ color: '#fff', fontWeight: 'bold', marginRight: 6 }}>{text}</Text>
+        {text === "Next" && <MaterialCommunityIcons name="arrow-right" size={16} color="#fff" />}
+        {text === "Confirm" && <MaterialCommunityIcons name="check-circle" size={16} color="#fff" />}
+      </View>
+      {hovered && !disabled && (
+        <Animated.View style={{
+          position: 'absolute',
+          top: 0, left: 0, bottom: 0, width: 120,
+          transform: [{ translateX }, { skewX: '-25deg' }],
+        }}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      )}
+    </AnimatedPressable>
+  );
+};
+
+const HoverScaleItem = ({ children, style, scaleTo = 1.05, ...props }) => {
+  const [scale] = useState(() => new Animated.Value(1));
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) {
+      Animated.spring(scale, { toValue: scaleTo, useNativeDriver: Platform.OS !== 'web' }).start();
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web' }).start();
+    }
+  }, [isHovered, scale, scaleTo]);
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={[style, { transform: [{ scale }] }]}
+      {...props}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+};
 
 export default function BookingModal({ isVisible, onClose, facultyList, onBookingSuccess }) {
   const [step, setStep] = useState(1);
@@ -232,17 +325,18 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
       ].map(s => {
         const isSelected = formData.service === s;
         return (
-          <Pressable
+          <HoverScaleItem
             key={s}
             style={[styles.card, isSelected && styles.selected]}
             onPress={() => {
               setFormData({ ...formData, service: s });
             }}
+            scaleTo={1.02}
           >
             <Text style={[styles.cardText, isSelected && { color: '#FFF', fontWeight: 'bold' }]}>
               {s}
             </Text>
-          </Pressable>
+          </HoverScaleItem>
         );
       })}
     </View>
@@ -257,17 +351,18 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
         const isSelected = formData.faculty === fac.id;
 
         return (
-          <Pressable
+          <HoverScaleItem
             key={fac.id}
             style={[styles.card, isSelected && styles.selected]}
             onPress={() => {
               setFormData({ ...formData, faculty: fac.id });
             }}
+            scaleTo={1.02}
           >
             <Text style={[styles.cardText, isSelected && { color: '#FFF', fontWeight: 'bold' }]}>
               {fac.full_name}
             </Text>
-          </Pressable>
+          </HoverScaleItem>
         );
       })}
 
@@ -281,14 +376,15 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
 
       <View style={styles.dateGrid}>
         {availableDates.map(d => (
-          <Pressable
+          <HoverScaleItem
             key={d.fullDate}
             style={[styles.dateBtnGrid, selectedDate === d.fullDate && styles.selected]}
             onPress={() => { setSelectedDate(d.fullDate); setSelectedTime(null); }}
+            scaleTo={1.02}
           >
             <Text style={[styles.dayText, selectedDate === d.fullDate && { color: '#FFF' }]}>{d.dayName}</Text>
             <Text style={[styles.dateNumText, selectedDate === d.fullDate && { color: '#FFF' }]}>{d.dateNum}</Text>
-          </Pressable>
+          </HoverScaleItem>
         ))}
       </View>
 
@@ -304,9 +400,10 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
           const isPast = slotDateTime < now;
 
           return (
-            <Pressable
+            <HoverScaleItem
               key={t}
               disabled={isTaken || isPast}
+              scaleTo={isTaken || isPast ? 1 : 1.05}
               style={[
                 styles.timeBtn,
                 selectedTime === t && styles.selected,
@@ -321,7 +418,7 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
               ]}>
                 {isTaken ? "Booked" : isPast ? "Expired" : t}
               </Text>
-            </Pressable>
+            </HoverScaleItem>
           );
         })}
       </View>
@@ -428,23 +525,20 @@ export default function BookingModal({ isVisible, onClose, facultyList, onBookin
 
           <View style={styles.footer}>
             {step > 1 ? (
-              <Pressable style={styles.backButton} onPress={() => setStep(step - 1)}>
+              <HoverScaleItem style={styles.backButton} onPress={() => setStep(step - 1)} scaleTo={1.05}>
                 <Text style={{ color: '#002366', fontWeight: 'bold' }}>Back</Text>
-              </Pressable>
+              </HoverScaleItem>
             ) : <View style={{ width: 80 }} />}
 
-            <Pressable
+            <ShineButton
               disabled={!isStepValid() || loading}
               style={[
                 styles.nextBtn,
-                (!isStepValid() || loading) && { backgroundColor: '#A5C4FF' }
+                { width: 'auto', minWidth: 100, padding: 0 }
               ]}
               onPress={step === 5 ? handleFinish : handleNext}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                {step === 5 ? (loading ? "..." : "Confirm") : "Next"}
-              </Text>
-            </Pressable>
+              text={step === 5 ? (loading ? "..." : "Confirm") : "Next"}
+            />
           </View>
         </View>
       </View>

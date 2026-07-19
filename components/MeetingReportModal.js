@@ -415,14 +415,14 @@ const getStyles = (isMobile) => StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20
+    padding: isMobile ? 10 : 20
   },
   modalCard: {
-    width: '100%',
+    width: '90%',
     maxWidth: 550,
     backgroundColor: '#FFF',
     borderRadius: 24,
-    padding: isMobile ? 12 : 20,
+    padding: isMobile ? 16 : 24,
     maxHeight: '90%',
   },
   modalTitle: {
@@ -553,10 +553,11 @@ const getStyles = (isMobile) => StyleSheet.create({
     paddingVertical: 10,
   },
   previewFooter: {
-    flexDirection: 'row',
+    flexDirection: isMobile ? 'column' : 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: isMobile ? 'center' : 'flex-end',
     marginTop: 20,
+    gap: isMobile ? 24 : 0,
   },
   qrSide: {
     alignItems: 'center',

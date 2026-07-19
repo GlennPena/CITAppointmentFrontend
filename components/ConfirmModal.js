@@ -3,8 +3,50 @@
   descriptive message, and clear action buttons.
 */
 
-import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
+import { useState, useEffect } from 'react';
+import { Modal, View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Typography } from '../styles/theme';
+
+const AnimatedConfirmButton = ({ onPress, text, style, textStyle, baseColor, hoverColor, iconName, iconColor }) => {
+  const [hovered, setHovered] = useState(false);
+  const colorAnim = useState(() => new Animated.Value(0))[0];
+  const scale = useState(() => new Animated.Value(1))[0];
+
+  useEffect(() => {
+    Animated.timing(colorAnim, {
+      toValue: hovered ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+
+    Animated.spring(scale, {
+      toValue: hovered ? 0.98 : 1,
+      useNativeDriver: true,
+    }).start();
+  }, [hovered, colorAnim, scale]);
+
+  const bgColor = colorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [baseColor, hoverColor]
+  });
+
+  return (
+    <Pressable
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      style={{ flex: 1 }}
+    >
+      <Animated.View style={[style, { backgroundColor: bgColor, transform: [{ scale }] }]}>
+        {iconName && (
+          <MaterialCommunityIcons name={iconName} size={16} color={iconColor || '#FFF'} style={{ marginRight: 6 }} />
+        )}
+        <Text style={textStyle}>{text}</Text>
+      </Animated.View>
+    </Pressable>
+  );
+};
 
 export const ConfirmModal = ({
   visible,
@@ -32,29 +74,24 @@ export const ConfirmModal = ({
           <Text style={styles.message}>{message}</Text>
 
           <View style={styles.btnRow}>
-            <Pressable
-              style={({ pressed }) => [styles.cancelBtn, pressed && styles.btnPressed]}
+            <AnimatedConfirmButton
               onPress={onCancel}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
+              text="Cancel"
+              baseColor="#F1F5F9"
+              hoverColor="#E2E8F0"
+              style={styles.cancelBtn}
+              textStyle={styles.cancelText}
+            />
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.confirmBtn,
-                isDestructive ? styles.confirmDestructive : styles.confirmDefault,
-                pressed && styles.btnPressed,
-              ]}
+            <AnimatedConfirmButton
               onPress={onConfirm}
-            >
-              <MaterialCommunityIcons
-                name={isDestructive ? 'delete-outline' : 'check'}
-                size={16}
-                color="#FFF"
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.confirmText}>{confirmText}</Text>
-            </Pressable>
+              text={confirmText}
+              baseColor={isDestructive ? '#EF4444' : '#002366'}
+              hoverColor={isDestructive ? '#DC2626' : '#001540'}
+              style={[styles.confirmBtn, isDestructive ? styles.confirmDestructive : styles.confirmDefault]}
+              textStyle={styles.confirmText}
+              iconName={isDestructive ? 'delete-outline' : 'check'}
+            />
           </View>
         </View>
       </View>
@@ -98,14 +135,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   title: {
-    fontSize: 20,
+    fontFamily: Typography.header?.fontFamily,
+    fontSize: 24,
     fontWeight: '800',
-    letterSpacing: -0.4,
-    color: '#0F172A',
+    color: '#002366',
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
+    fontFamily: Typography.body?.fontFamily,
     fontSize: 14,
     color: '#64748B',
     lineHeight: 21,
@@ -126,6 +164,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelText: {
+    fontFamily: Typography.label?.fontFamily,
     color: '#475569',
     fontWeight: '700',
     fontSize: 14,
@@ -155,6 +194,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   confirmText: {
+    fontFamily: Typography.label?.fontFamily,
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,

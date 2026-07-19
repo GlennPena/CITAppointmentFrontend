@@ -1,6 +1,6 @@
 /*
   Reusable modal that displays the full Data Privacy Policy for the
-  UA Clinic Appointment System. Can be triggered from RegistrationScreen
+  CIT Appointment System. Can be triggered from RegistrationScreen
   or any other screen that needs to link to the policy.
 */
 
@@ -41,9 +41,9 @@ export default function PrivacyPolicyModal({ visible, onClose }) {
 
             <Text style={styles.sectionHeading}>1. Introduction</Text>
             <Text style={styles.paragraph}>
-              The UAClinic is operated by the University
-              Clinic to manage student, faculty, and employee health appointments. This policy
-              explains what personal and health-related information we collect when you
+              The CIT Appointment System is operated by the College of
+              Information Technology to manage student, faculty, and employee academic appointments. This policy
+              explains what personal and academic information we collect when you
               register for an account, why we collect it, and how it is used, stored, and
               protected, in accordance with the Data Privacy Act of 2012 (Republic Act No.
               10173) and its Implementing Rules and Regulations.
@@ -54,43 +54,43 @@ export default function PrivacyPolicyModal({ visible, onClose }) {
               When you create an account, we collect personal information such as your name,
               date of birth, sex, contact number, email address, and home address. If you are
               registering as a student, we also collect your course, year level, and section.
-              Once you begin using the UAClinic to book appointments, we may additionally collect
-              health-related information you choose to share with clinic staff, such as
-              symptoms, consultation notes, and appointment history.
+              Once you begin using the CIT Appointment System to book appointments, we may additionally collect
+              academic information you choose to share with faculty and staff, such as
+              meeting topics, notes, and appointment history.
             </Text>
 
             <Text style={styles.sectionHeading}>3. Purpose of Collection</Text>
             <Text style={styles.paragraph}>
               Your information is collected and processed solely to: verify your identity as a
-              member of the university; allow you to schedule, reschedule, or cancel clinic
-              appointments; and allow clinic staff to prepare for and record consultations 
-              for continuity of care within the university clinic.
+              member of the university; allow you to schedule, reschedule, or cancel academic
+              appointments; and allow faculty and staff to prepare for and record meetings
+              for continuity of academic progress within the college.
             </Text>
 
             <Text style={styles.sectionHeading}>4. Legal Basis for Processing</Text>
             <Text style={styles.paragraph}>
               We process your personal information based on your consent, given when you check
-              the consent box during registration, and where necessary, to comply with health
-              and safety obligations of the university under applicable law. Health-related
-              information is treated as sensitive personal information under RA 10173 and is
+              the consent box during registration, and where necessary, to comply with academic
+              and administrative obligations of the university under applicable law. Academic
+              information may be treated as sensitive personal information under RA 10173 and is
               processed only with your explicit consent.
             </Text>
 
             <Text style={styles.sectionHeading}>5. Data Sharing</Text>
             <Text style={styles.paragraph}>
-              Your information is accessible only to authorized clinic staff and system
+              Your information is accessible only to authorized faculty, staff, and system
               administrators who need it to perform their duties. We do not sell your personal
               information. Information may be shared with university offices or external
-              authorities only where required by law, or in case of a medical emergency where
-              disclosure is necessary to protect your life or health.
+              authorities only where required by law, or in case of an emergency where
+              disclosure is necessary to protect your life or well-being.
             </Text>
 
             <Text style={styles.sectionHeading}>6. Data Retention</Text>
             <Text style={styles.paragraph}>
-              We retain your account and health records for as long as you remain a member of
+              We retain your account and appointment records for as long as you remain a member of
               the university, and for a reasonable period afterward as required for
-              recordkeeping, legal, or medical continuity purposes. You may request deletion of
-              your account subject to any retention obligations the clinic is required to
+              recordkeeping, legal, or administrative continuity purposes. You may request deletion of
+              your account subject to any retention obligations the college is required to
               observe.
             </Text>
 
@@ -103,16 +103,13 @@ export default function PrivacyPolicyModal({ visible, onClose }) {
 
             <Text style={styles.sectionHeading}>8. Contact Us</Text>
             <Text style={styles.paragraph}>
-              If you have any questions or concerns regarding this Privacy Notice or the 
-              handling of your personal information, please contact the University Clinic 
-              or the appropriate university office for assistance.
+              If you have any questions or concerns regarding this Privacy Notice or the
+              handling of your personal information, please contact the College of
+              Information Technology or the appropriate university office for assistance.
             </Text>
           </ScrollView>
 
-          {/* FOOTER */}
-          <Pressable style={styles.closeFooterButton} onPress={onClose}>
-            <Text style={styles.closeFooterButtonText}>Close</Text>
-          </Pressable>
+
 
         </View>
       </View>
@@ -136,6 +133,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     maxHeight: '85%',
     paddingTop: 24,
     paddingHorizontal: isMobile ? 20 : 32,
+    paddingRight: 0,
     paddingBottom: isMobile ? 20 : 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -157,6 +155,7 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   closeButton: {
     padding: 4,
+    paddingRight: isMobile ? 20 : 32,
   },
   body: {
     maxHeight: 420,
@@ -183,6 +182,8 @@ const getStyles = (isMobile) => StyleSheet.create({
     fontSize: isMobile ? 13 : 14,
     lineHeight: isMobile ? 19 : 21,
     color: '#334155',
+    textAlign: 'justify',
+    paddingRight: isMobile ? 20 : 24,
   },
   disclaimer: {
     ...Typography.caption,

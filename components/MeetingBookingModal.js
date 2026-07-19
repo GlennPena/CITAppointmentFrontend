@@ -13,42 +13,30 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
-  Alert
+  Alert,
+  Animated,
+  Platform
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import api from "../utils/api";
+import { Toast } from "../components/Toast";
 import { Typography } from "../styles/theme";
 
-const timeSlots = [
-  "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
-  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
-];
-
-const meetingServices = [
-  "Faculty Meeting",
-  "Meet the Dean",
-  "Academic Advising Consultation",
-  "Course Curriculum Workshop",
-  "Capstone Committee Sync",
-  "Internship Coordination",
-  "Research Collaboration",
-  "Faculty Consultation Sync",
-  "Department Sync"
-];
-
+// HELPER FUNCTIONS
 // Helper to generate next 7 available dates (excluding Sundays)
 const generateDates = () => {
   const dates = [];
   let temp = new Date();
-  while (dates.length < 7) {
+  while (dates.length < 12) {
     if (temp.getDay() !== 0) { // Exclude Sunday
       const year = temp.getFullYear();
       const month = String(temp.getMonth() + 1).padStart(2, '0');
       const date = String(temp.getDate()).padStart(2, '0');
       const localFullDate = `${year}-${month}-${date}`;
-      
+
       dates.push({
         dayName: temp.toLocaleDateString('en-US', { weekday: 'short' }),
         dayNum: temp.getDate(),
@@ -67,6 +55,116 @@ const convertTo24Hour = (timeStr) => {
   if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
   return `${String(hours).padStart(2, '0')}:${minutes}:00`;
 };
+
+const timeSlots = [
+  "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
+  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
+];
+
+const meetingServices = [
+  "Faculty Meeting",
+  "Meet the Dean",
+  "Academic Advising Consultation",
+  "Course Curriculum Workshop",
+  "Capstone Committee Sync",
+  "Internship Coordination",
+  "Research Collaboration",
+  "Faculty Consultation Sync",
+  "Department Sync"
+];
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const ShineButton = ({ onPress, disabled, text, style }) => {
+  const [hovered, setHovered] = useState(false);
+  const shineAnim = useState(() => new Animated.Value(-1))[0];
+  const scale = useState(() => new Animated.Value(1))[0];
+
+  useEffect(() => {
+    if (hovered && !disabled) {
+      Animated.spring(scale, { toValue: 1.05, useNativeDriver: true }).start();
+      shineAnim.setValue(-1);
+      Animated.timing(shineAnim, {
+        toValue: 2,
+        duration: 450,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+      shineAnim.stopAnimation();
+      shineAnim.setValue(-1);
+    }
+  }, [hovered, disabled, shineAnim, scale]);
+
+  const translateX = shineAnim.interpolate({
+    inputRange: [-1, 2],
+    outputRange: [-150, 450],
+  });
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        style,
+        disabled && { opacity: 0.6 },
+        { transform: [{ scale }], overflow: 'hidden' }
+      ]}
+    >
+      <LinearGradient
+        colors={disabled ? ['#A5C4FF', '#A5C4FF'] : ['#003DA5', '#001E5C']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 10, paddingHorizontal: 16 }}>
+        <Text style={{ color: '#fff', fontWeight: 'bold', marginRight: 6 }}>{text}</Text>
+        {text === "Next" && <MaterialCommunityIcons name="arrow-right" size={16} color="#fff" />}
+        {text === "Confirm" && <MaterialCommunityIcons name="check-circle" size={16} color="#fff" />}
+      </View>
+      {hovered && !disabled && (
+        <Animated.View style={{
+          position: 'absolute',
+          top: 0, left: 0, bottom: 0, width: 120,
+          transform: [{ translateX }, { skewX: '-25deg' }],
+        }}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      )}
+    </AnimatedPressable>
+  );
+};
+
+const HoverScaleItem = ({ children, style, scaleTo = 1.05, ...props }) => {
+  const [scale] = useState(() => new Animated.Value(1));
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) {
+      Animated.spring(scale, { toValue: scaleTo, useNativeDriver: Platform.OS !== 'web' }).start();
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web' }).start();
+    }
+  }, [isHovered, scale, scaleTo]);
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={[style, { transform: [{ scale }] }]}
+      {...props}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+};
+
 
 export default function MeetingBookingModal({ isVisible, onClose, onBookingSuccess }) {
   const [step, setStep] = useState(1);
@@ -114,10 +212,8 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
     }
   }, [isVisible]);
 
-  // Filter list to exclude logged-in user
   const otherFaculty = facultyList.filter(f => f.id !== currentUserId);
 
-  // Fetch busy slots for the logged-in host
   useEffect(() => {
     if (currentUserId && selectedDate && isVisible) {
       setBookedSlots([]);
@@ -179,7 +275,6 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
     if (!isStepValid()) return;
 
     if (step === 3) {
-      // Validate slot availability
       const normalize = (time) => time.replace(/^0/, '').replace(/\s+/g, '').toUpperCase();
       const normalizedSelected = normalize(selectedTime);
 
@@ -195,14 +290,15 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
       setFormData({
         ...formData,
         date_time: `${selectedDate}T${convertTo24Hour(selectedTime)}`,
-        faculty: currentUserId // Host
+        faculty: currentUserId
       });
     }
     setStep(step + 1);
   };
 
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1);
+  const handleCancel = () => {
+    resetModal();
+    onClose();
   };
 
   const handleFinish = async () => {
@@ -221,6 +317,12 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
         onBookingSuccess({ message: "Meeting Scheduled!", type: "success" });
       }
       onClose();
+
+      setTimeout(() => {
+        setStep(1);
+        resetModal();
+      }, 100);
+
     } catch (e) {
       const msg = e.response?.data ? JSON.stringify(e.response.data) : "Failed to book meeting.";
       setAlert({ message: msg, type: "error" });
@@ -261,253 +363,237 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
     );
   };
 
-  return (
-    <Modal visible={isVisible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+  const renderStep1 = () => (
+    <View>
+      <Text style={styles.modalTitle}>Select Participants</Text>
 
-          <View style={styles.modalHeader}>
-            <Text style={styles.mainTitle}>Schedule CIT Meeting</Text>
-            <Pressable onPress={onClose} style={styles.closeIcon}>
-              <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+      <HoverScaleItem style={[styles.card, isEveryoneSelected && styles.selected]} onPress={toggleSelectEveryone} scaleTo={1.02}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={[styles.checkbox, isEveryoneSelected && styles.checkboxSelected]}>
+            {isEveryoneSelected && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
+          </View>
+          <Text style={[styles.cardText, isEveryoneSelected && { color: '#FFF', fontWeight: 'bold' }]}>
+            Invite All CIT Faculty / Dean
+          </Text>
+        </View>
+      </HoverScaleItem>
+
+      <View style={styles.servicesGrid}>
+        {otherFaculty.length > 0 ? (
+          otherFaculty.map((fac) => {
+            const isSelected = selectedParticipants.includes(fac.id);
+            return (
+              <HoverScaleItem key={fac.id} onPress={() => toggleParticipant(fac.id)} scaleTo={1.02}>
+                <View style={[styles.card, isSelected && styles.selected]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={styles.avatarMini}>
+                      <Text style={styles.avatarMiniText}>
+                        {fac.full_name ? (() => {
+                          const parts = fac.full_name.trim().split(/\s+/);
+                          if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+                          return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+                        })() : "?"}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.cardText, { fontWeight: 'bold' }, isSelected && { color: '#FFF' }]}>
+                        {fac.full_name}
+                      </Text>
+                      <Text style={[styles.participantRole, isSelected && { color: '#E2E8F0' }]}>
+                        {fac.is_superuser ? "Dean" : fac.department || "Faculty"}
+                      </Text>
+                    </View>
+                    <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                      {isSelected && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
+                    </View>
+                  </View>
+                </View>
+              </HoverScaleItem>
+            );
+          })
+        ) : (
+          <Text style={{ textAlign: "center", color: "#94A3B8", marginTop: 20 }}>
+            No other faculty available.
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+
+  const renderStep2 = () => (
+    <View>
+      <Text style={styles.modalTitle}>Meeting Topic</Text>
+      <View style={styles.servicesGrid}>
+        {meetingServices.map((service) => {
+          const isSelected = formData.service === service;
+          return (
+            <HoverScaleItem key={service} onPress={() => setFormData({ ...formData, service })} scaleTo={1.02}>
+              <View style={[styles.card, isSelected && styles.selected]}>
+                <Text style={[styles.cardText, isSelected && { color: '#FFF', fontWeight: 'bold' }]}>
+                  {service}
+                </Text>
+              </View>
+            </HoverScaleItem>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderStep3 = () => (
+    <View>
+      <Text style={styles.modalTitle}>Choose Date & Time</Text>
+      
+      <View style={styles.dateGrid}>
+        {availableDates.map(dateObj => {
+          const isSelected = selectedDate === dateObj.fullDate;
+          return (
+            <HoverScaleItem key={dateObj.fullDate} style={styles.dateBtnGrid} onPress={() => setSelectedDate(dateObj.fullDate)}>
+              <View style={[styles.dateBtn, isSelected && styles.selected, { width: '100%', marginRight: 0 }]}>
+                <Text style={[styles.dayText, isSelected && { color: '#E2E8F0' }]}>{dateObj.dayName}</Text>
+                <Text style={[styles.dateNumText, isSelected && { color: '#FFF' }]}>{dateObj.dayNum}</Text>
+              </View>
+            </HoverScaleItem>
+          );
+        })}
+      </View>
+
+      <View style={styles.timeGrid}>
+        {timeSlots.map(time => {
+          const isSelected = selectedTime === time;
+          const normalize = (t) => t.replace(/^0/, '').replace(/\s+/g, '').toUpperCase();
+          const normalizedTime = normalize(time);
+          const isBooked = bookedSlots.some(booked => normalize(booked) === normalizedTime);
+          const isPast = new Date(`${selectedDate}T${convertTo24Hour(time)}`) < new Date();
+          const disabled = isBooked || isPast;
+
+          return (
+            <HoverScaleItem
+              key={time}
+              style={[styles.timeBtn, isSelected && styles.selected, disabled && styles.booked]}
+              onPress={() => {
+                if (!disabled) setSelectedTime(time);
+              }}
+              disabled={disabled}
+              scaleTo={disabled ? 1 : 1.05}
+            >
+              <Text style={[styles.cardText, (isSelected || disabled) && { color: '#FFF', fontWeight: 'bold' }]}>
+                {time}
+              </Text>
+            </HoverScaleItem>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderStep4 = () => {
+    const textLength = formData.condition.length;
+    const isError = textLength === 0;
+
+    return (
+      <View>
+        <Text style={styles.modalTitle}>Meeting Notes</Text>
+
+        <TextInput
+          placeholder="Enter agenda, topics, or notes for this meeting..."
+          style={[styles.inputMultiline, isError && { borderColor: '#EF4444' }]}
+          value={formData.condition}
+          onChangeText={v => setFormData({ ...formData, condition: v })}
+          multiline={true}
+          numberOfLines={4}
+          textAlignVertical="top"
+        />
+        <Text style={{
+          fontSize: 12,
+          color: isError ? '#EF4444' : '#10B981',
+          marginTop: 6,
+          fontWeight: '600'
+        }}>
+          {textLength < 1
+            ? `Please add some notes for context.`
+            : `Requirement met! (${textLength} characters)`}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderStep5 = () => {
+    return (
+      <View>
+        <Text style={styles.modalTitle}>Confirm Details</Text>
+        <View style={styles.summaryContainer}>
+          <View style={styles.row}>
+            <Text style={styles.summaryLabel}>Topic:</Text>
+            <Text style={styles.summaryValue}>{formData.service}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.summaryLabel}>Participants:</Text>
+            <Text style={styles.summaryValue}>{selectedParticipants.length} selected</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.summaryLabel}>Date:</Text>
+            <Text style={styles.summaryValue}>{selectedDate}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.summaryLabel}>Time:</Text>
+            <Text style={styles.summaryValue}>{selectedTime}</Text>
+          </View>
+        </View>
+
+        <View style={styles.confirmNotesCard}>
+          <Text style={styles.confirmNotesTitle}>AGENDA/NOTES</Text>
+          <Text style={styles.confirmNotesText}>{formData.condition}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <Modal visible={isVisible} animationType="fade" transparent>
+      <View style={styles.overlay}>
+        <View style={styles.modalContainer}>
+          <Toast
+            visible={!!alert.message}
+            message={alert.message}
+            type={alert.type}
+            onHide={() => setAlert({ message: "", type: "" })}
+          />
+
+          <View style={styles.headerRow}>
+            <Pressable onPress={handleCancel}>
+              <Text style={{ ...Typography.body, color: '#6B7280', fontSize: 16 }}>✕ Cancel</Text>
             </Pressable>
+            <ProgressHeader currentStep={step} />
           </View>
 
-          <ProgressHeader currentStep={step} />
-
-          {alert.message ? (
-            <View style={[styles.alertBox, alert.type === 'error' ? styles.alertError : styles.alertSuccess]}>
-              <Text style={styles.alertText}>{alert.message}</Text>
-            </View>
-          ) : null}
-
-          <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-            {step === 1 && (
-              <View>
-                <Text style={styles.stepTitle}>Step 1: Select Participants</Text>
-
-                {/* SELECT EVERYONE TOGGLE */}
-                <Pressable style={styles.everyoneRow} onPress={toggleSelectEveryone}>
-                  <View style={[styles.checkbox, isEveryoneSelected && styles.checkboxSelected]}>
-                    {isEveryoneSelected && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
-                  </View>
-                  <Text style={styles.everyoneLabel}>Invite All CIT Faculty / Dean</Text>
-                </Pressable>
-
-                <View style={styles.participantsList}>
-                  {otherFaculty.length > 0 ? (
-                    otherFaculty.map((fac) => {
-                      const isSelected = selectedParticipants.includes(fac.id);
-                      return (
-                        <Pressable
-                          key={fac.id}
-                          style={[styles.participantItem, isSelected && styles.participantItemActive]}
-                          onPress={() => toggleParticipant(fac.id)}
-                        >
-                          <View style={styles.participantInfo}>
-                            <View style={styles.avatarMini}>
-                              <Text style={styles.avatarMiniText}>
-                                {fac.full_name?.charAt(0) || "F"}
-                              </Text>
-                            </View>
-                            <View>
-                              <Text style={styles.participantName}>{fac.full_name}</Text>
-                              <Text style={styles.participantRole}>
-                                {fac.role === "dean" ? "Dean" : "Faculty"}
-                              </Text>
-                            </View>
-                          </View>
-                          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-                            {isSelected && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
-                          </View>
-                        </Pressable>
-                      );
-                    })
-                  ) : (
-                    <Text style={{ textAlign: "center", color: "#64748B", marginTop: 20 }}>No other personnel registered.</Text>
-                  )}
-                </View>
-              </View>
-            )}
-
-            {step === 2 && (
-              <View>
-                <Text style={styles.stepTitle}>Step 2: Choose Meeting Type</Text>
-                <View style={styles.servicesGrid}>
-                  {meetingServices.map((srv) => {
-                    const isSelected = formData.service === srv;
-                    return (
-                      <Pressable
-                        key={srv}
-                        style={[styles.serviceCard, isSelected && styles.serviceCardActive]}
-                        onPress={() => setFormData({ ...formData, service: srv })}
-                      >
-                        <Text style={[styles.serviceText, isSelected && styles.serviceTextActive]}>
-                          {srv}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-
-            {step === 3 && (
-              <View>
-                <Text style={styles.stepTitle}>Date & Time</Text>
-
-                {/* DATE SELECTOR GRID */}
-                <View style={styles.dateGrid}>
-                  {availableDates.map((date) => {
-                    const isSelected = selectedDate === date.fullDate;
-                    return (
-                      <Pressable
-                        key={date.fullDate}
-                        style={[styles.dateBtnGrid, isSelected && styles.selected]}
-                        onPress={() => {
-                          setSelectedDate(date.fullDate);
-                          setSelectedTime(null);
-                        }}
-                      >
-                        <Text style={[styles.dayText, isSelected && { color: '#FFF' }]}>{date.dayName}</Text>
-                        <Text style={[styles.dateNumText, isSelected && { color: '#FFF' }]}>{date.dayNum}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                {/* TIME SLOTS GRID */}
-                <View style={styles.timeGrid}>
-                  {timeSlots.map((time) => {
-                    const normalize = (t) => t.replace(/^0/, '').replace(/\s+/g, '').toUpperCase();
-                    const normalizedUI = normalize(time);
-
-                    const isTaken = bookedSlots.some(booked => normalize(booked) === normalizedUI);
-
-                    const now = new Date();
-                    const slotDateTime = new Date(`${selectedDate}T${convertTo24Hour(time)}`);
-                    const isPast = slotDateTime < now;
-
-                    const isSelected = selectedTime === time;
-
-                    return (
-                      <Pressable
-                        key={time}
-                        disabled={isTaken || isPast}
-                        style={[
-                          styles.timeBtn,
-                          isSelected && styles.selected,
-                          isTaken && styles.booked,
-                          isPast && { backgroundColor: '#E5E7EB', opacity: 0.5 }
-                        ]}
-                        onPress={() => setSelectedTime(time)}
-                      >
-                        <Text style={[
-                          { fontSize: 13, fontWeight: "600", color: "#374151" },
-                          (isSelected || isTaken || isPast) && { color: '#FFF' }
-                        ]}>
-                          {isTaken ? "Booked" : isPast ? "Expired" : time}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-
-            {step === 4 && (
-              <View>
-                <Text style={styles.stepTitle}>Step 4: Meeting Agenda & Notes</Text>
-                <Text style={styles.subLabel}>What is the agenda or discussion topic for this meeting?</Text>
-
-                <TextInput
-                  placeholder="Please describe the meeting topic or items you would like to discuss (minimum 256 characters)..."
-                  placeholderTextColor="#94A3B8"
-                  style={styles.textArea}
-                  multiline
-                  numberOfLines={6}
-                  value={formData.condition}
-                  onChangeText={(val) => setFormData({ ...formData, condition: val })}
-                />
-
-                <View style={styles.counterRow}>
-                  <Text style={[
-                    styles.counterText,
-                    formData.condition.length >= 256 ? styles.counterValid : styles.counterInvalid
-                  ]}>
-                    Characters: {formData.condition.length} / 256
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {step === 5 && (
-              <View>
-                <Text style={styles.stepTitle}>Step 5: Confirm Meeting Details</Text>
-
-                <View style={styles.confirmContainer}>
-                  <View style={styles.confirmRow}>
-                    <Text style={styles.confirmLabel}>Meeting Type:</Text>
-                    <Text style={styles.confirmValue}>{formData.service}</Text>
-                  </View>
-
-                  <View style={styles.confirmRow}>
-                    <Text style={styles.confirmLabel}>Date:</Text>
-                    <Text style={styles.confirmValue}>
-                      {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </Text>
-                  </View>
-
-                  <View style={styles.confirmRow}>
-                    <Text style={styles.confirmLabel}>Time Slot:</Text>
-                    <Text style={styles.confirmValue}>{selectedTime}</Text>
-                  </View>
-
-                  <View style={styles.confirmRow}>
-                    <Text style={styles.confirmLabel}>Participants:</Text>
-                    <Text style={styles.confirmValue}>
-                      {isEveryoneSelected ? "Everyone" : `${selectedParticipants.length} Personnel Selected`}
-                    </Text>
-                  </View>
-
-                  <View style={styles.confirmNotesCard}>
-                    <Text style={styles.confirmNotesTitle}>AGENDA NOTES</Text>
-                    <Text style={styles.confirmNotesText}>"{formData.condition}"</Text>
-                  </View>
-                </View>
-              </View>
-            )}
+          <ScrollView style={styles.scrollViewContent} contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+            {step === 1 && renderStep1()}
+            {step === 2 && renderStep2()}
+            {step === 3 && renderStep3()}
+            {step === 4 && renderStep4()}
+            {step === 5 && renderStep5()}
           </ScrollView>
 
-          {/* ACTION BUTTONS BUTTONBAR */}
-          <View style={styles.buttonBar}>
-            {step > 1 && (
-              <Pressable style={styles.btnBack} onPress={handleBack}>
-                <Text style={styles.btnBackText}>Back</Text>
-              </Pressable>
-            )}
+          <View style={styles.footer}>
+            {step > 1 ? (
+              <HoverScaleItem style={styles.backButton} onPress={() => setStep(step - 1)} scaleTo={1.05}>
+                <Text style={{ color: '#002366', fontWeight: 'bold' }}>Back</Text>
+              </HoverScaleItem>
+            ) : <View style={{ width: 80 }} />}
 
-            {step < 5 ? (
-              <Pressable
-                style={[styles.btnNext, !isStepValid() && styles.btnDisabled]}
-                disabled={!isStepValid()}
-                onPress={handleNext}
-              >
-                <Text style={styles.btnNextText}>Next</Text>
-              </Pressable>
-            ) : (
-              <Pressable
-                style={[styles.btnSubmit, loading && styles.btnDisabled]}
-                disabled={loading}
-                onPress={handleFinish}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={styles.btnSubmitText}>Schedule Meeting</Text>
-                )}
-              </Pressable>
-            )}
+            <ShineButton
+              disabled={!isStepValid() || loading}
+              style={[
+                styles.nextBtn,
+                { width: 'auto', minWidth: 100, padding: 0 }
+              ]}
+              onPress={step === 5 ? handleFinish : handleNext}
+              text={step === 5 ? (loading ? "..." : "Confirm") : "Next"}
+            />
           </View>
 
         </View>
@@ -517,135 +603,81 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)'
   },
-  modalContent: {
-    backgroundColor: "#FFF",
+  modalContainer: {
+    width: '90%',
+    maxWidth: 600,
+    height: 650,
     borderRadius: 24,
-    width: "95%",
-    maxWidth: 550,
-    maxHeight: "90%",
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 8
+    backgroundColor: '#FFFFFF',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+    overflow: 'hidden',
+    flexDirection: 'column'
   },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16
-  },
-  mainTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#0F172A"
-  },
-  closeIcon: {
-    padding: 4
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   progressContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 6,
-    marginBottom: 20
   },
   progressSegment: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2
+    height: 6,
+    width: 35,
+    borderRadius: 3,
   },
   segmentActive: {
-    backgroundColor: "#002366"
+    backgroundColor: '#002366',
   },
   segmentInactive: {
-    backgroundColor: "#E2E8F0"
+    backgroundColor: '#E5E7EB',
   },
-  stepContent: {
+  modalTitle: {
+    ...Typography.title,
+    fontSize: 22,
+    fontWeight: '800',
     marginBottom: 20,
-    maxHeight: 400
+    textAlign: 'center',
+    color: '#002366'
   },
-  stepTitle: {
+  scrollViewContent: {
+    flex: 1,
+  },
+  card: {
+    padding: 15,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    marginBottom: 10,
+    backgroundColor: '#FFF'
+  },
+  selected: {
+    backgroundColor: '#002366',
+    borderColor: '#002366'
+  },
+  cardText: {
+    ...Typography.body,
     fontSize: 16,
-    fontWeight: "800",
-    color: "#1E293B",
-    marginBottom: 14
-  },
-  subLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#64748B",
-    textTransform: "uppercase",
-    marginBottom: 8,
-    marginTop: 10
-  },
-  everyoneRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    marginBottom: 14,
-    gap: 12
-  },
-  everyoneLabel: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0F172A"
-  },
-  participantsList: {
-    gap: 10
-  },
-  participantItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#F1F5F9",
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: "#FFF"
-  },
-  participantItemActive: {
-    borderColor: "#002366",
-    backgroundColor: "#F8FAFC"
-  },
-  participantInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12
-  },
-  avatarMini: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#E2E8F0",
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  avatarMiniText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#475569"
-  },
-  participantName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1E293B"
-  },
-  participantRole: {
-    fontSize: 11,
-    color: "#64748B",
-    fontWeight: "600",
-    marginTop: 1
+    color: '#1E293B'
   },
   checkbox: {
     width: 22,
@@ -660,27 +692,35 @@ const styles = StyleSheet.create({
     borderColor: "#002366",
     backgroundColor: "#002366"
   },
-  servicesGrid: {
-    gap: 10
+  avatarMini: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#E2E8F0",
+    justifyContent: "center",
+    alignItems: "center"
   },
-  serviceCard: {
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    padding: 14,
-    backgroundColor: "#FFF"
-  },
-  serviceCardActive: {
-    borderColor: "#002366",
-    backgroundColor: "#F8FAFC"
-  },
-  serviceText: {
+  avatarMiniText: {
     fontSize: 14,
     fontWeight: "700",
     color: "#475569"
   },
-  serviceTextActive: {
-    color: "#002366"
+  participantRole: {
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "normal",
+    marginTop: 2
+  },
+  servicesGrid: {
+    gap: 0
+  },
+  subLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#64748B",
+    textTransform: "uppercase",
+    marginBottom: 8,
+    marginTop: 10
   },
   dateGrid: {
     flexDirection: 'row',
@@ -690,22 +730,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   dateBtnGrid: {
-    width: '13.5%',
+    width: '15.5%',
     aspectRatio: 0.85,
+  },
+  dateBtn: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
     borderRadius: 10,
+    borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
-  },
-  selected: {
-    backgroundColor: '#002366',
-    borderColor: '#002366',
-  },
-  booked: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
   },
   dayText: {
     ...Typography.body,
@@ -721,73 +757,74 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   timeGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between"
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
   timeBtn: {
-    width: "48%",
+    width: '48%',
     padding: 15,
     borderWidth: 1.5,
-    borderColor: "#E2E8F0",
+    borderColor: '#E2E8F0',
     borderRadius: 10,
     marginBottom: 10,
-    alignItems: "center",
-    backgroundColor: "#FFF"
+    alignItems: 'center',
+    backgroundColor: '#FFF'
   },
-  textArea: {
+  booked: {
+    backgroundColor: '#002366',
+    borderColor: '#E2E8F0',
+    opacity: 0.5
+  },
+  inputMultiline: {
     borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 14,
-    color: "#1E293B",
-    backgroundColor: "#F8FAFC",
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    color: '#002366',
+    backgroundColor: '#F8FAFC',
     minHeight: 120,
-    textAlignVertical: "top"
+    textAlignVertical: 'top',
+    paddingTop: 12,
   },
-  counterRow: {
-    alignItems: "flex-end",
-    marginTop: 6
+  summaryContainer: {
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  counterText: {
-    fontSize: 11,
-    fontWeight: "700"
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 12
   },
-  counterValid: {
-    color: "#10B981"
+  divider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
   },
-  counterInvalid: {
-    color: "#EF4444"
+  summaryLabel: {
+    ...Typography.body,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+    flex: 1,
   },
-  confirmContainer: {
-    gap: 12
-  },
-  confirmRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9"
-  },
-  confirmLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#64748B"
-  },
-  confirmValue: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#0F172A"
+  summaryValue: {
+    ...Typography.body,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    flex: 2,
+    textAlign: 'right',
   },
   confirmNotesCard: {
     backgroundColor: "#F8FAFC",
-    borderLeftWidth: 4,
-    borderLeftColor: "#002366",
     padding: 12,
     borderRadius: 8,
-    marginTop: 8
+    marginTop: 15
   },
   confirmNotesTitle: {
     fontSize: 10,
@@ -800,66 +837,32 @@ const styles = StyleSheet.create({
     color: "#334155",
     fontStyle: "italic"
   },
-  buttonBar: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    paddingTop: 16
+    borderTopColor: '#F3F4F6'
   },
-  btnBack: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFF"
-  },
-  btnBackText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#475569"
-  },
-  btnNext: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: "#002366"
-  },
-  btnNextText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFF"
-  },
-  btnSubmit: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: "#10B981"
-  },
-  btnSubmitText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFF"
-  },
-  btnDisabled: {
-    opacity: 0.5
-  },
-  alertBox: {
+  backButton: {
+    backgroundColor: '#fff',
     padding: 10,
-    borderRadius: 8,
-    marginBottom: 14
+    borderRadius: 10,
+    alignItems: 'center',
+    color: '#002366',
+    width: 80,
+    textAlign: 'center',
+    borderWidth: 1.5,
+    borderColor: '#002366'
   },
-  alertError: {
-    backgroundColor: "#FEF2F2"
+  nextBtn: {
+    backgroundColor: '#002366',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    color: '#fff',
+    width: 80,
+    textAlign: 'center'
   },
-  alertSuccess: {
-    backgroundColor: "#ECFDF5"
-  },
-  alertText: {
-    fontSize: 12,
-    color: "#991B1B",
-    fontWeight: "700"
-  }
 });

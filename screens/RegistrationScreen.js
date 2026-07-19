@@ -11,7 +11,8 @@ import {
   Platform,
   ScrollView,
   Animated,
-  Alert
+  Alert,
+  ImageBackground
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -55,16 +56,58 @@ const Orb = ({ style, delay = 0 }) => {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const HoverScaleItem = ({ children, style, scaleTo = 1.05, ...props }) => {
+const HoverScaleItem = ({ children, style, scaleTo = 1.05, withShine = false, ...props }) => {
   const [scale] = useState(() => new Animated.Value(1));
+  const [shineAnim] = useState(() => new Animated.Value(-1));
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) {
+      Animated.spring(scale, { toValue: scaleTo, useNativeDriver: Platform.OS !== 'web' }).start();
+      if (withShine) {
+        shineAnim.setValue(-1);
+        Animated.timing(shineAnim, {
+          toValue: 2,
+          duration: 600,
+          useNativeDriver: Platform.OS !== 'web',
+        }).start();
+      }
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web' }).start();
+      if (withShine) shineAnim.stopAnimation();
+    }
+  }, [isHovered, scale, shineAnim, scaleTo, withShine]);
+
+  const translateX = shineAnim.interpolate({
+    inputRange: [-1, 2],
+    outputRange: [-150, 250],
+  });
+
   return (
     <AnimatedPressable
-      onHoverIn={() => Animated.spring(scale, { toValue: scaleTo, useNativeDriver: true }).start()}
-      onHoverOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()}
-      style={[style, { transform: [{ scale }] }]}
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={[style, { transform: [{ scale }], position: 'relative', overflow: withShine ? 'hidden' : 'visible' }]}
       {...props}
     >
       {children}
+      {withShine && (
+        <Animated.View style={[
+          StyleSheet.absoluteFillObject,
+          {
+            transform: [{ translateX }, { skewX: '-20deg' }],
+            width: '150%',
+            opacity: 0.7,
+          }
+        ]}>
+          <LinearGradient
+            colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      )}
     </AnimatedPressable>
   );
 };
@@ -158,19 +201,22 @@ const ShineButton = ({ onPress, loading, styles, text = "Next" }) => {
   );
 };
 
-const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay = 3000, onTypingComplete }) => {
+const TypingText = ({ text, texts, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay = 3000, onTypingComplete }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [showCursor, setShowCursor] = useState(true);
 
   useEffect(() => {
+    const messages = texts || [text];
+    let messageIndex = 0;
     let i = 0;
     let isErasing = false;
     let timeout;
 
     const tick = () => {
+      const currentText = messages[messageIndex];
       if (!isErasing) {
-        if (i <= text.length) {
-          setDisplayedText(text.substring(0, i));
+        if (i <= currentText.length) {
+          setDisplayedText(currentText.substring(0, i));
           i++;
           timeout = setTimeout(tick, typingSpeed);
         } else {
@@ -180,11 +226,12 @@ const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay
         }
       } else {
         if (i >= 0) {
-          setDisplayedText(text.substring(0, i));
+          setDisplayedText(currentText.substring(0, i));
           i--;
           timeout = setTimeout(tick, eraseSpeed);
         } else {
           isErasing = false;
+          messageIndex = (messageIndex + 1) % messages.length;
           timeout = setTimeout(tick, 500);
         }
       }
@@ -192,7 +239,7 @@ const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay
 
     tick();
     return () => clearTimeout(timeout);
-  }, [text, typingSpeed, eraseSpeed, pauseDelay]);
+  }, [text, texts ? texts.join('|') : '', typingSpeed, eraseSpeed, pauseDelay]);
 
   useEffect(() => {
     const blink = setInterval(() => setShowCursor(v => !v), 500);
@@ -201,7 +248,7 @@ const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay
 
   return (
     <View style={{ position: 'relative' }}>
-      <Text style={[style, { opacity: 0 }]}>{text}</Text>
+      <Text style={[style, { opacity: 0 }]}>{texts ? texts[0] : text}</Text>
       <Text style={[style, { position: 'absolute', top: 0, left: 0 }]}>
         {displayedText}
         <Text style={{ opacity: showCursor ? 1 : 0, color: '#60A5FA' }}>|</Text>
@@ -433,8 +480,8 @@ export default function RegistrationScreen({ navigation, route }) {
       case 1:
         return (
           <>
-            <Text style={styles.formTitle}>Personal Information</Text>
-            <Text style={styles.formSubtitle}>Step 1 of 4</Text>
+            <Text style={styles.formSubHeading}>Personal Information</Text>
+            <Text style={styles.formStep}>Step 1 of 4</Text>
             <View style={styles.inputSection}>
               <AppInput
                 label="First Name"
@@ -448,7 +495,7 @@ export default function RegistrationScreen({ navigation, route }) {
                 editable={!isGoogle}
                 style={isGoogle ? styles.readOnlyInput : null}
                 onChangeText={(v) => updateField("last_name", v)} />
-              <AppInput 
+              <AppInput
                 label="Date of Birth (YYYY-MM-DD)"
                 value={formData.date_of_birth}
                 onChangeText={handleDateOfBirthChange}
@@ -475,8 +522,8 @@ export default function RegistrationScreen({ navigation, route }) {
       case 2:
         return (
           <>
-            <Text style={styles.formTitle}>Contact Information</Text>
-            <Text style={styles.formSubtitle}>Step 2 of 4</Text>
+            <Text style={styles.formSubHeading}>Contact Information</Text>
+            <Text style={styles.formStep}>Step 2 of 4</Text>
             <View style={styles.inputSection}>
               <AppInput
                 label="Contact Number"
@@ -498,8 +545,8 @@ export default function RegistrationScreen({ navigation, route }) {
       case 3:
         return (
           <>
-            <Text style={styles.formTitle}>Academic Information</Text>
-            <Text style={styles.formSubtitle}>Step 3 of 4</Text>
+            <Text style={styles.formSubHeading}>Academic Information</Text>
+            <Text style={styles.formStep}>Step 3 of 4</Text>
             <View style={styles.inputSection}>
               <AppInput
                 label="Course"
@@ -542,8 +589,8 @@ export default function RegistrationScreen({ navigation, route }) {
       case 4:
         return (
           <>
-            <Text style={styles.formTitle}>Account Information</Text>
-            <Text style={styles.formSubtitle}>Step 4 of 4</Text>
+            <Text style={styles.formSubHeading}>Account Information</Text>
+            <Text style={styles.formStep}>Step 4 of 4</Text>
             <View style={styles.inputSection}>
               <AppInput
                 label="Username"
@@ -562,7 +609,7 @@ export default function RegistrationScreen({ navigation, route }) {
                   </View>
                   <Text style={styles.consentText}>
                     I have read and agree to the collection, storage, and processing of my personal
-                    and health-related information by the UA Clinic Appointment System, in accordance
+                    information by the CIT Appointment System, in accordance
                     with the Data Privacy Act of 2012 (RA 10173).{" "}
                     <Text
                       style={styles.consentLink}
@@ -582,9 +629,9 @@ export default function RegistrationScreen({ navigation, route }) {
   const renderButtons = () => (
     <View style={styles.buttonContainer}>
       {currentStep > 1 && (
-        <HoverScaleItem 
-          style={styles.backButton} 
-          onPress={handleBack} 
+        <HoverScaleItem
+          style={styles.backButton}
+          onPress={handleBack}
           disabled={loading}
           scaleTo={1.03}
         >
@@ -607,6 +654,113 @@ export default function RegistrationScreen({ navigation, route }) {
     return (
       <Animated.View style={{ flex: 1, opacity: entryAnim, transform: [{ scale: entryScale }] }}>
         <View style={styles.desktopRoot}>
+          <Toast
+            visible={!!alertConfig.message}
+            message={alertConfig.message}
+            type={alertConfig.type}
+            onHide={() => setAlertConfig({ message: "", type: "" })}
+          />
+          <PrivacyPolicyModal
+            visible={privacyModalVisible}
+            onClose={() => setPrivacyModalVisible(false)}
+          />
+
+          <View style={styles.leftPanelWrapper}>
+            <ImageBackground
+              source={require('../assets/facade2.jpg')}
+              style={styles.leftPanel}
+              imageStyle={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            >
+              <LinearGradient
+                colors={['rgba(1, 7, 19, 0.92)', 'rgba(0,43,107,0.88)', 'rgba(0, 7, 17, 0.85)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <Text style={styles.watermark}>University of the Assumption · College of Information Technology</Text>
+
+              <Image
+                source={require('../assets/subtle-dots.png')}
+                style={{
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  width: '100%', height: '100%',
+                  opacity: 0.15,
+                }}
+                resizeMode="repeat"
+              />
+
+              <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} delay={0} />
+              <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} delay={1500} />
+              <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} delay={3000} />
+
+              <View style={styles.leftContent}>
+                <View style={styles.leftLogoRow}>
+                  <HoverScaleItem>
+                    <Image source={require('../assets/ua-logo.png')} style={styles.uaLogo} resizeMode="contain" />
+                  </HoverScaleItem>
+                  <HoverScaleItem>
+                    <Image source={require('../assets/cit-logo.png')} style={styles.citLogo} resizeMode="contain" />
+                  </HoverScaleItem>
+                </View>
+
+                <Text style={styles.leftTitle}>CIT Appointment</Text>
+                <Text style={styles.leftSubtitle}>College of Information Technology</Text>
+                <TypingText
+                  texts={[
+                    "Book, manage, and track your academic appointments with ease — all in one platform.",
+                    "Connect seamlessly with faculty and staff for a better academic experience.",
+                    "Stay organized and never miss an important meeting again."
+                  ]}
+                  style={styles.leftBody}
+                  onTypingComplete={() => setTypingCycles(c => c + 1)}
+                />
+
+                <View style={styles.pillRow}>
+                  {['Book Appointments', 'Track Appointments', 'Secure & Reliable'].map((f, index) => (
+                    <BouncingPill key={f} delay={index * 150} bounceTrigger={typingCycles}>
+                      <HoverScaleItem style={styles.pill} withShine={true}>
+                        <Text style={styles.pillText}>{f}</Text>
+                      </HoverScaleItem>
+                    </BouncingPill>
+                  ))}
+                </View>
+              </View>
+
+              <Text style={styles.watermark}>Designed and Developed by BITWISE</Text>
+            </ImageBackground>
+          </View>
+
+          <View style={{ flex: 1, overflow: 'hidden', backgroundColor: '#F5F7FA' }}>
+
+            <ScrollView contentContainerStyle={[styles.rightPanel, { backgroundColor: 'transparent' }]} showsVerticalScrollIndicator={false}>
+              <View style={styles.formContainer}>
+                <View style={styles.accentBar} />
+                <Text style={styles.formTitle}>Create Account</Text>
+                <Text style={styles.formSubtitle}>Join CIT Appointment</Text>
+
+                {renderStepIndicators()}
+                {renderFormContent()}
+                {renderButtons()}
+
+                <Pressable onPress={() => navigation.navigate("Login")} style={{ marginTop: 24 }}>
+                  <Text style={styles.footerText}>
+                    Already have an account? <Text style={styles.link}>Sign In</Text>
+                  </Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Animated.View>
+    );
+  }
+
+  // ── MOBILE LAYOUT ──
+  return (
+    <Animated.View style={{ flex: 1, opacity: entryAnim, transform: [{ scale: entryScale }] }}>
+      <View style={styles.mobileRoot}>
         <Toast
           visible={!!alertConfig.message}
           message={alertConfig.message}
@@ -618,117 +772,40 @@ export default function RegistrationScreen({ navigation, route }) {
           onClose={() => setPrivacyModalVisible(false)}
         />
 
-        <LinearGradient
-          colors={['#001848', '#002B6B', '#003DA5']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.leftPanel}
+        <View style={styles.mobileHero}>
+          <Orb style={[styles.mobileHeroOrb, { opacity: 1 }]} delay={0} />
+          <Orb style={[styles.mobileHeroOrb, { width: 160, height: 160, borderRadius: 80, top: 100, bottom: undefined, left: -50, right: undefined, opacity: 1 }]} delay={1200} />
+
+          <View style={styles.mobileLogoRow}>
+            <HoverScaleItem>
+              <Image source={require('../assets/ua-logo.png')} style={styles.mobileUaLogo} resizeMode="contain" />
+            </HoverScaleItem>
+            <HoverScaleItem>
+              <Image source={require('../assets/cit-logo.png')} style={styles.mobileCitLogo} resizeMode="contain" />
+            </HoverScaleItem>
+          </View>
+          <Text style={styles.mobileAppName}>CIT APPOINTMENT</Text>
+          <Text style={styles.mobileTagline}>College of Information Technology</Text>
+        </View>
+
+        <ScrollView
+          style={styles.mobileFormScroll}
+          contentContainerStyle={styles.mobileFormContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} delay={0} />
-          <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} delay={1500} />
-          <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} delay={3000} />
+          <View style={styles.mobileNotch} />
 
-          <View style={styles.leftContent}>
-            <View style={styles.leftLogoRow}>
-              <HoverScaleItem>
-                <Image source={require('../assets/ua-logo.png')} style={styles.uaLogo} resizeMode="contain" />
-              </HoverScaleItem>
-              <HoverScaleItem>
-                <Image source={require('../assets/cit-logo.png')} style={styles.citLogo} resizeMode="contain" />
-              </HoverScaleItem>
-            </View>
+          {renderStepIndicators()}
+          {renderFormContent()}
+          {renderButtons()}
 
-            <Text style={styles.leftTitle}>CIT Appointment</Text>
-            <Text style={styles.leftSubtitle}>College of Information Technology</Text>
-            <TypingText
-              text="Book, manage, and track your academic appointments with ease — all in one platform."
-              style={styles.leftBody}
-              onTypingComplete={() => setTypingCycles(c => c + 1)}
-            />
-
-            <View style={styles.pillRow}>
-              {['Book Appointments', 'Track Appointments', 'Secure & Reliable'].map((f, index) => (
-                <BouncingPill key={f} delay={index * 150} bounceTrigger={typingCycles}>
-                  <HoverScaleItem style={styles.pill}>
-                    <Text style={styles.pillText}>{f}</Text>
-                  </HoverScaleItem>
-                </BouncingPill>
-              ))}
-            </View>
-          </View>
-          <Text style={styles.watermark}>University of the Assumption · College of Information Technology</Text>
-        </LinearGradient>
-
-        <ScrollView contentContainerStyle={styles.rightPanel} showsVerticalScrollIndicator={false}>
-          <View style={styles.formContainer}>
-            <View style={styles.accentBar} />
-            <Text style={styles.formGreeting}>Join CIT Appointment</Text>
-
-            {renderStepIndicators()}
-            {renderFormContent()}
-            {renderButtons()}
-
-            <Pressable onPress={() => navigation.navigate("Login")} style={{ marginTop: 24 }}>
-              <Text style={styles.footerText}>
-                Already have an account? <Text style={styles.link}>Sign In</Text>
-              </Text>
-            </Pressable>
-          </View>
+          <Pressable onPress={() => navigation.navigate("Login")} style={{ marginTop: isMobile ? 0 : 24 }}>
+            <Text style={styles.footerText}>
+              Already have an account? <Text style={styles.link}>Sign In</Text>
+            </Text>
+          </Pressable>
         </ScrollView>
-        </View>
-      </Animated.View>
-    );
-  }
-
-  // ── MOBILE LAYOUT ──
-  return (
-    <Animated.View style={{ flex: 1, opacity: entryAnim, transform: [{ scale: entryScale }] }}>
-      <View style={styles.mobileRoot}>
-      <Toast
-        visible={!!alertConfig.message}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        onHide={() => setAlertConfig({ message: "", type: "" })}
-      />
-      <PrivacyPolicyModal
-        visible={privacyModalVisible}
-        onClose={() => setPrivacyModalVisible(false)}
-      />
-
-      <View style={styles.mobileHero}>
-        <Orb style={{ width: 250, height: 250, backgroundColor: '#4F8EF7', top: -50, right: -50 }} delay={0} />
-        <Orb style={{ width: 150, height: 150, backgroundColor: '#93C5FD', bottom: -20, left: -20 }} delay={1500} />
-
-        <View style={styles.leftLogoRow}>
-          <HoverScaleItem>
-            <Image source={require('../assets/ua-logo.png')} style={styles.mobileLogo} resizeMode="contain" />
-          </HoverScaleItem>
-          <HoverScaleItem>
-            <Image source={require('../assets/cit-logo.png')} style={styles.mobileLogo} resizeMode="contain" />
-          </HoverScaleItem>
-        </View>
-        <Text style={styles.mobileAppName}>CIT APPOINTMENT</Text>
-        <Text style={styles.mobileTagline}>Create Account</Text>
-      </View>
-
-      <ScrollView
-        style={styles.mobileFormScroll}
-        contentContainerStyle={styles.mobileFormContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.mobileNotch} />
-
-        {renderStepIndicators()}
-        {renderFormContent()}
-        {renderButtons()}
-
-        <Pressable onPress={() => navigation.navigate("Login")} style={{ marginTop: 24 }}>
-          <Text style={styles.footerText}>
-            Already have an account? <Text style={styles.link}>Sign In</Text>
-          </Text>
-        </Pressable>
-      </ScrollView>
       </View>
     </Animated.View>
   );
@@ -740,7 +817,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   flex: { flex: 1 },
   rowMobile: { flexDirection: "column", alignItems: "stretch", gap: 0 },
   genderWrapper: { justifyContent: 'flex-end', paddingBottom: 12 },
-  chip: { flex: 1, height: 50, borderRadius: 12, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center", marginTop: 12 },
+  chip: { flex: 1, height: 50, borderRadius: 12, backgroundColor: isMobile ? "#F1F5F9" : "#fff", alignItems: "center", justifyContent: "center", marginTop: 12 },
   chipSelected: { backgroundColor: "#002366" },
   chipText: { color: "#64748B", fontSize: isMobile ? 14 : 16, fontWeight: '500' },
   chipTextSelected: { color: "#fff", fontWeight: "bold" },
@@ -750,8 +827,8 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   checkboxRowLeft: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginTop: 12, marginBottom: 12, gap: 10 },
   checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: '#CBD5E1', alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: '#002366', borderColor: '#002366' },
-  checkboxLabel: { fontSize: isMobile ? 13 : 15, color: '#334155', fontWeight: '500' },
-  consentBox: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', padding: 14, marginTop: 20, marginBottom: 10 },
+  checkboxLabel: { fontSize: isMobile ? 13 : 15, color: '#64748B' },
+  consentBox: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', padding: isMobile ? 12 : 14, marginTop: isMobile ? 8 : 20, marginBottom: isMobile ? 0 : 10 },
   consentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   consentText: { flex: 1, fontSize: 12, lineHeight: 18, color: '#475569' },
   consentLink: { color: '#002366', fontWeight: 'bold' },
@@ -760,14 +837,26 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   desktopRoot: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#001233',
+    backgroundColor: '#F5F7FA',
+  },
+  leftPanelWrapper: {
+    width: '48%',
+    borderTopRightRadius: 50,
+    borderBottomRightRadius: 50,
+    overflow: 'hidden',
+    shadowColor: '#002c6e',
+    shadowOffset: { width: 8, height: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 16,
+    zIndex: 2,
   },
   leftPanel: {
-    width: '44%',
+    flex: 1,
     minHeight: '100%',
     justifyContent: 'space-between',
-    padding: 56,
-    overflow: 'hidden',
+    padding: 85,
+    paddingVertical: 60
   },
   leftContent: {
     flex: 1,
@@ -776,40 +865,40 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   leftLogoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 36,
-    gap: 16,
+    marginBottom: 20,
+    gap: 6,
   },
   uaLogo: {
-    width: 92,
-    height: 92,
+    width: 100,
+    height: 100,
   },
   citLogo: {
-    width: 110,
-    height: 110,
+    width: 107,
+    height: 107,
   },
   leftTitle: {
     fontFamily: 'Inter_900Black',
-    fontSize: 44,
+    fontSize: 63,
     color: '#FFFFFF',
-    letterSpacing: -1,
-    lineHeight: 50,
-    marginBottom: 6,
+    letterSpacing: 0.5,
+    lineHeight: 70,
+    marginBottom: 14,
   },
   leftSubtitle: {
     fontFamily: 'Inter_700Bold',
-    fontSize: 13,
+    fontSize: 18,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: 2,
     textTransform: 'uppercase',
-    marginBottom: 28,
+    marginBottom: 30,
   },
   leftBody: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 16,
+    fontSize: 18,
     color: 'rgba(255,255,255,0.72)',
     lineHeight: 27,
-    maxWidth: 360,
-    marginBottom: 40,
+    maxWidth: 380,
+    marginBottom: 35,
   },
   pillRow: {
     flexDirection: 'column',
@@ -830,11 +919,11 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   pillText: {
     color: 'rgba(255,255,255,0.88)',
     fontFamily: 'Inter_500Medium',
-    fontSize: 13,
+    fontSize: 14,
   },
   watermark: {
     fontFamily: 'Inter_500Medium',
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.28)',
     letterSpacing: 0.5,
   },
@@ -849,22 +938,14 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   },
   formContainer: {
     width: '100%',
-    maxWidth: 440,
-    minHeight: 520,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 44,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.10,
-    shadowRadius: 32,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    maxWidth: 500,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   accentBar: {
-    height: 4,
-    width: 40,
+    height: 5,
+    width: 65,
     borderRadius: 2,
     backgroundColor: '#C9A84C',
     marginBottom: 20,
@@ -878,20 +959,35 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   },
   formTitle: {
     fontFamily: 'Inter_900Black',
-    fontSize: 30,
-    color: '#0F172A',
+    fontSize: 56,
+    color: '#002c6e',
     letterSpacing: -0.8,
-    marginBottom: 6,
+    marginBottom: 2,
   },
   formSubtitle: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 13,
-    color: '#94A3B8',
-    marginBottom: 20,
+    fontSize: 16,
+    color: '#002c6e',
+    marginBottom: 50,
   },
-  inputSection: { gap: 8, marginBottom: 15 },
+  formSubHeading: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 28,
+    color: '#002c6e',
+    letterSpacing: -0.5,
+    marginBottom: 6,
+    textAlign: isMobile ? 'center' : 'left',
+  },
+  formStep: {
+    fontFamily: 'Roboto_400Regular',
+    fontSize: 14,
+    color: '#002c6e',
+    marginBottom: 20,
+    textAlign: isMobile ? 'center' : 'left',
+  },
+  inputSection: { gap: isMobile ? 2 : 4, marginBottom: isMobile ? 12 : 20 },
 
-  buttonContainer: { flexDirection: 'row', gap: 12, marginTop: 10 },
+  buttonContainer: { flexDirection: 'row', gap: 12, marginTop: 6 },
   backButton: { height: 52, paddingHorizontal: 24, borderRadius: 12, borderWidth: 1, borderColor: '#CBD5E1', justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' },
   backButtonText: { color: '#475569', fontSize: 15, fontWeight: '600' },
 
@@ -905,20 +1001,23 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   divider: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
   dividerText: { marginHorizontal: 16, color: '#94A3B8', fontSize: 12, fontFamily: 'Roboto_400Regular' },
 
-  footerText: { textAlign: 'center', color: '#64748B', fontSize: isMobile ? 13 : 14, lineHeight: 22 },
+  footerText: { textAlign: 'center', color: '#64748B', fontSize: isMobile ? 13 : 14, lineHeight: 22, marginTop: 20 },
   link: { color: '#002366', fontFamily: 'Inter_700Bold' },
 
   // Mobile layout
   mobileRoot: { flex: 1, backgroundColor: '#FFFFFF' },
   mobileHero: { backgroundColor: '#001233', alignItems: 'center', paddingTop: 45, paddingBottom: 46, paddingHorizontal: 24, overflow: 'hidden' },
-  mobileLogo: { width: 48, height: 48 },
-  mobileAppName: { fontFamily: 'Inter_900Black', fontSize: 22, color: '#FFFFFF', marginTop: 16, letterSpacing: 1 },
-  mobileTagline: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: '#93C5FD', marginTop: 4 },
+  mobileHeroOrb: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(79,142,247,0.12)', top: -70, right: -50 },
+  mobileUaLogo: { width: 64, height: 64 },
+  mobileCitLogo: { width: 66, height: 66 },
+  mobileLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16, gap: 12 },
+  mobileAppName: { fontFamily: 'Inter_900Black', fontSize: 24, color: '#FFFFFF', letterSpacing: 2.5, marginBottom: 4 },
+  mobileTagline: { fontFamily: 'Roboto_400Regular', fontSize: 14, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.5 },
   mobileFormScroll: { flex: 1, marginTop: -20, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  mobileFormContent: { padding: 24, paddingBottom: 60 },
-  mobileNotch: { width: 40, height: 4, backgroundColor: '#E2E8F0', borderRadius: 4, alignSelf: 'center', marginBottom: 24 },
+  mobileFormContent: { padding: 24, paddingTop: 8, paddingBottom: 20 },
+  mobileNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#C9A84C', alignSelf: 'center', marginTop: 12, marginBottom: 28 },
 
-  stepIndicatorContainer: { flexDirection: 'row', gap: 8, marginBottom: 24 },
-  stepDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#E2E8F0' },
-  stepDotActive: { backgroundColor: '#003DA5' },
+  stepIndicatorContainer: { flexDirection: 'row', gap: 8, marginBottom: 24, justifyContent: isMobile ? 'center' : 'flex-start' },
+  stepDot: { flex: isMobile ? undefined : 1, width: isMobile ? 32 : undefined, height: 4, borderRadius: 2, backgroundColor: '#E2E8F0' },
+  stepDotActive: { backgroundColor: '#C9A84C' },
 });

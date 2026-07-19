@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useFonts, Inter_900Black, Inter_700Bold, Inter_500Medium } from '@expo-google-fonts/inter';
 import { Roboto_400Regular } from '@expo-google-fonts/roboto';
+import { ProstoOne_400Regular } from '@expo-google-fonts/prosto-one';
 
 import { handleLogout } from "./utils/auth";
 import { Typography, Colors, Radius } from "./styles/theme";
@@ -23,24 +24,41 @@ const Stack = createNativeStackNavigator();
 
 // Header Logo Component
 const HeaderLogo = ({ isMobile }) => (
-  <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: isMobile ? 0 : 20 }}>
+  <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: isMobile ? 0 : 50 }}>
     <Image
       source={require('./assets/cit-logo.png')}
       style={{
-        width: isMobile ? 35 : 45,
-        height: isMobile ? 35 : 45,
+        width: isMobile ? 35 : 65,
+        height: isMobile ? 35 : 65,
         marginRight: 8,
       }}
       resizeMode="contain"
     />
-    <Text style={{
-      fontSize: isMobile ? 15 : 20,
-      fontWeight: '900',
-      color: '#002366',
-      fontFamily: 'Inter_900Black',
-      letterSpacing: 0.5,
-    }}>
-      CIT APPOINTMENT
+    <Text>
+      <Text style={{
+        fontSize: isMobile ? 18 : 32,
+        color: '#1A3655',
+        fontFamily: 'ProstoOne_400Regular',
+        letterSpacing: 0.5,
+        lineHeight: isMobile ? 22 : 38,
+        textShadowColor: '#001D3E',
+        textShadowOffset: { width: 0.5, height: 0.5 },
+        textShadowRadius: 1,
+      }}>
+        CIT{'\n'}
+      </Text>
+      <Text style={{
+        fontSize: isMobile ? 12 : 20,
+        color: '#1A3655',
+        fontFamily: 'ProstoOne_400Regular',
+        letterSpacing: 0.5,
+        lineHeight: isMobile ? 16 : 24,
+        textShadowColor: '#001D3E',
+        textShadowOffset: { width: 0.5, height: 0.5 },
+        textShadowRadius: 1,
+      }}>
+        APPOINTMENT
+      </Text>
     </Text>
   </View>
 );
@@ -50,7 +68,7 @@ const LogoutButton = ({ navigation, isMobile }) => (
   <Pressable
     style={({ pressed, hovered }) => [
       styles.logoutButton,
-      { marginRight: isMobile ? 10 : 30 },
+      { marginRight: isMobile ? 10 : 70 },
       (hovered || pressed) && styles.logoutButtonActive
     ]}
     onPress={() => handleLogout(navigation)}
@@ -72,6 +90,7 @@ export default function App() {
     'Inter_700Bold': Inter_700Bold,
     'Inter_500Medium': Inter_500Medium,
     'Roboto_400Regular': Roboto_400Regular,
+    'ProstoOne_400Regular': ProstoOne_400Regular,
   });
 
   // Check authentication status on app start

@@ -3,13 +3,53 @@
   handling and dynamic action controls (approve, reject, cancel, complete, delete).
 */
 
-import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions, Alert, Modal, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions, Alert, Modal, ScrollView, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import StatusBadge from './StatusBadge';
 import { ConfirmModal } from './ConfirmModal';
 import { Typography } from '../styles/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const AnimatedButton = ({ onPress, text, style, textStyle, baseColor, hoverColor }) => {
+  const [hovered, setHovered] = useState(false);
+  const colorAnim = useState(() => new Animated.Value(0))[0];
+  const scale = useState(() => new Animated.Value(1))[0];
+
+  useEffect(() => {
+    Animated.timing(colorAnim, {
+      toValue: hovered ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+
+    Animated.spring(scale, {
+      toValue: hovered ? 0.98 : 1,
+      useNativeDriver: true,
+    }).start();
+  }, [hovered, colorAnim, scale]);
+
+  const bgColor = colorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [baseColor, hoverColor]
+  });
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      style={[
+        style,
+        { backgroundColor: bgColor, transform: [{ scale }] }
+      ]}
+    >
+      <Text style={textStyle}>{text}</Text>
+    </AnimatedPressable>
+  );
+};
 
 
 export default function AppointmentRow({ item, onAction, onViewDetails, onCompletePress, onDelete, isHighlighted }) {
@@ -76,15 +116,12 @@ export default function AppointmentRow({ item, onAction, onViewDetails, onComple
       </View>
 
       <View style={[styles.cell, { flex: 2 }]}>
-        <Text style={styles.cellText}>
-          {item.condition && item.condition.length > 10
-            ? item.condition.substring(0, 10) + "..."
-            : item.condition}
-        </Text>
-        {item.condition && item.condition.length > 10 && (
+        {item.condition ? (
           <Pressable onPress={() => setNotesVisible(true)} hitSlop={10}>
-            <Text style={[styles.cellText, styles.viewLink, { marginTop: 2, fontSize: 11 }]}>See more</Text>
+            <Text style={[styles.cellText, styles.viewLink, { marginTop: 2, fontSize: 12, fontWeight: '700' }]}>VIEW NOTES</Text>
           </Pressable>
+        ) : (
+          <Text style={[styles.cellText, { color: '#94A3B8', fontStyle: 'italic' }]}>No notes</Text>
         )}
 
         <Modal visible={notesVisible} transparent animationType="fade">
@@ -94,9 +131,14 @@ export default function AppointmentRow({ item, onAction, onViewDetails, onComple
               <ScrollView style={styles.modalScroll}>
                 <Text style={styles.modalText}>{item.condition}</Text>
               </ScrollView>
-              <Pressable style={styles.modalCloseBtn} onPress={() => setNotesVisible(false)}>
-                <Text style={styles.modalCloseBtnText}>Close</Text>
-              </Pressable>
+              <AnimatedButton
+                onPress={() => setNotesVisible(false)}
+                text="Close"
+                baseColor="#002366"
+                hoverColor="#001233"
+                style={styles.modalCloseBtn}
+                textStyle={styles.modalCloseBtnText}
+              />
             </View>
           </View>
         </Modal>
@@ -125,12 +167,7 @@ export default function AppointmentRow({ item, onAction, onViewDetails, onComple
 
             <Pressable
               style={styles.rejectBtn}
-              onPress={() => triggerConfirm(
-                "Reject Appointment",
-                `Are you sure you want to reject ${item.student_name}'s request?`,
-                () => onAction(item.id, 'Rejected'),
-                true
-              )}
+              onPress={() => onAction(item.id, 'Rejected')}
             >
               <Text style={styles.btnTextActions}>✕</Text>
             </Pressable>
@@ -142,12 +179,7 @@ export default function AppointmentRow({ item, onAction, onViewDetails, onComple
           <>
             <Pressable
               style={styles.cancelBtn}
-              onPress={() => triggerConfirm(
-                "Cancel Appointment",
-                "Are you sure you want to cancel this approved appointment?",
-                () => onAction(item.id, 'Cancelled'),
-                true
-              )}
+              onPress={() => onAction(item.id, 'Cancelled')}
             >
               <Text style={styles.btnText}>Cancel</Text>
             </Pressable>
@@ -363,8 +395,10 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
   },
   modalTitle: {
     ...Typography.header,
-    fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Inter_900Black',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 0.5,
     color: '#002366',
     marginBottom: 12,
   },
@@ -385,8 +419,10 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     alignItems: 'center',
   },
   modalCloseBtnText: {
+    fontFamily: 'Inter_900Black',
     color: '#FFF',
-    fontWeight: '700',
+    fontWeight: '900',
+    letterSpacing: 0.5,
     fontSize: 14,
   },
 });

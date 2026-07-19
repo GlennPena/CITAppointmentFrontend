@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   Animated,
+  ImageBackground,
 } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,6 +45,117 @@ const Orb = ({ style, delay = 0 }) => {
       borderRadius: 999,
       opacity: 0.15,
     }, style, { transform: [{ translateY }] }]} />
+  );
+};
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const HoverScaleItem = ({ children, style, scaleTo = 1.05, withShine = false }) => {
+  const [scale] = useState(() => new Animated.Value(1));
+  const [shineAnim] = useState(() => new Animated.Value(-1));
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) {
+      Animated.spring(scale, { toValue: scaleTo, useNativeDriver: Platform.OS !== 'web' }).start();
+      if (withShine) {
+        shineAnim.setValue(-1);
+        Animated.timing(shineAnim, {
+          toValue: 2,
+          duration: 600,
+          useNativeDriver: Platform.OS !== 'web',
+        }).start();
+      }
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web' }).start();
+      if (withShine) shineAnim.stopAnimation();
+    }
+  }, [isHovered, scale, shineAnim, scaleTo, withShine]);
+
+  const translateX = shineAnim.interpolate({
+    inputRange: [-1, 2],
+    outputRange: [-150, 250],
+  });
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={[style, { transform: [{ scale }], position: 'relative', overflow: withShine ? 'hidden' : 'visible' }]}
+    >
+      {children}
+      {withShine && isHovered && (
+        <Animated.View style={{
+          position: 'absolute',
+          top: 0, bottom: 0, width: 40,
+          backgroundColor: 'rgba(255,255,255,0.3)',
+          transform: [{ skewX: '-20deg' }, { translateX }],
+        }} />
+      )}
+    </AnimatedPressable>
+  );
+};
+
+const ShineButton = ({ onPress, loading, styles, text }) => {
+  const [hovered, setHovered] = useState(false);
+  const shineAnim = useState(() => new Animated.Value(-1))[0];
+  const scale = useState(() => new Animated.Value(1))[0];
+
+  useEffect(() => {
+    if (hovered) {
+      Animated.spring(scale, { toValue: 1.05, useNativeDriver: true }).start();
+      shineAnim.setValue(-1);
+      Animated.timing(shineAnim, {
+        toValue: 2,
+        duration: 450,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+      shineAnim.stopAnimation();
+      shineAnim.setValue(-1);
+    }
+  }, [hovered, shineAnim, scale]);
+
+  const translateX = shineAnim.interpolate({
+    inputRange: [-1, 2],
+    outputRange: [-150, 450],
+  });
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      disabled={loading}
+      style={[styles.submitBtn, loading && { opacity: 0.7 }, { transform: [{ scale }], paddingVertical: 0, paddingHorizontal: 0, overflow: 'hidden' }]}
+    >
+      <LinearGradient
+        colors={['#003DA5', '#001E5C']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ width: '100%', alignItems: 'center', justifyContent: 'center', paddingVertical: 14 }}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.submitBtnText}>{text}</Text>
+        )}
+        {hovered && (
+          <Animated.View style={{
+            position: 'absolute',
+            top: 0, left: 0, bottom: 0, width: 120,
+            transform: [{ translateX }, { skewX: '-25deg' }],
+          }}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
+        )}
+      </LinearGradient>
+    </AnimatedPressable>
   );
 };
 
@@ -169,7 +281,7 @@ export default function ForgotPasswordScreen({ navigation }) {
           <View style={styles.formContent}>
             <Text style={styles.cardTitle}>Reset Password</Text>
             <Text style={styles.cardSubtitle}>Enter your UA institutional email to receive a password reset verification code.</Text>
-            <View style={styles.inputSection}>
+            <View style={[styles.inputSection, isMobile && { gap: 2 }]}>
               <AppInput
                 label="Institutional Email"
                 value={email}
@@ -178,22 +290,12 @@ export default function ForgotPasswordScreen({ navigation }) {
                 autoCapitalize="none"
               />
             </View>
-            <Pressable
+            <ShineButton
               onPress={handleRequestOTP}
-              disabled={loading}
-              style={({ pressed, hovered }) => [
-                styles.submitBtn,
-                hovered && styles.submitBtnHovered,
-                pressed && styles.submitBtnPressed,
-                loading && styles.submitBtnDisabled
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.submitBtnText}>Send Verification Code</Text>
-              )}
-            </Pressable>
+              loading={loading}
+              styles={styles}
+              text="Send Verification Code"
+            />
           </View>
         );
       case 2:
@@ -201,7 +303,7 @@ export default function ForgotPasswordScreen({ navigation }) {
           <View style={styles.formContent}>
             <Text style={styles.cardTitle}>Enter Code</Text>
             <Text style={styles.cardSubtitle}>We sent a 6-digit OTP code to <Text style={styles.emailHighlight}>{email}</Text>. Enter the code below.</Text>
-            <View style={styles.inputSection}>
+            <View style={[styles.inputSection, isMobile && { gap: 2 }]}>
               <AppInput
                 label="6-Digit Verification Code"
                 value={otp}
@@ -211,24 +313,14 @@ export default function ForgotPasswordScreen({ navigation }) {
                 autoCapitalize="none"
               />
             </View>
-            <Pressable
+            <ShineButton
               onPress={handleVerifyOTP}
-              disabled={loading}
-              style={({ pressed, hovered }) => [
-                styles.submitBtn,
-                hovered && styles.submitBtnHovered,
-                pressed && styles.submitBtnPressed,
-                loading && styles.submitBtnDisabled
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.submitBtnText}>Verify Code</Text>
-              )}
-            </Pressable>
+              loading={loading}
+              styles={styles}
+              text="Verify Code"
+            />
             <Pressable onPress={() => setCurrentStep(1)} style={styles.backStepLink}>
-              <Text style={styles.backStepText}>Resend code or change email</Text>
+              <Text style={styles.backStepText}>Resend Code</Text>
             </Pressable>
           </View>
         );
@@ -237,7 +329,7 @@ export default function ForgotPasswordScreen({ navigation }) {
           <View style={styles.formContent}>
             <Text style={styles.cardTitle}>New Password</Text>
             <Text style={styles.cardSubtitle}>Set a secure new password for your account.</Text>
-            <View style={styles.inputSection}>
+            <View style={[styles.inputSection, isMobile && { gap: 2 }]}>
               <AppInput
                 label="New Password"
                 value={newPassword}
@@ -250,34 +342,13 @@ export default function ForgotPasswordScreen({ navigation }) {
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
               />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.showPassRow}
-              >
-                <MaterialCommunityIcons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={16}
-                  color="#64748B"
-                />
-                <Text style={styles.showPassText}>{showPassword ? "Hide password" : "Show password"}</Text>
-              </Pressable>
             </View>
-            <Pressable
+            <ShineButton
               onPress={handleResetPassword}
-              disabled={loading}
-              style={({ pressed, hovered }) => [
-                styles.submitBtn,
-                hovered && styles.submitBtnHovered,
-                pressed && styles.submitBtnPressed,
-                loading && styles.submitBtnDisabled
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.submitBtnText}>Reset Password</Text>
-              )}
-            </Pressable>
+              loading={loading}
+              styles={styles}
+              text="Reset Password"
+            />
           </View>
         );
       default:
@@ -286,7 +357,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   };
 
   const renderStepIndicators = () => (
-    <View style={styles.indicatorRow}>
+    <View style={[styles.indicatorRow, isMobile && { justifyContent: 'center', marginTop: 12 }]}>
       {[1, 2, 3].map((step) => (
         <View
           key={step}
@@ -300,17 +371,86 @@ export default function ForgotPasswordScreen({ navigation }) {
     </View>
   );
 
+  if (isMobile) {
+    return (
+      <Animated.View style={{ flex: 1, opacity: entryAnim, transform: [{ scale: entryScale }] }}>
+        <View style={styles.mobileRoot}>
+          <Toast
+            visible={!!alertConfig.message}
+            message={alertConfig.message}
+            type={alertConfig.type}
+            onHide={() => setAlertConfig({ message: "", type: "" })}
+          />
+
+          <View style={styles.mobileHero}>
+            <Orb style={[styles.mobileHeroOrb, { opacity: 1 }]} delay={0} />
+            <Orb style={[styles.mobileHeroOrb, { width: 160, height: 160, borderRadius: 80, top: undefined, bottom: -50, left: -50, right: undefined, opacity: 1 }]} delay={1200} />
+
+            <View style={styles.mobileLogoRow}>
+              <HoverScaleItem>
+                <Image source={require('../assets/ua-logo.png')} style={styles.mobileUaLogo} resizeMode="contain" />
+              </HoverScaleItem>
+              <HoverScaleItem>
+                <Image source={require('../assets/cit-logo.png')} style={styles.mobileCitLogo} resizeMode="contain" />
+              </HoverScaleItem>
+            </View>
+            <Text style={styles.mobileAppName}>CIT APPOINTMENT</Text>
+            <Text style={styles.mobileTagline}>College of Information Technology</Text>
+          </View>
+
+          <ScrollView
+            style={styles.mobileFormScroll}
+            contentContainerStyle={styles.mobileFormContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.mobileNotch} />
+
+            {renderStepIndicators()}
+            {renderStepContent()}
+
+            <Pressable onPress={() => navigation.navigate("Login")} style={{ marginTop: 24, alignItems: 'center' }}>
+              <Text style={[styles.loginBackText, { textAlign: 'center' }]}>
+                Back to <Text style={styles.loginBackLink}>Sign In</Text>
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </Animated.View>
+    );
+  }
+
   return (
     <Animated.View style={[styles.rootContainer, { opacity: entryAnim, transform: [{ scale: entryScale }] }]}>
-      <LinearGradient
-        colors={['#001233', '#001E50', '#002B7A']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <ImageBackground
+        source={require('../assets/full-facade.jpg')}
         style={StyleSheet.absoluteFillObject}
+        imageStyle={{ width: '100%', height: '100%' }}
+        resizeMode="cover"
       >
+        <LinearGradient
+          colors={['rgba(0, 5, 14, 0.92)', 'rgba(1, 18, 41, 0.88)', 'rgba(0, 1, 3, 0.85)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <Image
+          source={require('../assets/subtle-dots.png')}
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            width: '100%', height: '100%',
+            opacity: 0.15,
+          }}
+          resizeMode="repeat"
+        />
         <Orb style={{ width: 350, height: 350, backgroundColor: '#4F8EF7', top: -100, left: -100 }} delay={0} />
         <Orb style={{ width: 250, height: 250, backgroundColor: '#93C5FD', bottom: -50, right: -50 }} delay={1500} />
-      </LinearGradient>
+        <Orb style={{ width: 180, height: 180, backgroundColor: '#60A5FA', top: -40, right: 60 }} delay={2500} />
+        <Orb style={{ width: 200, height: 200, backgroundColor: '#4F8EF7', bottom: 100, left: -80 }} delay={3500} />
+        <Orb style={{ width: 150, height: 150, backgroundColor: '#4F8EF7', bottom: 460, left: 470 }} delay={3500} />
+        <Orb style={{ width: 120, height: 120, backgroundColor: '#93C5FD', top: '44%', right: '15%' }} delay={1000} />
+      </ImageBackground>
 
       <Toast
         visible={!!alertConfig.message}
@@ -340,7 +480,7 @@ export default function ForgotPasswordScreen({ navigation }) {
           {/* Logo Section */}
           <View style={styles.logoRow}>
             <Image source={require('../assets/ua-logo.png')} style={styles.logo} resizeMode="contain" />
-            <Image source={require('../assets/cit-logo.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../assets/cit-logo.png')} style={styles.logo2} resizeMode="contain" />
           </View>
           <Text style={styles.appName}>CIT APPOINTMENT</Text>
 
@@ -382,6 +522,20 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 24,
   },
+
+  // Mobile styles
+  mobileRoot: { flex: 1, backgroundColor: '#FFFFFF' },
+  mobileHero: { backgroundColor: '#001233', alignItems: 'center', paddingTop: 45, paddingBottom: 46, paddingHorizontal: 24, overflow: 'hidden' },
+  mobileHeroOrb: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(79,142,247,0.12)', top: -70, right: -50 },
+  mobileUaLogo: { width: 64, height: 64 },
+  mobileCitLogo: { width: 66, height: 66 },
+  mobileLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16, gap: 12 },
+  mobileAppName: { fontFamily: 'Inter_900Black', fontSize: 24, color: '#FFFFFF', letterSpacing: 2.5, marginBottom: 4 },
+  mobileTagline: { fontFamily: 'Roboto_400Regular', fontSize: 14, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.5 },
+  mobileFormScroll: { flex: 1, marginTop: -20, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  mobileFormContent: { padding: 24, paddingTop: 8, paddingBottom: 60 },
+  mobileNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#C9A84C', alignSelf: 'center', marginTop: 12, marginBottom: 28 },
+
   backButton: {
     position: 'absolute',
     left: 20,
@@ -403,7 +557,7 @@ const styles = StyleSheet.create({
   },
   logoRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     marginBottom: 10,
     marginTop: 10,
   },
@@ -411,10 +565,14 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
   },
+  logo2: {
+    width: 50,
+    height: 50,
+  },
   appName: {
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Inter_900Black',
     fontSize: 18,
-    color: '#0F172A',
+    color: '#002c6e',
     letterSpacing: 1.5,
     marginBottom: 20,
   },
@@ -441,9 +599,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 22,
-    color: '#0F172A',
+    fontFamily: 'Inter_900Black',
+    fontSize: 28,
+    color: '#002c6e',
+    letterSpacing: -0.5,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -461,7 +620,7 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     width: '100%',
-    gap: 15,
+    gap: 6,
     marginBottom: 24,
   },
   showPassRow: {
@@ -515,7 +674,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   loginBackLink: {
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Inter_700Bold',
     color: '#002366',
   },
 });

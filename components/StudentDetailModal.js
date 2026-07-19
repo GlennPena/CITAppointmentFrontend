@@ -3,16 +3,58 @@
   data, appointment details, and action buttons for approving or rejecting pending appointments. 
 */
 
-import { View, Text, StyleSheet, Modal, Pressable, useWindowDimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, useWindowDimensions, ScrollView, Animated } from 'react-native';
+import { useState, useEffect } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import StatusBadge from './StatusBadge';
 import { Typography } from "../styles/theme";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const AnimatedButton = ({ onPress, text, style, textStyle, baseColor, hoverColor }) => {
+  const [hovered, setHovered] = useState(false);
+  const colorAnim = useState(() => new Animated.Value(0))[0];
+  const scale = useState(() => new Animated.Value(1))[0];
+
+  useEffect(() => {
+    Animated.timing(colorAnim, {
+      toValue: hovered ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+
+    Animated.spring(scale, {
+      toValue: hovered ? 0.98 : 1,
+      useNativeDriver: true,
+    }).start();
+  }, [hovered, colorAnim, scale]);
+
+  const bgColor = colorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [baseColor, hoverColor]
+  });
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      style={[
+        style,
+        { backgroundColor: bgColor, transform: [{ scale }] }
+      ]}
+    >
+      <Text style={textStyle}>{text}</Text>
+    </AnimatedPressable>
+  );
+};
 
 export default function StudentDetailModal({ visible, item, onClose, onAction }) {
 
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const styles = getStyles(isMobile);
-  
+
   if (!visible || !item) return null;
 
   const isMeeting = !item.student_name || item.student_name === "N/A";
@@ -27,32 +69,45 @@ export default function StudentDetailModal({ visible, item, onClose, onAction })
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          <Text style={styles.title}>{isMeeting ? "Meeting Details" : "Student Details"}</Text>
-          
-          <ScrollView 
-            style={styles.scrollArea} 
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>{isMeeting ? "Meeting Details" : "Student Details"}</Text>
+            <Pressable
+              onPress={onClose}
+              style={({ pressed, hovered }) => [
+                styles.closeIconBtn,
+                pressed && { opacity: 0.7 },
+                hovered && { opacity: 0.8 }
+              ]}
+              hitSlop={15}
+            >
+              <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+            </Pressable>
+          </View>
+
+          <ScrollView
+            style={styles.scrollArea}
             contentContainerStyle={styles.infoGrid}
             showsVerticalScrollIndicator={false}
           >
             {isMeeting ? (
               <>
-                <DetailItem label="Host / Organizer" value={item.faculty_name} styles={styles}/>
-                <DetailItem label="Status" value={<StatusBadge status={item.status}/>} styles={styles} />
-                <DetailItem label="Meeting Type" value={item.service} styles={styles}/>
-                <DetailItem label="Agenda / Discussion" value={item.condition || "No agenda specified"} styles={styles}/>
-                <DetailItem label="Participants Invited" value={participantsStr} styles={styles}/>
+                <DetailItem label="Host / Organizer" value={item.faculty_name} styles={styles} />
+                <DetailItem label="Status" value={<StatusBadge status={item.status} />} styles={styles} />
+                <DetailItem label="Meeting Type" value={item.service} styles={styles} />
+                <DetailItem label="Agenda / Discussion" value={item.condition || "No agenda specified"} styles={styles} />
+                <DetailItem label="Participants Invited" value={participantsStr} styles={styles} />
               </>
             ) : (
               <>
-                <DetailItem label="Name" value={item.student_name} styles={styles}/>
-                <DetailItem label="Status" value={<StatusBadge status={item.status}/>} styles={styles} />
-                <DetailItem label="Service" value={item.service} styles={styles}/>
-                <DetailItem label="Appointment Notes" value={item.condition || "No notes specified"} styles={styles}/>
-                <DetailItem label="Sex" value={item.student_sex} styles={styles}/>
+                <DetailItem label="Name" value={item.student_name} styles={styles} />
+                <DetailItem label="Status" value={<StatusBadge status={item.status} />} styles={styles} />
+                <DetailItem label="Service" value={item.service} styles={styles} />
+                <DetailItem label="Faculty" value={item.faculty_name || "N/A"} styles={styles} />
                 <DetailItem label="Course" value={`${item.student_course} ${item.student_year}-${item.student_section}`} styles={styles} />
-                <DetailItem label="Email" value={item.student_email} styles={styles}/>
-                <DetailItem label="Address" value={item.student_address} styles={styles}/>
-                <DetailItem label="Phone" value={item.student_phone} styles={styles}/>
+                <DetailItem label="Email" value={item.student_email} styles={styles} />
+                <DetailItem label="Address" value={item.student_address} styles={styles} />
+                <DetailItem label="Phone" value={item.student_phone} styles={styles} />
+                <DetailItem label="Appointment Notes" value={item.condition || "No notes specified"} styles={styles} />
               </>
             )}
           </ScrollView>
@@ -60,24 +115,30 @@ export default function StudentDetailModal({ visible, item, onClose, onAction })
           <View style={styles.footer}>
             {item.status?.toLowerCase() === 'pending' && !isPast ? (
               <View style={styles.actionRow}>
-                <Pressable style={[styles.btn, styles.approve]} onPress={() => { onAction(item.id, 'Approved'); onClose(); }}>
-                  <Text style={styles.btnText}>Approve</Text>
-                </Pressable>
-                <Pressable style={[styles.btn, styles.reject]} onPress={() => { onAction(item.id, 'Rejected'); onClose(); }}>
-                  <Text style={styles.btnText}>Reject</Text>
-                </Pressable>
+                <AnimatedButton
+                  onPress={() => { onAction(item.id, 'Approved'); onClose(); }}
+                  text="Approve"
+                  baseColor="#10B981"
+                  hoverColor="#059669"
+                  style={styles.btn}
+                  textStyle={styles.btnText}
+                />
+                <AnimatedButton
+                  onPress={() => { onAction(item.id, 'Rejected'); onClose(); }}
+                  text="Reject"
+                  baseColor="#ED5757"
+                  hoverColor="#DC2626"
+                  style={styles.btn}
+                  textStyle={styles.btnText}
+                />
               </View>
             ) : (
-							<View style={{ padding: 10, alignItems: 'center' }}>
-								<Text style={{ color: '#0F172A', fontWeight: 'bold' }}>
-									{isPast ? "" : ""}
-								</Text>
-							</View>
-						)}
-
-						<Pressable style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeText}>Close</Text>
-            </Pressable>
+              <View style={{ padding: 10, alignItems: 'center' }}>
+                <Text style={{ color: '#0F172A', fontWeight: 'bold' }}>
+                  {isPast ? "" : ""}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -93,18 +154,18 @@ const DetailItem = ({ label, value, styles }) => (
 );
 
 const getStyles = (isMobile) => StyleSheet.create({
-  overlay: { 
-    flex: 1, 
-    backgroundColor: 'rgba(0,0,0,0.6)', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 20 
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
   },
-  modalCard: { 
-    backgroundColor: '#FFF', 
-    borderRadius: 24, 
-    padding: isMobile ? 26 :32, 
-    width: '90%', 
+  modalCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: isMobile ? 26 : 32,
+    width: '90%',
     maxWidth: 500,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -116,17 +177,24 @@ const getStyles = (isMobile) => StyleSheet.create({
   scrollArea: {
     marginVertical: 10,
   },
-  title: { 
-    ...Typography.header,
-    fontSize: isMobile ? 20 : 24, 
-    fontWeight: '900', 
-    marginBottom: isMobile ? 20 : 24, 
-    color: '#002366', 
-    textAlign: 'center' 
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: isMobile ? 20 : 24,
   },
-  infoGrid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
+  title: {
+    ...Typography.header,
+    fontSize: isMobile ? 20 : 24,
+    fontWeight: '900',
+    color: '#002366',
+  },
+  closeIconBtn: {
+    padding: 4,
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: isMobile ? 5 : 10,
     justifyContent: 'space-between',
   },
@@ -146,70 +214,57 @@ const getStyles = (isMobile) => StyleSheet.create({
     borderBottomWidth: 0,
     marginBottom: 0
   },
-  label: { 
+  label: {
     ...Typography.title,
-    fontSize: isMobile ? 10 : 12, 
-    fontWeight: '700', 
-    textTransform: 'uppercase', 
-    letterSpacing: 1.5, 
+    fontSize: isMobile ? 10 : 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
     color: '#002366',
     marginBottom: 4
   },
-  value: { 
+  value: {
     ...Typography.body,
-    fontSize: isMobile ? 12 : 14, 
-    color: '#1E293B', 
-    fontWeight: '500', 
-    lineHeight: isMobile ? 14 : 22 
+    fontSize: isMobile ? 12 : 14,
+    color: '#1E293B',
+    fontWeight: '500',
+    lineHeight: isMobile ? 14 : 22
   },
-  footer: { 
+  footer: {
     marginTop: 10
   },
-	actionRow: { 
-		flexDirection: 'row',
-		gap: 12, 
-		marginBottom: 8, 
-		zIndex: 10,
-	},
-	btn: { 
-		flex: 1,
-		paddingVertical: 16, 
-		paddingHorizontal: 20,
-		borderRadius: 12, 
-		alignItems: 'center',
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-    justifyContent: 'center',
-	},
-	approve: { 
-    backgroundColor: '#10B981' 
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+    zIndex: 10,
   },
-  reject: { 
-    backgroundColor: '#ED5757' 
-  },
-  btnText: { 
-    ...Typography.label, 
-    lineHeight: 14, 
-    color: '#FFF', 
-    fontWeight: '700', 
-    fontSize: isMobile ? 10 : 16, 
-    textAlign: 'center',
-  },
-  closeBtn: { 
-    paddingVertical: 14, 
-    paddingHorizontal: 24, 
-    alignItems: 'center',
-    backgroundColor: '#002366',
+  btn: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    marginTop: 8
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    justifyContent: 'center',
   },
-  closeText: { 
-    ...Typography.label, 
-    color: '#fff', 
-    fontWeight: '600', 
-    fontSize: isMobile ? 12 : 16 
+  approve: {
+    backgroundColor: '#10B981'
+  },
+  reject: {
+    backgroundColor: '#ED5757'
+  },
+  btnText: {
+    ...Typography.label,
+    lineHeight: 14,
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: isMobile ? 10 : 16,
+    fontSize: isMobile ? 10 : 16,
+    textAlign: 'center',
   }
 });

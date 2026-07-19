@@ -35,13 +35,13 @@ export default function MeetingHistoryModal({ visible, onClose, meeting }) {
           
           {/* HEADER */}
           <View style={styles.header}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 15 }}>
               <View style={styles.iconCircleHeader}>
                 <MaterialCommunityIcons name="account-group" size={24} color="#FFFFFF" />
               </View>
-              <View>
-                <Text style={styles.meetingTitle}>{meeting.service}</Text>
-                <Text style={styles.meetingOrganizer}>Organized by {meeting.faculty_name}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.meetingTitle} numberOfLines={2}>{meeting.service}</Text>
+                <Text style={styles.meetingOrganizer} numberOfLines={1}>Organized by {meeting.faculty_name}</Text>
               </View>
             </View>
             <Pressable onPress={onClose} hitSlop={15}>
@@ -140,11 +140,11 @@ const getStyles = (isMobile) => StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: isMobile ? 10 : 20,
   },
   modalContent: { 
     backgroundColor: '#FFFFFF', 
-    width: '100%', 
+    width: '90%', 
     maxWidth: 600,
     maxHeight: '85%', 
     height: height * 0.75,

@@ -6,8 +6,9 @@ import { useIsFocused } from '@react-navigation/native';
 import api from "../utils/api";
 import MeetingHistoryCard from "../components/MeetingHistoryCard";
 import MeetingHistoryModal from "../components/MeetingHistoryModal";
+import AppFooter from "../components/AppFooter";
 
-export default function MeetingHistory() {
+export default function MeetingHistory({ navigation }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isDesktop = width >= 1200;
@@ -46,11 +47,11 @@ export default function MeetingHistory() {
   // Client-side filter by meeting title or faculty name
   const filteredMeetings = searchQuery.trim()
     ? allMeetings.filter(m => {
-        const q = searchQuery.toLowerCase();
-        const title = (m.service || "").toLowerCase();
-        const host = (m.faculty_name || "").toLowerCase();
-        return title.includes(q) || host.includes(q);
-      })
+      const q = searchQuery.toLowerCase();
+      const title = (m.service || "").toLowerCase();
+      const host = (m.faculty_name || "").toLowerCase();
+      return title.includes(q) || host.includes(q);
+    })
     : allMeetings;
 
   const handleOpenDetails = (meeting) => {
@@ -60,16 +61,16 @@ export default function MeetingHistory() {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-      <ImageBackground 
-        source={require('../assets/redox-01.png')} 
+      <ImageBackground
+        source={require('../assets/redox-01.png')}
         style={[styles.container]}
         resizeMode="repeat"
       >
-        <View style={{ flex: 1 }}>
+        <View style={styles.mainWrapper}>
           <View style={styles.searchContainer}>
             <MaterialCommunityIcons name="magnify" size={24} color="#94A3B8" />
-            <TextInput 
-              placeholder="Search meeting title or host name..." 
+            <TextInput
+              placeholder="Search meeting title or host name..."
               placeholderTextColor="#94A3B8"
               style={styles.searchInput}
               value={searchQuery}
@@ -97,9 +98,9 @@ export default function MeetingHistory() {
               columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : null}
               renderItem={({ item }) => (
                 <View style={styles.cardWrapper}>
-                  <MeetingHistoryCard 
-                    meeting={item} 
-                    onPress={() => handleOpenDetails(item)} 
+                  <MeetingHistoryCard
+                    meeting={item}
+                    onPress={() => handleOpenDetails(item)}
                   />
                 </View>
               )}
@@ -120,12 +121,13 @@ export default function MeetingHistory() {
             />
           )}
 
-          <MeetingHistoryModal 
+          <MeetingHistoryModal
             visible={modalVisible}
             onClose={() => setModalVisible(false)}
             meeting={selectedMeeting}
           />
         </View>
+        <AppFooter userRole="faculty" navigation={navigation} />
       </ImageBackground>
     </ScrollView>
   );
@@ -136,37 +138,42 @@ const getStyles = (isMobile, isDesktop, width) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mainWrapper: {
+    minHeight: '90vh',
+    width: '100%',
+    paddingHorizontal: isMobile ? 12 : 50,
+    paddingTop: 16
   },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
     width: '100%',
-    height: '100%', 
-    paddingHorizontal: isMobile ? 12 : 50, 
-    paddingTop: 16
+    height: '100%',
   },
-  searchContainer: { 
+  searchContainer: {
     marginTop: 16,
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#FFF', 
-    paddingHorizontal: 15, 
-    paddingVertical: 12, 
-    borderRadius: 12, 
-    borderWidth: 1, 
-    borderColor: '#E2E8F0', 
-    marginBottom: 20 
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 20
   },
-  searchInput: { 
-    flex: 1, 
-    marginLeft: 10, 
-    fontSize: 16, 
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
     color: '#0F172A',
     outlineStyle: 'none'
   },
   columnWrapper: {
     justifyContent: 'space-between',
-    gap: 20, 
+    gap: 20,
     paddingHorizontal: isDesktop ? 50 : 10
   },
   cardWrapper: {

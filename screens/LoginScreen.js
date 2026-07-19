@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
+  ImageBackground,
   useWindowDimensions,
   Platform,
   ScrollView,
@@ -41,9 +42,9 @@ const Orb = ({ style, delay = 0 }) => {
   useEffect(() => {
     const float = Animated.loop(
       Animated.sequence([
-        Animated.timing(translateY, { toValue: 15, duration: 4000, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: -15, duration: 4000, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: 0, duration: 4000, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 15, duration: 4000, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(translateY, { toValue: -15, duration: 4000, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(translateY, { toValue: 0, duration: 4000, useNativeDriver: Platform.OS !== 'web' }),
       ])
     );
     const timeout = setTimeout(() => float.start(), delay);
@@ -64,15 +65,57 @@ const Orb = ({ style, delay = 0 }) => {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const HoverScaleItem = ({ children, style, scaleTo = 1.05 }) => {
+const HoverScaleItem = ({ children, style, scaleTo = 1.05, withShine = false }) => {
   const [scale] = useState(() => new Animated.Value(1));
+  const [shineAnim] = useState(() => new Animated.Value(-1));
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) {
+      Animated.spring(scale, { toValue: scaleTo, useNativeDriver: Platform.OS !== 'web' }).start();
+      if (withShine) {
+        shineAnim.setValue(-1);
+        Animated.timing(shineAnim, {
+          toValue: 2,
+          duration: 600,
+          useNativeDriver: Platform.OS !== 'web',
+        }).start();
+      }
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web' }).start();
+      if (withShine) shineAnim.stopAnimation();
+    }
+  }, [isHovered, scale, shineAnim, scaleTo, withShine]);
+
+  const translateX = shineAnim.interpolate({
+    inputRange: [-1, 2],
+    outputRange: [-150, 250],
+  });
+
   return (
     <AnimatedPressable
-      onHoverIn={() => Animated.spring(scale, { toValue: scaleTo, useNativeDriver: true }).start()}
-      onHoverOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()}
-      style={[style, { transform: [{ scale }] }]}
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={[style, { transform: [{ scale }], position: 'relative', overflow: withShine ? 'hidden' : 'visible' }]}
     >
       {children}
+      {withShine && (
+        <Animated.View style={[
+          StyleSheet.absoluteFillObject,
+          {
+            transform: [{ translateX }, { skewX: '-20deg' }],
+            width: '150%',
+            opacity: 0.7,
+          }
+        ]}>
+          <LinearGradient
+            colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      )}
     </AnimatedPressable>
   );
 };
@@ -85,8 +128,8 @@ const BouncingPill = ({ children, bounceTrigger, delay = 0 }) => {
       const timeout = setTimeout(() => {
         translateY.setValue(0);
         Animated.sequence([
-          Animated.timing(translateY, { toValue: -3, duration: 250, useNativeDriver: true }),
-          Animated.spring(translateY, { toValue: 0, friction: 6, tension: 80, useNativeDriver: true })
+          Animated.timing(translateY, { toValue: -3, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(translateY, { toValue: 0, friction: 6, tension: 80, useNativeDriver: Platform.OS !== 'web' })
         ]).start();
       }, delay);
       return () => clearTimeout(timeout);
@@ -107,15 +150,15 @@ const ShineButton = ({ onPress, loading, styles }) => {
 
   useEffect(() => {
     if (hovered) {
-      Animated.spring(scale, { toValue: 1.05, useNativeDriver: true }).start();
+      Animated.spring(scale, { toValue: 1.05, useNativeDriver: Platform.OS !== 'web' }).start();
       shineAnim.setValue(-1);
       Animated.timing(shineAnim, {
         toValue: 2,
         duration: 450,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }).start();
     } else {
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+      Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web' }).start();
       shineAnim.stopAnimation();
       shineAnim.setValue(-1);
     }
@@ -166,19 +209,22 @@ const ShineButton = ({ onPress, loading, styles }) => {
   );
 };
 
-const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay = 3000, onTypingComplete }) => {
+const TypingText = ({ text, texts, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay = 3000, onTypingComplete }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [showCursor, setShowCursor] = useState(true);
 
   useEffect(() => {
+    const messages = texts || [text];
+    let messageIndex = 0;
     let i = 0;
     let isErasing = false;
     let timeout;
 
     const tick = () => {
+      const currentText = messages[messageIndex];
       if (!isErasing) {
-        if (i <= text.length) {
-          setDisplayedText(text.substring(0, i));
+        if (i <= currentText.length) {
+          setDisplayedText(currentText.substring(0, i));
           i++;
           timeout = setTimeout(tick, typingSpeed);
         } else {
@@ -188,11 +234,12 @@ const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay
         }
       } else {
         if (i >= 0) {
-          setDisplayedText(text.substring(0, i));
+          setDisplayedText(currentText.substring(0, i));
           i--;
           timeout = setTimeout(tick, eraseSpeed);
         } else {
           isErasing = false;
+          messageIndex = (messageIndex + 1) % messages.length;
           timeout = setTimeout(tick, 500);
         }
       }
@@ -200,7 +247,7 @@ const TypingText = ({ text, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay
 
     tick();
     return () => clearTimeout(timeout);
-  }, [text, typingSpeed, eraseSpeed, pauseDelay]);
+  }, [text, texts ? texts.join('|') : '', typingSpeed, eraseSpeed, pauseDelay]);
 
   useEffect(() => {
     const blink = setInterval(() => setShowCursor(v => !v), 500);
@@ -234,7 +281,7 @@ export default function LoginScreen({ navigation }) {
     Animated.timing(entryAnim, {
       toValue: 1,
       duration: 500,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, []);
 
@@ -246,7 +293,7 @@ export default function LoginScreen({ navigation }) {
     Animated.timing(transitionAnim, {
       toValue: 1,
       duration: 600,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start(() => {
       if (role === "admin") navigation.replace("AdminDashboard");
       else if (role === "faculty" || role === "dean") navigation.replace("FacultyHome");
@@ -434,60 +481,93 @@ export default function LoginScreen({ navigation }) {
 
           <Animated.View style={{ flex: 1, flexDirection: 'row', opacity: mainOpacity, transform: [{ scale: mainScale }] }}>
             {/* LEFT PANEL — Branding */}
-            <LinearGradient
-              colors={['#001848', '#002B6B', '#003DA5']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.leftPanel}
-            >
-              {/* Decorative orbs */}
-              <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} delay={0} />
-              <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} delay={1500} />
-              <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} delay={3000} />
+            <View style={styles.leftPanelWrapper}>
+              {/* Background image layer */}
+              <ImageBackground
+                source={require('../assets/ua-facade.jpg')}
+                style={styles.leftPanel}
+                imageStyle={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              >
+                {/* Dark navy gradient overlay for readability */}
+                <LinearGradient
+                  colors={['rgba(1, 7, 19, 0.92)', 'rgba(0,43,107,0.88)', 'rgba(0, 7, 17, 0.85)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <Text style={styles.watermark}>University of the Assumption · College of Information Technology</Text>
 
-              <View style={styles.leftContent}>
-                {/* Logo */}
-                <View style={styles.leftLogoRow}>
-                  <HoverScaleItem>
-                    <Image
-                      source={require('../assets/ua-logo.png')}
-                      style={styles.uaLogo}
-                      resizeMode="contain"
-                    />
-                  </HoverScaleItem>
-                  <HoverScaleItem>
-                    <Image
-                      source={require('../assets/cit-logo.png')}
-                      style={styles.citLogo}
-                      resizeMode="contain"
-                    />
-                  </HoverScaleItem>
-                </View>
-
-                {/* Main copy */}
-                <Text style={styles.leftTitle}>CIT Appointment</Text>
-                <Text style={styles.leftSubtitle}>College of Information Technology</Text>
-                <TypingText
-                  text="Book, manage, and track your academic appointments with ease — all in one platform."
-                  style={styles.leftBody}
-                  onTypingComplete={() => setTypingCycles(c => c + 1)}
+                {/* Repeating dot texture overlay */}
+                <Image
+                  source={require('../assets/subtle-dots.png')}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0.15,
+                  }}
+                  resizeMode="repeat"
                 />
 
-                {/* Feature pills */}
-                <View style={styles.pillRow}>
-                  {['Book Appointments', 'Track Appointments', 'Secure & Reliable'].map((f, index) => (
-                    <BouncingPill key={f} delay={index * 150} bounceTrigger={typingCycles}>
-                      <HoverScaleItem style={styles.pill}>
-                        <Text style={styles.pillText}>{f}</Text>
-                      </HoverScaleItem>
-                    </BouncingPill>
-                  ))}
-                </View>
-              </View>
+                {/* Decorative orbs */}
+                <Orb style={{ width: 320, height: 320, backgroundColor: '#4F8EF7', top: -80, left: -80 }} delay={0} />
+                <Orb style={{ width: 260, height: 260, backgroundColor: '#60A5FA', bottom: 40, right: -60 }} delay={1500} />
+                <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', top: '45%', left: '30%' }} delay={3000} />
 
-              {/* Bottom watermark */}
-              <Text style={styles.watermark}>University of the Assumption · College of Information Technology</Text>
-            </LinearGradient>
+                <View style={styles.leftContent}>
+
+                  {/* Logo */}
+                  <View style={styles.leftLogoRow}>
+                    <HoverScaleItem>
+                      <Image
+                        source={require('../assets/ua-logo.png')}
+                        style={styles.uaLogo}
+                        resizeMode="contain"
+                      />
+                    </HoverScaleItem>
+                    <HoverScaleItem>
+                      <Image
+                        source={require('../assets/cit-logo.png')}
+                        style={styles.citLogo}
+                        resizeMode="contain"
+                      />
+                    </HoverScaleItem>
+                  </View>
+
+                  {/* Main copy */}
+                  <Text style={styles.leftTitle}>CIT Appointment</Text>
+                  <Text style={styles.leftSubtitle}>College of Information Technology</Text>
+                  <TypingText
+                    texts={[
+                      "Book, manage, and track your academic appointments with ease — all in one platform.",
+                      "Connect seamlessly with faculty and staff for a better academic experience.",
+                      "Stay organized and never miss an important meeting again."
+                    ]}
+                    style={styles.leftBody}
+                    onTypingComplete={() => setTypingCycles(c => c + 1)}
+                  />
+
+                  {/* Feature pills */}
+                  <View style={styles.pillRow}>
+                    {['Book Appointments', 'Track Appointments', 'Secure & Reliable'].map((f, index) => (
+                      <BouncingPill key={f} delay={index * 150} bounceTrigger={typingCycles}>
+                        <HoverScaleItem style={styles.pill} withShine={true}>
+                          <Text style={styles.pillText}>{f}</Text>
+                        </HoverScaleItem>
+                      </BouncingPill>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Bottom watermark */}
+                <Text style={styles.watermark}>Designed and Developed by BITWISE</Text>
+              </ImageBackground>
+            </View>
 
             {/* RIGHT PANEL — Form */}
             <ScrollView
@@ -498,7 +578,7 @@ export default function LoginScreen({ navigation }) {
                 {/* Top accent line */}
                 <View style={styles.accentBar} />
 
-                <Text style={styles.formGreeting}>Good to see you!</Text>
+
                 <Text style={styles.formTitle}>Sign In</Text>
                 <Text style={styles.formSubtitle}>to Book an Appointment</Text>
 
@@ -530,7 +610,7 @@ export default function LoginScreen({ navigation }) {
                     <Text style={styles.rememberText}>Remember me</Text>
                   </View>
                   <Pressable onPress={() => navigation.navigate("ForgotPassword")}>
-                    <Text style={styles.forgotPasswordLink}>Forgot password?</Text>
+                    <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
                   </Pressable>
                 </View>
 
@@ -652,6 +732,7 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.mobileHero}>
             {/* subtle decorative circle */}
             <Orb style={[styles.mobileHeroOrb, { opacity: 1 }]} delay={0} />
+            <Orb style={[styles.mobileHeroOrb, { width: 160, height: 160, borderRadius: 80, top: 100, bottom: undefined, left: -50, right: undefined, opacity: 1 }]} delay={1200} />
             <View style={styles.mobileLogoRow}>
               <HoverScaleItem>
                 <Image
@@ -682,8 +763,8 @@ export default function LoginScreen({ navigation }) {
             {/* Notch / pill handle */}
             <View style={styles.mobileNotch} />
 
-            <Text style={styles.mobileCardTitle}>Welcome!</Text>
-            <Text style={styles.mobileCardSubtitle}>Sign in to Book an Appointment</Text>
+            <Text style={styles.mobileCardTitle}>Sign In</Text>
+            <Text style={styles.mobileCardSubtitle}>to Book an Appointment</Text>
 
             <AppInput
               label="Username"
@@ -699,7 +780,7 @@ export default function LoginScreen({ navigation }) {
               setError={(val) => setAlertConfig({ ...alertConfig, message: val })}
             />
 
-            <View style={[styles.row, { justifyContent: 'space-between', width: '100%' }]}>
+            <View style={[styles.row, { justifyContent: 'space-between', width: '100%', marginBottom: 38 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Pressable
                   onPress={() => setRememberMe(!rememberMe)}
@@ -710,7 +791,7 @@ export default function LoginScreen({ navigation }) {
                 <Text style={styles.rememberText}>Remember me</Text>
               </View>
               <Pressable onPress={() => navigation.navigate("ForgotPassword")}>
-                <Text style={styles.forgotPasswordLink}>Forgot password?</Text>
+                <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
               </Pressable>
             </View>
 
@@ -818,14 +899,26 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   desktopRoot: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#001233',
+    backgroundColor: '#F5F7FA',
+  },
+  leftPanelWrapper: {
+    width: '48%',
+    borderTopRightRadius: 50,
+    borderBottomRightRadius: 50,
+    overflow: 'hidden',
+    shadowColor: '#002c6e',
+    shadowOffset: { width: 8, height: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 16,
+    zIndex: 2,
   },
   leftPanel: {
-    width: '44%',
+    flex: 1,
     minHeight: '100%',
     justifyContent: 'space-between',
-    padding: 80,
-    overflow: 'hidden',
+    padding: 85,
+    paddingVertical: 60
   },
   leftContent: {
     flex: 1,
@@ -834,40 +927,40 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   leftLogoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 36,
-    gap: 16,
+    marginBottom: 20,
+    gap: 6,
   },
   uaLogo: {
-    width: 92,
-    height: 92,
+    width: 100,
+    height: 100,
   },
   citLogo: {
-    width: 110,
-    height: 110,
+    width: 107,
+    height: 107,
   },
   leftTitle: {
     fontFamily: 'Inter_900Black',
-    fontSize: 44,
+    fontSize: 63,
     color: '#FFFFFF',
-    letterSpacing: -1,
-    lineHeight: 50,
-    marginBottom: 6,
+    letterSpacing: 0.5,
+    lineHeight: 70,
+    marginBottom: 14,
   },
   leftSubtitle: {
     fontFamily: 'Inter_700Bold',
-    fontSize: 13,
+    fontSize: 18,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: 2,
     textTransform: 'uppercase',
-    marginBottom: 28,
+    marginBottom: 30,
   },
   leftBody: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 16,
+    fontSize: 18,
     color: 'rgba(255,255,255,0.72)',
     lineHeight: 27,
-    maxWidth: 360,
-    marginBottom: 40,
+    maxWidth: 380,
+    marginBottom: 87,
   },
   pillRow: {
     flexDirection: 'column',
@@ -888,11 +981,11 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   pillText: {
     color: 'rgba(255,255,255,0.88)',
     fontFamily: 'Inter_500Medium',
-    fontSize: 13,
+    fontSize: 14,
   },
   watermark: {
     fontFamily: 'Inter_500Medium',
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.28)',
     letterSpacing: 0.5,
   },
@@ -908,48 +1001,41 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   },
   formContainer: {
     width: '100%',
-    maxWidth: 440,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 44,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.10,
-    shadowRadius: 32,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    maxWidth: 500,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   accentBar: {
-    height: 4,
-    width: 40,
+    height: 5,
+    width: 65,
     borderRadius: 2,
     backgroundColor: '#C9A84C',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   formGreeting: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 13,
+    fontSize: 18,
     color: '#94A3B8',
     marginBottom: 5,
     letterSpacing: 0.3,
   },
   formTitle: {
     fontFamily: 'Inter_900Black',
-    fontSize: 30,
-    color: '#0F172A',
-    letterSpacing: -0.8,
-    marginBottom: 6,
+    fontSize: 56,
+    color: '#002c6e',
+    letterSpacing: -0.5,
+    marginBottom: 8,
   },
   formSubtitle: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 13,
-    color: '#94A3B8',
-    marginBottom: 20,
+    fontSize: 16,
+    color: '#033681ff',
+    marginBottom: 36,
     lineHeight: 20,
   },
   inputSection: {
-    marginTop: 4,
+    marginBottom: 4,
   },
 
   // ── Mobile ───────────────────────────────────────────────────────────────
@@ -975,12 +1061,12 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     right: -50,
   },
   mobileUaLogo: {
-    width: 74,
-    height: 74,
+    width: 64,
+    height: 64,
   },
   mobileCitLogo: {
-    width: 88,
-    height: 88,
+    width: 66,
+    height: 66,
   },
   mobileLogoRow: {
     flexDirection: 'row',
@@ -991,20 +1077,23 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   },
   mobileAppName: {
     fontFamily: 'Inter_900Black',
-    fontSize: 22,
+    fontSize: 24,
     color: '#FFFFFF',
     letterSpacing: 2.5,
     marginBottom: 4,
   },
   mobileTagline: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.55)',
     letterSpacing: 0.5,
   },
   mobileFormScroll: {
     flex: 1,
+    marginTop: -20,
     backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   mobileFormContent: {
     paddingHorizontal: 24,
@@ -1015,24 +1104,26 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#C9A84C',
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 28,
   },
   mobileCardTitle: {
     fontFamily: 'Inter_900Black',
-    fontSize: 26,
-    color: '#0F172A',
+    fontSize: 32,
+    color: '#002c6e',
     letterSpacing: -0.6,
     marginBottom: 4,
+    textAlign: 'center',
   },
   mobileCardSubtitle: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 13,
-    color: '#94A3B8',
-    marginBottom: 8,
+    fontSize: 14,
+    color: '#002c6e',
+    marginBottom: 24,
     lineHeight: 20,
+    textAlign: 'center',
   },
 
   // ── Shared ───────────────────────────────────────────────────────────────
@@ -1040,7 +1131,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 6,
-    marginBottom: isMobile ? 22 : 35,
+    marginBottom: isMobile ? 22 : 46,
   },
   checkbox: {
     width: 20,
@@ -1063,8 +1154,8 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     fontSize: 13,
   },
   forgotPasswordLink: {
-    fontFamily: 'Inter_500Medium',
-    color: '#002366',
+    fontFamily: 'Inter_700Bold',
+    color: '#002c6e',
     fontSize: 13,
   },
   button: {
@@ -1103,12 +1194,12 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#d1d4d8ff',
   },
   dividerText: {
-    marginHorizontal: 14,
-    color: '#CBD5E1',
-    fontSize: 12,
+    marginHorizontal: 16,
+    color: '#94A3B8',
+    fontSize: 14,
     fontFamily: 'Roboto_400Regular',
   },
   googleButton: {
@@ -1118,7 +1209,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    paddingVertical: isMobile ? 13 : 14,
+    paddingVertical: isMobile ? 14 : 16,
     borderRadius: 14,
     marginBottom: 22,
     shadowColor: '#0F172A',
@@ -1133,7 +1224,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   },
   googleButtonText: {
     marginLeft: 10,
-    fontSize: isMobile ? 13 : 14,
+    fontSize: isMobile ? 14 : 16,
     color: '#334155',
     fontFamily: 'Inter_500Medium',
     fontWeight: '600',
@@ -1142,13 +1233,13 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
+    marginBottom: 40,
     gap: 4,
   },
   securityText: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 11,
-    color: '#CBD5E1',
+    fontSize: 13,
+    color: '#94A3B8',
   },
   registerText: {
     fontFamily: 'Roboto_400Regular',

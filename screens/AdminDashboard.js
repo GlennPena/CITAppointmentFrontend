@@ -14,6 +14,106 @@ import api from "../utils/api";
 import { Typography } from "../styles/theme";
 
 
+const Orb = ({ style, delay = 0 }) => {
+  const [translateY] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    const float = Animated.loop(
+      Animated.sequence([
+        Animated.timing(translateY, { toValue: 15, duration: 4000, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: -15, duration: 4000, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: 4000, useNativeDriver: true }),
+      ])
+    );
+    const timeout = setTimeout(() => float.start(), delay);
+    return () => {
+      clearTimeout(timeout);
+      float.stop();
+    };
+  }, [delay, translateY]);
+
+  return (
+    <Animated.View style={[{
+      position: 'absolute',
+      borderRadius: 999,
+      opacity: 0.18,
+    }, style, { transform: [{ translateY }] }]} />
+  );
+};
+
+const AnimatedNumber = ({ value, style, startAnimation = true }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!startAnimation) return;
+
+    let startValue = 0;
+    const duration = 1500;
+    const frames = 30;
+    const stepTime = Math.abs(Math.floor(duration / frames));
+    const increment = value / frames;
+
+    const timer = setInterval(() => {
+      startValue += increment;
+      if (startValue >= value) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(Math.ceil(startValue));
+      }
+    }, stepTime);
+
+    return () => clearInterval(timer);
+  }, [value, startAnimation]);
+
+  return <Text style={style}>{displayValue}</Text>;
+};
+
+const AnimatedBar = ({ percentage, color, startAnimation = true }) => {
+  const [widthAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    if (!startAnimation) return;
+
+    Animated.timing(widthAnim, {
+      toValue: percentage,
+      duration: 1500,
+      useNativeDriver: false,
+    }).start();
+  }, [percentage, startAnimation]);
+
+  return (
+    <View style={stylesStatic.progressBarBg}>
+      <Animated.View 
+        style={[
+          stylesStatic.progressBarFill, 
+          { 
+            backgroundColor: color,
+            width: widthAnim.interpolate({
+              inputRange: [0, 100],
+              outputRange: ['0%', '100%']
+            })
+          }
+        ]} 
+      />
+    </View>
+  );
+};
+
+const stylesStatic = StyleSheet.create({
+  progressBarBg: {
+    height: 8,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+});
+
+
 export default function AdminDashboard({ navigation }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -47,6 +147,12 @@ export default function AdminDashboard({ navigation }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [detailVisible, setDetailVisible] = useState(false);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0 });
+
+  // Scroll visibility states
+  const [analyticsScrollY, setAnalyticsScrollY] = useState(0);
+  const [distributionY, setDistributionY] = useState(1000);
+  const { height: screenHeight } = useWindowDimensions();
+  const isDistributionVisible = analyticsScrollY + screenHeight > distributionY + 100;
 
   // Personnel Management State
   const [personnel, setPersonnel] = useState([]);
@@ -342,13 +448,19 @@ export default function AdminDashboard({ navigation }) {
         style={{ flex: 1 }}
         contentContainerStyle={[styles.listContent, { paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={(e) => setAnalyticsScrollY(e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
       >
         <View style={styles.header}>
+          <Orb style={{ width: 120, height: 120, backgroundColor: '#4F8EF7', top: -30, left: -20 }} delay={0} />
+          <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', bottom: -50, right: -40 }} delay={1500} />
+          <Orb style={{ width: 100, height: 100, backgroundColor: '#60A5FA', top: '20%', right: '48%' }} delay={3000} />
+          <Orb style={{ width: 60, height: 60, backgroundColor: '#BFDBFE', bottom: '10%', left: '25%' }} delay={800} />
+          <Orb style={{ width: 150, height: 150, backgroundColor: '#3B82F6', top: -40, right: '25%' }} delay={2200} />
           <Text style={[styles.title, styles.pageTitle]}>Reports & Analytics</Text>
           <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 4 }}>
             Real-time consultation metrics and leaderboard statistics
           </Text>
-          <View style={styles.glassAccent} />
         </View>
 
         {/* METRICS ROW */}
@@ -368,24 +480,24 @@ export default function AdminDashboard({ navigation }) {
               <Text style={styles.analyticsCardTitle}>Top Faculty (Most Consultations)</Text>
             </View>
             <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-            <View style={styles.analyticsCardBody}>
-              {topFaculty.length === 0 ? (
-                <Text style={styles.emptyText}>No consultation data available.</Text>
-              ) : (
-                topFaculty.map((item, index) => (
-                  <View key={item.name} style={styles.leaderboardRow}>
-                    <View style={styles.leaderboardRankContainer}>
-                      <Text style={styles.leaderboardRankText}>#{index + 1}</Text>
+              <View style={styles.analyticsCardBody}>
+                {topFaculty.length === 0 ? (
+                  <Text style={styles.emptyText}>No consultation data available.</Text>
+                ) : (
+                  topFaculty.map((item, index) => (
+                    <View key={item.name} style={styles.leaderboardRow}>
+                      <View style={styles.leaderboardRankContainer}>
+                        <Text style={styles.leaderboardRankText}>#{index + 1}</Text>
+                      </View>
+                      <View style={styles.leaderboardInfo}>
+                        <Text style={styles.leaderboardName}>{item.name}</Text>
+                        <Text style={styles.leaderboardSub}>Completed: {item.completed} / Total: {item.total}</Text>
+                      </View>
+                      <AnimatedNumber value={item.total} style={styles.leaderboardCount} />
                     </View>
-                    <View style={styles.leaderboardInfo}>
-                      <Text style={styles.leaderboardName}>{item.name}</Text>
-                      <Text style={styles.leaderboardSub}>Completed: {item.completed} / Total: {item.total}</Text>
-                    </View>
-                    <Text style={styles.leaderboardCount}>{item.total}</Text>
-                  </View>
-                ))
-              )}
-            </View>
+                  ))
+                )}
+              </View>
             </ScrollView>
           </View>
 
@@ -396,30 +508,33 @@ export default function AdminDashboard({ navigation }) {
               <Text style={styles.analyticsCardTitle}>Top Students (Most Consultations)</Text>
             </View>
             <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-            <View style={styles.analyticsCardBody}>
-              {topStudents.length === 0 ? (
-                <Text style={styles.emptyText}>No student data available.</Text>
-              ) : (
-                topStudents.map((item, index) => (
-                  <View key={item.name} style={styles.leaderboardRow}>
-                    <View style={[styles.leaderboardRankContainer, { backgroundColor: '#E0F2FE' }]}>
-                      <Text style={[styles.leaderboardRankText, { color: '#0369A1' }]}>#{index + 1}</Text>
+              <View style={styles.analyticsCardBody}>
+                {topStudents.length === 0 ? (
+                  <Text style={styles.emptyText}>No student data available.</Text>
+                ) : (
+                  topStudents.map((item, index) => (
+                    <View key={item.name} style={styles.leaderboardRow}>
+                      <View style={[styles.leaderboardRankContainer, { backgroundColor: '#E0F2FE' }]}>
+                        <Text style={[styles.leaderboardRankText, { color: '#0369A1' }]}>#{index + 1}</Text>
+                      </View>
+                      <View style={styles.leaderboardInfo}>
+                        <Text style={styles.leaderboardName}>{item.name}</Text>
+                        <Text style={styles.leaderboardSub}>{item.email}</Text>
+                      </View>
+                      <AnimatedNumber value={item.total} style={styles.leaderboardCount} />
                     </View>
-                    <View style={styles.leaderboardInfo}>
-                      <Text style={styles.leaderboardName}>{item.name}</Text>
-                      <Text style={styles.leaderboardSub}>{item.email}</Text>
-                    </View>
-                    <Text style={styles.leaderboardCount}>{item.total}</Text>
-                  </View>
-                ))
-              )}
-            </View>
+                  ))
+                )}
+              </View>
             </ScrollView>
           </View>
         </View>
 
         {/* SERVICE AND STATUS BREAKDOWNS */}
-        <View style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }, { marginTop: 20 }]}>
+        <View 
+          style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }, { marginTop: 20 }]}
+          onLayout={(e) => setDistributionY(e.nativeEvent.layout.y)}
+        >
           {/* SERVICE BREAKDOWN */}
           <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
             <View style={styles.analyticsCardHeader}>
@@ -427,26 +542,26 @@ export default function AdminDashboard({ navigation }) {
               <Text style={styles.analyticsCardTitle}>Service Distribution</Text>
             </View>
             <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-            <View style={styles.analyticsCardBody}>
-              {topServices.length === 0 ? (
-                <Text style={styles.emptyText}>No services logged.</Text>
-              ) : (
-                topServices.map((item) => {
-                  const percentage = totalAppointments > 0 ? ((item.count / totalAppointments) * 100).toFixed(0) : 0;
-                  return (
-                    <View key={item.service} style={styles.distributionRow}>
-                      <View style={styles.distributionLabelRow}>
-                        <Text style={styles.distributionLabel}>{item.service}</Text>
-                        <Text style={styles.distributionValue}>{item.count} ({percentage}%)</Text>
+              <View style={styles.analyticsCardBody}>
+                {topServices.length === 0 ? (
+                  <Text style={styles.emptyText}>No services logged.</Text>
+                ) : (
+                  topServices.map((item) => {
+                    const percentage = totalAppointments > 0 ? ((item.count / totalAppointments) * 100).toFixed(0) : 0;
+                    return (
+                      <View key={item.service} style={styles.distributionRow}>
+                        <View style={styles.distributionLabelRow}>
+                          <Text style={styles.distributionLabel}>{item.service}</Text>
+                          <Text style={[Typography.bodySmall, styles.distributionValue]}>
+                            <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({percentage}%)
+                          </Text>
+                        </View>
+                        <AnimatedBar percentage={percentage} color="#10B981" startAnimation={isDistributionVisible} />
                       </View>
-                      <View style={styles.progressBarBg}>
-                        <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: '#10B981' }]} />
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </View>
+                    );
+                  })
+                )}
+              </View>
             </ScrollView>
           </View>
 
@@ -468,12 +583,12 @@ export default function AdminDashboard({ navigation }) {
                 return (
                   <View key={item.status} style={styles.distributionRow}>
                     <View style={styles.distributionLabelRow}>
-                      <Text style={styles.distributionLabel}>{item.status}</Text>
-                      <Text style={styles.distributionValue}>{item.count} ({item.percentage}%)</Text>
+                      <Text style={[Typography.bodyMedium, styles.distributionLabel]}>{item.status}</Text>
+                      <Text style={[Typography.bodySmall, styles.distributionValue]}>
+                        <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({item.percentage}%)
+                      </Text>
                     </View>
-                    <View style={styles.progressBarBg}>
-                      <View style={[styles.progressBarFill, { width: `${item.percentage}%`, backgroundColor: barColor }]} />
-                    </View>
+                    <AnimatedBar percentage={item.percentage} color={barColor} startAnimation={isDistributionVisible} />
                   </View>
                 );
               })}
@@ -492,499 +607,511 @@ export default function AdminDashboard({ navigation }) {
         imageStyle={styles.backgroundImage}
         resizeMode="cover"
       >
-      <View style={[
-        styles.dashboardLayout,
-        isMobile && { flexDirection: 'column' }
-      ]}>
         <View style={[
-          styles.sidebar,
-          isMobile && styles.sidebarMobile,
+          styles.dashboardLayout,
+          isMobile && { flexDirection: 'column' }
         ]}>
-          {!isMobile && (
-            <Text style={styles.sidebarTitle}>Admin Menu</Text>
-          )}
+          <View style={[
+            styles.sidebar,
+            isMobile && styles.sidebarMobile,
+          ]}>
+            {!isMobile && (
+              <Text style={styles.sidebarTitle}>Admin Menu</Text>
+            )}
 
-          {isMobile ? (
-            // Mobile: horizontal scrollable tab bar, icon + label stacked
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.mobileNavScroll}
-            >
-              {[
-                { key: 'Overview', icon: 'view-dashboard-outline', label: 'Overview' },
-                { key: 'Students', icon: 'account-group', label: 'Students' },
-                { key: 'Personnel', icon: 'account-circle', label: 'Accounts' },
-                { key: 'Analytics', icon: 'chart-bar', label: 'Analytics' },
-              ].map((item) => (
-                <Pressable
-                  key={item.key}
-                  onPress={() => setSidebarSelection(item.key)}
-                  style={({ pressed }) => [
-                    styles.mobileNavItem,
-                    sidebarSelection === item.key && styles.mobileNavItemActive,
-                    pressed && styles.sidebarItemPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={item.icon}
-                    size={22}
-                    color={sidebarSelection === item.key ? '#FFFFFF' : '#64748B'}
-                  />
-                  <Text style={[
-                    styles.mobileNavLabel,
-                    sidebarSelection === item.key && styles.mobileNavLabelActive,
-                  ]}>{item.label}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          ) : (
-            // Desktop: vertical sidebar items
-            <View style={{ flexDirection: 'column' }}>
-              {[
-                { key: 'Overview', icon: 'view-dashboard-outline', label: 'Overview' },
-                { key: 'Students', icon: 'account-group', label: 'Students' },
-                { key: 'Personnel', icon: 'account-circle', label: 'Accounts' },
-                { key: 'Analytics', icon: 'chart-bar', label: 'Analytics' },
-              ].map((item) => (
-                <Pressable
-                  key={item.key}
-                  onPress={() => setSidebarSelection(item.key)}
-                  style={({ pressed, hovered }) => [
-                    styles.sidebarItem,
-                    sidebarSelection === item.key ? styles.sidebarItemActive : (hovered && styles.sidebarItemHover),
-                    sidebarSelection === item.key && hovered && styles.sidebarItemActiveHover,
-                    pressed && styles.sidebarItemPressed,
-                  ]}
-                >
-                  <View style={styles.sidebarItemRow}>
+            {isMobile ? (
+              // Mobile: horizontal scrollable tab bar, icon + label stacked
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.mobileNavScroll}
+              >
+                {[
+                  { key: 'Overview', icon: 'view-dashboard-outline', label: 'Overview' },
+                  { key: 'Students', icon: 'account-group', label: 'Students' },
+                  { key: 'Personnel', icon: 'account-circle', label: 'Accounts' },
+                  { key: 'Analytics', icon: 'chart-bar', label: 'Analytics' },
+                ].map((item) => (
+                  <Pressable
+                    key={item.key}
+                    onPress={() => setSidebarSelection(item.key)}
+                    style={({ pressed }) => [
+                      styles.mobileNavItem,
+                      sidebarSelection === item.key && styles.mobileNavItemActive,
+                      pressed && styles.sidebarItemPressed,
+                    ]}
+                  >
                     <MaterialCommunityIcons
                       name={item.icon}
                       size={22}
                       color={sidebarSelection === item.key ? '#FFFFFF' : '#64748B'}
                     />
-                    <Text style={[styles.sidebarItemText, sidebarSelection === item.key && styles.sidebarItemTextActive]}>
-                      {item.label}
-                    </Text>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
-
-        <View style={[
-          styles.contentArea,
-          isMobile && { padding: 12 }
-        ]}>
-          <Toast
-            visible={toast.visible}
-            message={toast.message}
-            type={toast.type}
-            onHide={() => setToast({ ...toast, visible: false })}
-          />
-
-          {sidebarSelection === 'Overview' ? (
-            <FlatList
-              data={filteredAppointments}
-              keyExtractor={item => item.id.toString()}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>No records found.</Text>
-              }
-              ListHeaderComponent={
-                <>
-                  <View style={styles.header}>
                     <Text style={[
-                      styles.title,
-                      styles.pageTitle,
-                      isMobile && { fontSize: 22, lineHeight: 28 }
-                    ]}>
-                      System Administration
-                    </Text>
-
-                    <Toast
-                      visible={!!error}
-                      message={error}
-                      type="error"
-                      onHide={() => setError(null)}
-                    />
-
-                    <View style={styles.searchContainer}>
-                      <MaterialCommunityIcons name="magnify" size={20} color="#FFFFFF" />
-                      <TextInput
-                        placeholder="Search records..."
-                        placeholderTextColor="rgba(255,255,255,0.75)"
-                        style={styles.searchInput}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                      />
-                    </View>
-                    <View style={styles.glassAccent} />
-                  </View>
-
-
-                  <View style={[
-                    styles.statsRow,
-                    isMobile && { gap: 10 }
-                  ]}>
-                    <StatBox label="Total" value={stats.total} color="#0F172A" icon="file-document-outline" />
-                    <StatBox label="Pending" value={stats.pending} color="#F59E0B" icon="clock-outline" />
-                    <StatBox label="Approved" value={stats.approved} color="#10B981" icon="check-circle-outline" />
-                  </View>
-
-                  <Text style={styles.sectionTitle}>Records</Text>
-
-                  <View style={styles.filter}>
-                    <StatusFilter
-                      options={filterOptions}
-                      activeFilter={activeFilter}
-                      onSelect={setActiveFilter}
-                    />
-                  </View>
-                </>
-              }
-              renderItem={({ item }) => (
-                <AdminAppointmentRow
-                  item={item}
-                  onDelete={requestDelete}
-                  onViewDetails={(pt) => {
-                    setSelectedStudent(pt);
-                    setDetailVisible(true);
-                  }}
-                />
-              )}
-            />
-
-          ) : sidebarSelection === 'Students' ? (
-            <FlatList
-              data={students.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))}
-              keyExtractor={item => item.id.toString()}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>No students found.</Text>
-              }
-              ListHeaderComponent={
-                <>
-                  <View style={styles.header}>
-                    <Text style={[styles.title, styles.pageTitle]}>
-                      Students
-                    </Text>
-
-                    <View style={styles.searchContainer}>
-                      <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
-                      <TextInput
-                        placeholder="Search students..."
-                        style={styles.searchInput}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                      />
-                    </View>
-                    <View style={styles.glassAccent} />
-                  </View>
-
-                  <Text style={styles.sectionTitle}>All Students ({students.length})</Text>
-                </>
-              }
-              renderItem={({ item }) => (
-                <View style={[
-                  styles.patientRow,
-                  isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
-                ]}>
-                  <View style={styles.patientInfo}>
-                    <Text style={styles.patientName}>{item.name}</Text>
-                    <Text style={styles.patientEmail}>{item.email}</Text>
-                  </View>
-                  <View style={styles.patientMeta}>
-                    <MaterialCommunityIcons name="calendar-multiple" size={16} color="#94A3B8" />
-                    <Text style={styles.appointmentCount}>{item.appointmentCount} appointments</Text>
-                  </View>
-                </View>
-              )}
-            />
-          ) : sidebarSelection === 'Personnel' ? (
-            <FlatList
-              data={filteredPersonnel}
-              keyExtractor={item => item.id.toString()}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>No personnel records found.</Text>
-              }
-              ListHeaderComponent={
-                <>
-                  <View style={styles.header}>
-                    <Text style={[styles.title, styles.pageTitle]}>
-                      Account Management
-                    </Text>
-
-                    <View style={styles.searchContainer}>
-                      <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
-                      <TextInput
-                        placeholder="Search Account..."
-                        style={styles.searchInput}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                      />
-                    </View>
-                    <View style={styles.glassAccent} />
-                  </View>
-
-
-                  <View style={[styles.row]}>
-                    <View style={[styles.flex, { marginRight: 80 }]}>
-                      <Text style={styles.sectionTitle}>User Accounts ({personnel.length})</Text>
-                    </View>
-
-                    <View style={styles.flex}>
-                      <Pressable
-                        onPress={() => setShowAddPersonnelModal(true)}
-                        style={({ pressed }) => [
-                          styles.addButton,
-                          pressed && styles.addButtonPressed
-                        ]}
-                      >
-                        <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
-                        <Text style={styles.addButtonText}>Add</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-
-                  <View style={styles.filter}>
-                    <StatusFilter
-                      options={accountFilterOptions}
-                      activeFilter={accountFilter}
-                      onSelect={setAccountFilter}
-                    />
-                  </View>
-                </>
-              }
-              renderItem={({ item }) => (
-                <View style={[
-                  styles.personnelRow,
-                  isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
-                ]}>
-                  <View style={styles.personnelInfo}>
-                    <Text style={styles.personnelName}>{item.first_name} {item.last_name}</Text>
-                    <Text style={styles.personnelEmail}>{item.email}</Text>
-                    {item.contact_number && (
-                      <Text style={styles.personnelContact}>{item.contact_number}</Text>
-                    )}
-                  </View>
-                  <View style={styles.personnelMeta}>
-                    <View style={[styles.roleBadge, item.role === 'faculty' && styles.roleBadgeFaculty]}>
-                      <Text style={styles.roleBadgeText}>{item.role || 'Staff'}</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-                      <Pressable onPress={() => requestPasswordReset(item)}>
-                        <MaterialCommunityIcons name="key-variant" size={20} color="#0052FF" />
-                      </Pressable>
-                      <Pressable onPress={() => requestUserDelete(item.id)}>
-                        <MaterialCommunityIcons name="delete" size={20} color="#EF4444" />
-                      </Pressable>
-                    </View>
-                  </View>
-                </View>
-              )}
-            />
-          ) : sidebarSelection === 'Analytics' ? (
-            renderAnalyticsView()
-          ) : (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={styles.emptyText}>Settings coming soon.</Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <ConfirmModal
-        visible={confirmUserDelete.visible}
-        title="Delete User?"
-        message="This account will be permanently deleted."
-        confirmText="Delete"
-        isDestructive={true}
-        onConfirm={executeUserDelete}
-        onCancel={() => setConfirmUserDelete({ visible: false, id: null })}
-      />
-
-      <ConfirmModal
-        visible={confirmDelete.visible}
-        title="Delete Appointment?"
-        message="This action cannot be undone. The record will be permanently removed from the system."
-        confirmText="Delete Now"
-        isDestructive={true}
-        onConfirm={executeDelete}
-        onCancel={() => setConfirmDelete({ visible: false, id: null })}
-      />
-
-      <StudentDetailModal
-        visible={detailVisible}
-        item={selectedStudent}
-        onClose={() => setDetailVisible(false)}
-        onAction={() => { }}
-      />
-
-      {/* Add Personnel Modal */}
-      {showAddPersonnelModal && (
-        <View style={styles.modalOverlay}>
-          <View style={[
-            styles.modalContent,
-            isMobile && { width: '95%', maxHeight: '95%' }
-          ]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Personnel Account</Text>
-              <Pressable onPress={() => setShowAddPersonnelModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#0F172A" />
-              </Pressable>
-            </View>
-
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={true}>
-              <Text style={styles.inputLabel}>Username *</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter username"
-                value={personnelForm.username}
-                onChangeText={(text) => setPersonnelForm({ ...personnelForm, username: text })}
-                autoCapitalize="none"
-              />
-
-              <Text style={styles.inputLabel}>First Name *</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter first name"
-                value={personnelForm.firstName}
-                onChangeText={(text) => setPersonnelForm({ ...personnelForm, firstName: text })}
-              />
-
-              <Text style={styles.inputLabel}>Last Name *</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter last name"
-                value={personnelForm.lastName}
-                onChangeText={(text) => setPersonnelForm({ ...personnelForm, lastName: text })}
-              />
-
-              <Text style={styles.inputLabel}>Email *</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter email"
-                value={personnelForm.email}
-                onChangeText={(text) => setPersonnelForm({ ...personnelForm, email: text })}
-                keyboardType="email-address"
-              />
-
-              <Text style={styles.inputLabel}>Contact Number</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter contact number"
-                value={personnelForm.contact}
-                onChangeText={(text) => setPersonnelForm({ ...personnelForm, contact: text })}
-                keyboardType="phone-pad"
-              />
-
-              <Text style={styles.inputLabel}>Role *</Text>
-              <View style={styles.roleSelector}>
-                {['faculty', 'dean', 'admin'].map((role) => (
+                      styles.mobileNavLabel,
+                      sidebarSelection === item.key && styles.mobileNavLabelActive,
+                    ]}>{item.label}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : (
+              // Desktop: vertical sidebar items
+              <View style={{ flexDirection: 'column' }}>
+                {[
+                  { key: 'Overview', icon: 'view-dashboard-outline', label: 'Overview' },
+                  { key: 'Students', icon: 'account-group', label: 'Students' },
+                  { key: 'Personnel', icon: 'account-circle', label: 'Accounts' },
+                  { key: 'Analytics', icon: 'chart-bar', label: 'Analytics' },
+                ].map((item) => (
                   <Pressable
-                    key={role}
-                    onPress={() => setPersonnelForm({ ...personnelForm, role })}
-                    style={[
-                      styles.roleOption,
-                      personnelForm.role === role && styles.roleOptionActive
+                    key={item.key}
+                    onPress={() => setSidebarSelection(item.key)}
+                    style={({ pressed, hovered }) => [
+                      styles.sidebarItem,
+                      sidebarSelection === item.key ? styles.sidebarItemActive : (hovered && styles.sidebarItemHover),
+                      sidebarSelection === item.key && hovered && styles.sidebarItemActiveHover,
+                      pressed && styles.sidebarItemPressed,
                     ]}
                   >
-                    <Text style={[
-                      styles.roleOptionText,
-                      personnelForm.role === role && styles.roleOptionTextActive
-                    ]}>
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
-                    </Text>
+                    <View style={styles.sidebarItemRow}>
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={22}
+                        color={sidebarSelection === item.key ? '#FFFFFF' : '#64748B'}
+                      />
+                      <Text style={[styles.sidebarItemText, sidebarSelection === item.key && styles.sidebarItemTextActive]}>
+                        {item.label}
+                      </Text>
+                    </View>
                   </Pressable>
                 ))}
               </View>
-
-              <Text style={styles.inputLabel}>Password *</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter password"
-                value={personnelForm.password}
-                onChangeText={(text) => setPersonnelForm({ ...personnelForm, password: text })}
-                secureTextEntry={true}
-              />
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <Pressable
-                onPress={() => setShowAddPersonnelModal(false)}
-                style={styles.cancelButton}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleAddPersonnel}
-                style={styles.confirmButton}
-              >
-                <Text style={styles.confirmButtonText}>Create Account</Text>
-              </Pressable>
-            </View>
+            )}
           </View>
-        </View>
-      )}
 
-      {/* Reset Password Modal */}
-      {showResetPasswordModal && (
-        <View style={styles.modalOverlay}>
           <View style={[
-            styles.modalContent,
-            isMobile && { width: '95%', maxHeight: '95%' }
+            styles.contentArea,
+            isMobile && { padding: 12 }
           ]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Reset Password</Text>
-              <Pressable onPress={() => setShowResetPasswordModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#0F172A" />
-              </Pressable>
-            </View>
+            <Toast
+              visible={toast.visible}
+              message={toast.message}
+              type={toast.type}
+              onHide={() => setToast({ ...toast, visible: false })}
+            />
 
-            <View style={styles.modalBody}>
-              <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 16 }}>
-                Resetting password for: <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>{selectedUserForReset?.first_name} {selectedUserForReset?.last_name} ({selectedUserForReset?.username})</Text>
-              </Text>
+            {sidebarSelection === 'Overview' ? (
+              <FlatList
+                data={filteredAppointments}
+                keyExtractor={item => item.id.toString()}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>No records found.</Text>
+                }
+                ListHeaderComponent={
+                  <>
+                    <View style={styles.header}>
+                      <Orb style={{ width: 120, height: 120, backgroundColor: '#4F8EF7', top: -30, left: -20 }} delay={0} />
+                      <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', bottom: -50, right: -40 }} delay={1500} />
+                      <Orb style={{ width: 100, height: 100, backgroundColor: '#60A5FA', top: '20%', right: '48%' }} delay={3000} />
+                      <Orb style={{ width: 60, height: 60, backgroundColor: '#BFDBFE', bottom: '10%', left: '25%' }} delay={800} />
+                      <Orb style={{ width: 150, height: 150, backgroundColor: '#3B82F6', top: -40, right: '25%' }} delay={2200} />
+                      <Text style={[
+                        styles.title,
+                        styles.pageTitle,
+                        isMobile && { fontSize: 22, lineHeight: 28 }
+                      ]}>
+                        System Administration
+                      </Text>
 
-              <Text style={styles.inputLabel}>New Password *</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter new password"
-                value={resetPasswordForm.password}
-                onChangeText={(text) => setResetPasswordForm({ ...resetPasswordForm, password: text })}
-                secureTextEntry={true}
+                      <Toast
+                        visible={!!error}
+                        message={error}
+                        type="error"
+                        onHide={() => setError(null)}
+                      />
+
+                      <View style={styles.searchContainer}>
+                        <MaterialCommunityIcons name="magnify" size={20} color="#FFFFFF" />
+                        <TextInput
+                          placeholder="Search records..."
+                          placeholderTextColor="rgba(255,255,255,0.75)"
+                          style={styles.searchInput}
+                          value={searchQuery}
+                          onChangeText={setSearchQuery}
+                        />
+                      </View>
+                    </View>
+
+
+                    <View style={[
+                      styles.statsRow,
+                      isMobile && { gap: 10 }
+                    ]}>
+                      <StatBox label="Total" value={stats.total} color="#0F172A" icon="file-document-outline" />
+                      <StatBox label="Pending" value={stats.pending} color="#F59E0B" icon="clock-outline" />
+                      <StatBox label="Approved" value={stats.approved} color="#10B981" icon="check-circle-outline" />
+                    </View>
+
+                    <Text style={styles.sectionTitle}>Records</Text>
+
+                    <View style={styles.filter}>
+                      <StatusFilter
+                        options={filterOptions}
+                        activeFilter={activeFilter}
+                        onSelect={setActiveFilter}
+                      />
+                    </View>
+                  </>
+                }
+                renderItem={({ item }) => (
+                  <AdminAppointmentRow
+                    item={item}
+                    onDelete={requestDelete}
+                    onViewDetails={(pt) => {
+                      setSelectedStudent(pt);
+                      setDetailVisible(true);
+                    }}
+                  />
+                )}
               />
 
-              <Text style={styles.inputLabel}>Confirm New Password *</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Confirm new password"
-                value={resetPasswordForm.confirmPassword}
-                onChangeText={(text) => setResetPasswordForm({ ...resetPasswordForm, confirmPassword: text })}
-                secureTextEntry={true}
-              />
-            </View>
+            ) : sidebarSelection === 'Students' ? (
+              <FlatList
+                data={students.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))}
+                keyExtractor={item => item.id.toString()}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>No students found.</Text>
+                }
+                ListHeaderComponent={
+                  <>
+                    <View style={styles.header}>
+                      <Orb style={{ width: 120, height: 120, backgroundColor: '#4F8EF7', top: -30, left: -20 }} delay={0} />
+                      <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', bottom: -50, right: -40 }} delay={1500} />
+                      <Orb style={{ width: 100, height: 100, backgroundColor: '#60A5FA', top: '20%', right: '48%' }} delay={3000} />
+                      <Orb style={{ width: 60, height: 60, backgroundColor: '#BFDBFE', bottom: '10%', left: '25%' }} delay={800} />
+                      <Orb style={{ width: 150, height: 150, backgroundColor: '#3B82F6', top: -40, right: '25%' }} delay={2200} />
+                      <Text style={[styles.title, styles.pageTitle]}>
+                        Students
+                      </Text>
 
-            <View style={styles.modalFooter}>
-              <Pressable
-                onPress={() => setShowResetPasswordModal(false)}
-                style={styles.cancelButton}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleResetPassword}
-                style={styles.confirmButton}
-              >
-                <Text style={styles.confirmButtonText}>Reset Password</Text>
-              </Pressable>
-            </View>
+                      <View style={styles.searchContainer}>
+                        <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
+                        <TextInput
+                          placeholder="Search students..."
+                          style={styles.searchInput}
+                          value={searchQuery}
+                          onChangeText={setSearchQuery}
+                        />
+                      </View>
+                    </View>
+
+                    <Text style={styles.sectionTitle}>All Students ({students.length})</Text>
+                  </>
+                }
+                renderItem={({ item }) => (
+                  <View style={[
+                    styles.patientRow,
+                    isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
+                  ]}>
+                    <View style={styles.patientInfo}>
+                      <Text style={styles.patientName}>{item.name}</Text>
+                      <Text style={styles.patientEmail}>{item.email}</Text>
+                    </View>
+                    <View style={styles.patientMeta}>
+                      <MaterialCommunityIcons name="calendar-multiple" size={16} color="#94A3B8" />
+                      <Text style={styles.appointmentCount}>{item.appointmentCount} appointments</Text>
+                    </View>
+                  </View>
+                )}
+              />
+            ) : sidebarSelection === 'Personnel' ? (
+              <FlatList
+                data={filteredPersonnel}
+                keyExtractor={item => item.id.toString()}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>No personnel records found.</Text>
+                }
+                ListHeaderComponent={
+                  <>
+                    <View style={styles.header}>
+                      <Orb style={{ width: 120, height: 120, backgroundColor: '#4F8EF7', top: -30, left: -20 }} delay={0} />
+                      <Orb style={{ width: 180, height: 180, backgroundColor: '#93C5FD', bottom: -50, right: -40 }} delay={1500} />
+                      <Orb style={{ width: 100, height: 100, backgroundColor: '#60A5FA', top: '20%', right: '48%' }} delay={3000} />
+                      <Orb style={{ width: 60, height: 60, backgroundColor: '#BFDBFE', bottom: '10%', left: '25%' }} delay={800} />
+                      <Orb style={{ width: 150, height: 150, backgroundColor: '#3B82F6', top: -40, right: '25%' }} delay={2200} />
+                      <Text style={[styles.title, styles.pageTitle]}>
+                        Account Management
+                      </Text>
+
+                      <View style={styles.searchContainer}>
+                        <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
+                        <TextInput
+                          placeholder="Search Account..."
+                          style={styles.searchInput}
+                          value={searchQuery}
+                          onChangeText={setSearchQuery}
+                        />
+                      </View>
+                    </View>
+
+
+                    <View style={[styles.row]}>
+                      <View style={[styles.flex, { marginRight: 80 }]}>
+                        <Text style={styles.sectionTitle}>User Accounts ({personnel.length})</Text>
+                      </View>
+
+                      <View style={styles.flex}>
+                        <Pressable
+                          onPress={() => setShowAddPersonnelModal(true)}
+                          style={({ pressed }) => [
+                            styles.addButton,
+                            pressed && styles.addButtonPressed
+                          ]}
+                        >
+                          <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+                          <Text style={styles.addButtonText}>Add</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    <View style={styles.filter}>
+                      <StatusFilter
+                        options={accountFilterOptions}
+                        activeFilter={accountFilter}
+                        onSelect={setAccountFilter}
+                      />
+                    </View>
+                  </>
+                }
+                renderItem={({ item }) => (
+                  <View style={[
+                    styles.personnelRow,
+                    isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
+                  ]}>
+                    <View style={styles.personnelInfo}>
+                      <Text style={styles.personnelName}>{item.first_name} {item.last_name}</Text>
+                      <Text style={styles.personnelEmail}>{item.email}</Text>
+                      {item.contact_number && (
+                        <Text style={styles.personnelContact}>{item.contact_number}</Text>
+                      )}
+                    </View>
+                    <View style={styles.personnelMeta}>
+                      <View style={[styles.roleBadge, item.role === 'faculty' && styles.roleBadgeFaculty]}>
+                        <Text style={styles.roleBadgeText}>{item.role || 'Staff'}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                        <Pressable onPress={() => requestPasswordReset(item)}>
+                          <MaterialCommunityIcons name="key-variant" size={20} color="#0052FF" />
+                        </Pressable>
+                        <Pressable onPress={() => requestUserDelete(item.id)}>
+                          <MaterialCommunityIcons name="delete" size={20} color="#EF4444" />
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              />
+            ) : sidebarSelection === 'Analytics' ? (
+              renderAnalyticsView()
+            ) : (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={styles.emptyText}>Settings coming soon.</Text>
+              </View>
+            )}
           </View>
         </View>
-      )}
+
+        <ConfirmModal
+          visible={confirmUserDelete.visible}
+          title="Delete User?"
+          message="This account will be permanently deleted."
+          confirmText="Delete"
+          isDestructive={true}
+          onConfirm={executeUserDelete}
+          onCancel={() => setConfirmUserDelete({ visible: false, id: null })}
+        />
+
+        <ConfirmModal
+          visible={confirmDelete.visible}
+          title="Delete Appointment?"
+          message="This action cannot be undone. The record will be permanently removed from the system."
+          confirmText="Delete Now"
+          isDestructive={true}
+          onConfirm={executeDelete}
+          onCancel={() => setConfirmDelete({ visible: false, id: null })}
+        />
+
+        <StudentDetailModal
+          visible={detailVisible}
+          item={selectedStudent}
+          onClose={() => setDetailVisible(false)}
+          onAction={() => { }}
+        />
+
+        {/* Add Personnel Modal */}
+        {showAddPersonnelModal && (
+          <View style={styles.modalOverlay}>
+            <View style={[
+              styles.modalContent,
+              isMobile && { width: '95%', maxHeight: '95%' }
+            ]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Create Personnel Account</Text>
+                <Pressable onPress={() => setShowAddPersonnelModal(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#0F172A" />
+                </Pressable>
+              </View>
+
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={true}>
+                <Text style={styles.inputLabel}>Username *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter username"
+                  value={personnelForm.username}
+                  onChangeText={(text) => setPersonnelForm({ ...personnelForm, username: text })}
+                  autoCapitalize="none"
+                />
+
+                <Text style={styles.inputLabel}>First Name *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter first name"
+                  value={personnelForm.firstName}
+                  onChangeText={(text) => setPersonnelForm({ ...personnelForm, firstName: text })}
+                />
+
+                <Text style={styles.inputLabel}>Last Name *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter last name"
+                  value={personnelForm.lastName}
+                  onChangeText={(text) => setPersonnelForm({ ...personnelForm, lastName: text })}
+                />
+
+                <Text style={styles.inputLabel}>Email *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter email"
+                  value={personnelForm.email}
+                  onChangeText={(text) => setPersonnelForm({ ...personnelForm, email: text })}
+                  keyboardType="email-address"
+                />
+
+                <Text style={styles.inputLabel}>Contact Number</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter contact number"
+                  value={personnelForm.contact}
+                  onChangeText={(text) => setPersonnelForm({ ...personnelForm, contact: text })}
+                  keyboardType="phone-pad"
+                />
+
+                <Text style={styles.inputLabel}>Role *</Text>
+                <View style={styles.roleSelector}>
+                  {['faculty', 'dean', 'admin'].map((role) => (
+                    <Pressable
+                      key={role}
+                      onPress={() => setPersonnelForm({ ...personnelForm, role })}
+                      style={[
+                        styles.roleOption,
+                        personnelForm.role === role && styles.roleOptionActive
+                      ]}
+                    >
+                      <Text style={[
+                        styles.roleOptionText,
+                        personnelForm.role === role && styles.roleOptionTextActive
+                      ]}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <Text style={styles.inputLabel}>Password *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter password"
+                  value={personnelForm.password}
+                  onChangeText={(text) => setPersonnelForm({ ...personnelForm, password: text })}
+                  secureTextEntry={true}
+                />
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <Pressable
+                  onPress={() => setShowAddPersonnelModal(false)}
+                  style={styles.cancelButton}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleAddPersonnel}
+                  style={styles.confirmButton}
+                >
+                  <Text style={styles.confirmButtonText}>Create Account</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Reset Password Modal */}
+        {showResetPasswordModal && (
+          <View style={styles.modalOverlay}>
+            <View style={[
+              styles.modalContent,
+              isMobile && { width: '95%', maxHeight: '95%' }
+            ]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Reset Password</Text>
+                <Pressable onPress={() => setShowResetPasswordModal(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#0F172A" />
+                </Pressable>
+              </View>
+
+              <View style={styles.modalBody}>
+                <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 16 }}>
+                  Resetting password for: <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>{selectedUserForReset?.first_name} {selectedUserForReset?.last_name} ({selectedUserForReset?.username})</Text>
+                </Text>
+
+                <Text style={styles.inputLabel}>New Password *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter new password"
+                  value={resetPasswordForm.password}
+                  onChangeText={(text) => setResetPasswordForm({ ...resetPasswordForm, password: text })}
+                  secureTextEntry={true}
+                />
+
+                <Text style={styles.inputLabel}>Confirm New Password *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Confirm new password"
+                  value={resetPasswordForm.confirmPassword}
+                  onChangeText={(text) => setResetPasswordForm({ ...resetPasswordForm, confirmPassword: text })}
+                  secureTextEntry={true}
+                />
+              </View>
+
+              <View style={styles.modalFooter}>
+                <Pressable
+                  onPress={() => setShowResetPasswordModal(false)}
+                  style={styles.cancelButton}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleResetPassword}
+                  style={styles.confirmButton}
+                >
+                  <Text style={styles.confirmButtonText}>Reset Password</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
       </ImageBackground>
     </Animated.View>
   );
@@ -997,7 +1124,10 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   header: {
     marginBottom: 24,
-    padding: 24,
+    paddingVertical: isMobile ? 24 : 30,
+    paddingHorizontal: isMobile ? 24 : 40,
+    minHeight: 180,
+    justifyContent: 'center',
     borderRadius: 24,
     backgroundColor: '#002366',
     borderBottomWidth: 0,
@@ -1484,6 +1614,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     paddingBottom: 10,
   },
   analyticsCardTitle: {
+    ...Typography.header,
     fontSize: isMobile ? 15 : 17,
     fontWeight: '700',
     color: '#1E293B',
@@ -1516,6 +1647,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     flex: 1,
   },
   leaderboardName: {
+    fontFamily: Typography.header.fontFamily,
     fontSize: 14,
     fontWeight: '600',
     color: '#0F172A',
@@ -1526,6 +1658,7 @@ const getStyles = (isMobile) => StyleSheet.create({
     marginTop: 2,
   },
   leaderboardCount: {
+    fontFamily: Typography.header.fontFamily,
     fontSize: 16,
     fontWeight: '800',
     color: '#002366',

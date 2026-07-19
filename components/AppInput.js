@@ -66,7 +66,7 @@ export const AppInput = ({
 
   return (
     <View style={styles.container}>
-      <Animated.Text style={labelStyle} pointerEvents="none">
+      <Animated.Text style={[labelStyle, { pointerEvents: 'none' }]}>
         {label === 'Date of Birth' && showHint
           ? 'Date of Birth (YYYY-MM-DD)'
           : label === 'Course' && showHint

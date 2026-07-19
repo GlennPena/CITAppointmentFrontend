@@ -6,8 +6,9 @@ import api from "../utils/api";
 
 import StudentHistoryCard from "../components/StudentHistoryCard";
 import StudentHistoryModal from "../components/StudentHistoryModal";
+import AppFooter from "../components/AppFooter";
 
-export default function StudentHistory() {
+export default function StudentHistory({ navigation }) {
 
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -95,7 +96,7 @@ export default function StudentHistory() {
         style={[styles.container]}
         resizeMode="repeat"
       >
-        <View>
+        <View style={styles.mainWrapper}>
           <View style={styles.searchContainer}>
             <MaterialCommunityIcons name="magnify" size={24} color="#94A3B8" />
             <TextInput 
@@ -137,6 +138,7 @@ export default function StudentHistory() {
             appointments={studentAppointments}
           />
         </View>
+        <AppFooter userRole="faculty" navigation={navigation} />
       </ImageBackground>
     </ScrollView>
   );
@@ -146,14 +148,19 @@ const getStyles = (isMobile, isDesktop, width) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mainWrapper: {
+    minHeight: '90vh',
+    width: '100%',
+    paddingHorizontal: isMobile ? 12 : 50, 
+    paddingTop: 16
   },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
     width: '100%',
     height: '100%', 
-    paddingHorizontal: isMobile ? 12 : 50, 
-    paddingTop: 16
   },
   searchContainer: { 
     marginTop: 16,

@@ -36,28 +36,13 @@ export default function MeetingHistoryCard({ meeting, onPress }) {
 
         <View style={styles.divider} />
 
-        <View style={styles.detailsRow}>
-          <View style={styles.detailItem}>
-            <MaterialCommunityIcons name="calendar-outline" size={16} color="#64748B" />
-            <Text style={styles.detailText}>{formattedDate}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <MaterialCommunityIcons name="clock-outline" size={16} color="#64748B" />
-            <Text style={styles.detailText}>{formattedTime}</Text>
-          </View>
+        <View style={styles.footer}>
           <View style={styles.detailItem}>
             <MaterialCommunityIcons name="account-multiple-outline" size={16} color="#64748B" />
             <Text style={styles.detailText}>{participantCount} Invited</Text>
           </View>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.agendaText} numberOfLines={1}>
-            Agenda: {meeting.condition || "No agenda provided"}
-          </Text>
           <View style={styles.viewBtn}>
             <Text style={styles.viewHistoryText}>View Report</Text>
-            <MaterialCommunityIcons name="chevron-right" size={16} color="#002366" />
           </View>
         </View>
       </Pressable>
@@ -102,9 +87,9 @@ const styles = StyleSheet.create({
   },
   title: { 
     ...Typography.title,
-    fontSize: 16, 
-    fontWeight: '700', 
-    color: '#0F172A' 
+    fontSize: 17, 
+    fontWeight: '600', 
+    color: '#002366' 
   },
   host: {
     ...Typography.body,
@@ -114,8 +99,8 @@ const styles = StyleSheet.create({
   },
   divider: { 
     height: 1, 
-    backgroundColor: '#E2E8F0', 
-    marginVertical: 14, 
+    backgroundColor: '#82a5e4', 
+    marginVertical: 16, 
   },
   detailsRow: {
     flexDirection: 'row',
@@ -150,12 +135,16 @@ const styles = StyleSheet.create({
   viewBtn: { 
     flexDirection: 'row', 
     alignItems: 'center',
-    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
   viewHistoryText: { 
     ...Typography.body,
-    fontSize: 13, 
+    fontSize: 14, 
     color: '#002366', 
     fontWeight: '700', 
+    marginRight: 4, 
+    lineHeight: 14,
   }
 });

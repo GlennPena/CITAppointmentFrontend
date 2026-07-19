@@ -94,28 +94,26 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
       )}
 
       {item.status === "Rejected" && (
-        <View style={styles.historySection}>
-          <View style={styles.divider} />
-
-          <Text style={[styles.labelTiny, { color: '#EF4444' }]}>REASON FOR DISAPPROVAL</Text>
-          <View style={[styles.noteBox, { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
-            <Text style={[styles.noteText, { color: '#991B1B' }]}>
-              "{item.consultation_notes || "No specific reason provided."}"
-            </Text>
+        <View style={[styles.conditionBox, { backgroundColor: '#FEF2F2' }]}>
+          <View style={styles.noteLabelRow}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#EF4444" style={styles.icons} />
+            <Text style={[styles.studentNoteLabel, { color: '#EF4444' }]}>Reason for Disapproval:</Text>
           </View>
+          <Text style={[styles.conditionText, { color: '#991B1B' }]}>
+            {item.consultation_notes ? item.consultation_notes.replace(/^Faculty Rejection:\s*/i, '') : "No specific reason provided."}
+          </Text>
         </View>
       )}
 
       {item.status === "Cancelled" && item.consultation_notes && (
-        <View style={styles.historySection}>
-          <View style={styles.divider} />
-
-          <Text style={[styles.labelTiny, { color: '#EF4444' }]}>REASON FOR CANCELLATION</Text>
-          <View style={[styles.noteBox, { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
-            <Text style={[styles.noteText, { color: '#991B1B' }]}>
-              "{item.consultation_notes}"
-            </Text>
+        <View style={[styles.conditionBox, { backgroundColor: '#FEF2F2' }]}>
+          <View style={styles.noteLabelRow}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#EF4444" style={styles.icons} />
+            <Text style={[styles.studentNoteLabel, { color: '#EF4444' }]}>Reason for Cancellation:</Text>
           </View>
+          <Text style={[styles.conditionText, { color: '#991B1B' }]}>
+            {item.consultation_notes.replace(/^(?:Student|Faculty) Cancellation:\s*/i, '')}
+          </Text>
         </View>
       )}
 
@@ -130,6 +128,7 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
 const getStyles = (isMobile) => StyleSheet.create({
   card: {
     position: 'relative',
+    flex: 1,
     flexDirection: 'column',
     gap: 10,
     borderRadius: 18,
@@ -232,7 +231,7 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   actions: {
     ...Typography.label,
-    marginTop: 12,
+    marginTop: 'auto',
   },
   historySection: {
     marginTop: 8

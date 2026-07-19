@@ -3,9 +3,36 @@
   large number, label, icon, and optional trend indicator.
 */
 
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useWindowDimensions } from 'react-native';
+import { useState, useEffect } from 'react';
+
+const AnimatedNumber = ({ value, style }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let startValue = 0;
+    const duration = 1500;
+    const frames = 30;
+    const stepTime = Math.abs(Math.floor(duration / frames));
+    const increment = value / frames;
+
+    const timer = setInterval(() => {
+      startValue += increment;
+      if (startValue >= value) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(Math.ceil(startValue));
+      }
+    }, stepTime);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <Text style={style}>{displayValue}</Text>;
+};
 
 const StatBox = ({ label, value, color = '#002366', icon = 'chart-box', trend }) => {
   const { width } = useWindowDimensions();
@@ -20,7 +47,7 @@ const StatBox = ({ label, value, color = '#002366', icon = 'chart-box', trend })
       </View>
 
       {/* Value */}
-      <Text style={[styles.value, { color }]}>{value}</Text>
+      <AnimatedNumber value={value} style={[styles.value, { color }]} />
 
       {/* Label */}
       <Text style={styles.label}>{label}</Text>
