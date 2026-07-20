@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Image, Pressable, Text, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, Text, StyleSheet, useWindowDimensions, View, Platform } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import StudentDashboard from "./screens/StudentDashboard";
 import AdminDashboard from "./screens/AdminDashboard";
 import FacultyNavigation from "./screens/FacultyNavigation";
+import api from "./utils/api";
 
 
 const Stack = createNativeStackNavigator();
@@ -97,6 +98,19 @@ export default function App() {
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          const pathname = window.location.pathname;
+          if (pathname.includes('/verify-slip/') || pathname.includes('/verify-meeting-report/')) {
+            const rawBaseUrl = api.defaults.baseURL || "https://citappointmentbackend.onrender.com/api/";
+            let cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+            if (!cleanBaseUrl || cleanBaseUrl.includes('appointment.ua-cit.com')) {
+              cleanBaseUrl = "https://citappointmentbackend.onrender.com";
+            }
+            window.location.href = `${cleanBaseUrl}${pathname}${window.location.search}`;
+            return;
+          }
+        }
+
         const accessToken = await AsyncStorage.getItem('access_token');
         const rememberMe = await AsyncStorage.getItem('remember_me');
         const role = await AsyncStorage.getItem('user_role');
