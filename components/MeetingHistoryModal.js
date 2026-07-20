@@ -73,10 +73,16 @@ export default function MeetingHistoryModal({ visible, onClose, meeting }) {
               <Text style={styles.notesText}>{meeting.condition || "No agenda details provided."}</Text>
             </View>
 
-            {/* PARTICIPANTS ATTENDANCE */}
+            {/* PARTICIPANTS ATTENDANCE / INVITED SECTION */}
             <View style={styles.sectionHeader}>
-              <MaterialCommunityIcons name="clipboard-check-outline" size={20} color="#002366" />
-              <Text style={styles.sectionTitle}>Participants Attendance</Text>
+              <MaterialCommunityIcons 
+                name={meeting.status === "Completed" ? "clipboard-check-outline" : "account-group-outline"} 
+                size={20} 
+                color="#002366" 
+              />
+              <Text style={styles.sectionTitle}>
+                {meeting.status === "Completed" ? "Participants Attendance" : "Invited Participants"}
+              </Text>
             </View>
             <View style={styles.dividerLine} />
 
@@ -90,19 +96,27 @@ export default function MeetingHistoryModal({ visible, onClose, meeting }) {
                       <Text style={styles.userName}>{p.full_name}</Text>
                       <Text style={styles.userRole}>{p.role === 'dean' ? 'Dean' : 'Faculty'}</Text>
                     </View>
-                    <View style={[
-                      styles.badge, 
-                      p.attended ? styles.badgeAttended : styles.badgeAbsent
-                    ]}>
-                      <MaterialCommunityIcons 
-                        name={p.attended ? "check-circle" : "close-circle"} 
-                        size={14} 
-                        color="#FFF" 
-                      />
-                      <Text style={styles.badgeText}>
-                        {p.attended ? "Attended" : "Absent"}
-                      </Text>
-                    </View>
+
+                    {meeting.status === "Completed" ? (
+                      <View style={[
+                        styles.badge, 
+                        p.attended ? styles.badgeAttended : styles.badgeAbsent
+                      ]}>
+                        <MaterialCommunityIcons 
+                          name={p.attended ? "check-circle" : "close-circle"} 
+                          size={14} 
+                          color="#FFF" 
+                        />
+                        <Text style={styles.badgeText}>
+                          {p.attended ? "Attended" : "Absent"}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={[styles.badge, styles.badgeInvited]}>
+                        <MaterialCommunityIcons name="email-outline" size={14} color="#FFF" />
+                        <Text style={styles.badgeText}>Invited</Text>
+                      </View>
+                    )}
                   </View>
                 ))
               )}
@@ -287,6 +301,9 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   badgeAbsent: {
     backgroundColor: '#EF4444',
+  },
+  badgeInvited: {
+    backgroundColor: '#002366',
   },
   badgeText: {
     fontFamily: 'Inter_500Medium',
