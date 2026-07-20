@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import AdminAppointmentRow from "../components/AdminAppointmentTable";
 import StudentDetailModal from "../components/StudentDetailModal";
+import StudentHistoryModal from "../components/StudentHistoryModal";
 import StatBox from "../components/StatBox";
 import InlineAlert from "../components/InlineAlert";
 import { ConfirmModal } from "../components/ConfirmModal";
@@ -217,20 +218,55 @@ export default function AdminDashboard({ navigation }) {
     }
   };
 
-  const extractStudents = (appointmentData) => {
+  // Student History Modal State
+  const [selectedStudentForHistory, setSelectedStudentForHistory] = useState(null);
+  const [studentHistoryVisible, setStudentHistoryVisible] = useState(false);
+  const [studentHistoryAppts, setStudentHistoryAppts] = useState([]);
+
+  const handleOpenStudentHistory = (studentItem) => {
+    const studentAppts = appointments.filter(a => a.student === studentItem.id || a.student_email === studentItem.email);
+    setSelectedStudentForHistory(studentItem);
+    setStudentHistoryAppts(studentAppts);
+    setStudentHistoryVisible(true);
+  };
+
+  const extractStudents = (appointmentData, userList = personnel) => {
     const studentMap = {};
+
+    // 1. Add student users from personnel list
+    userList.filter(u => u.role === 'student').forEach(u => {
+      const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username;
+      studentMap[u.id] = {
+        id: u.id,
+        name: name,
+        email: u.email || '',
+        student_course: u.course ? `${u.course} ${u.year || ''}${u.section || ''}`.trim() : 'N/A',
+        contact_number: u.contact_number || '',
+        date_of_birth: u.date_of_birth || '',
+        sex: u.sex || '',
+        address: u.address || '',
+        appointmentCount: 0
+      };
+    });
+
+    // 2. Aggregate counts & add missing students from appointments
     appointmentData.forEach(appt => {
       const studentId = appt.student;
-      if (!studentMap[studentId]) {
-        studentMap[studentId] = {
-          id: studentId,
-          name: appt.student_name,
-          email: appt.student_email,
-          appointmentCount: 0
-        };
+      if (studentId) {
+        if (!studentMap[studentId]) {
+          studentMap[studentId] = {
+            id: studentId,
+            name: appt.student_name || `Student #${studentId}`,
+            email: appt.student_email || '',
+            student_course: appt.student_course || 'N/A',
+            contact_number: '',
+            appointmentCount: 0
+          };
+        }
+        studentMap[studentId].appointmentCount += 1;
       }
-      studentMap[studentId].appointmentCount += 1;
     });
+
     setStudents(Object.values(studentMap));
   };
 
@@ -414,6 +450,7 @@ export default function AdminDashboard({ navigation }) {
     try {
       const res = await api.get("users/");
       setPersonnel(res.data);
+      extractStudents(appointments, res.data);
     } catch (err) {
       console.log("Failed to load personnel");
     }
@@ -967,9 +1004,21 @@ export default function AdminDashboard({ navigation }) {
                       <Text style={styles.patientName}>{item.name}</Text>
                       <Text style={styles.patientEmail}>{item.email}</Text>
                     </View>
-                    <View style={styles.patientMeta}>
-                      <MaterialCommunityIcons name="calendar-multiple" size={16} color="#94A3B8" />
-                      <Text style={styles.appointmentCount}>{item.appointmentCount} appointments</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                      <View style={styles.patientMeta}>
+                        <MaterialCommunityIcons name="calendar-multiple" size={16} color="#94A3B8" />
+                        <Text style={styles.appointmentCount}>{item.appointmentCount} appointments</Text>
+                      </View>
+                      <Pressable
+                        onPress={() => handleOpenStudentHistory(item)}
+                        style={({ pressed }) => [
+                          styles.historyButton,
+                          pressed && { opacity: 0.8 }
+                        ]}
+                      >
+                        <MaterialCommunityIcons name="history" size={18} color="#FFFFFF" />
+                        <Text style={styles.historyButtonText}>View History</Text>
+                      </Pressable>
                     </View>
                   </View>
                 )}
@@ -1107,6 +1156,13 @@ export default function AdminDashboard({ navigation }) {
           item={selectedStudent}
           onClose={() => setDetailVisible(false)}
           onAction={() => { }}
+        />
+
+        <StudentHistoryModal
+          visible={studentHistoryVisible}
+          onClose={() => setStudentHistoryVisible(false)}
+          student={selectedStudentForHistory}
+          appointments={studentHistoryAppts}
         />
 
         {/* Add Personnel Modal */}
@@ -1676,6 +1732,20 @@ const getStyles = (isMobile) => StyleSheet.create({
     fontSize: isMobile ? 12 : 13,
     color: '#64748B',
     fontWeight: '500'
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#002366',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  historyButtonText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
   },
   personnelRow: {
     flexDirection: 'row',
