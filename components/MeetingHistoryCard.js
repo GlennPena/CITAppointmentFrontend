@@ -41,9 +41,11 @@ export default function MeetingHistoryCard({ meeting, onPress }) {
             <MaterialCommunityIcons name="account-multiple-outline" size={16} color="#64748B" />
             <Text style={styles.detailText}>{participantCount} Invited</Text>
           </View>
-          <View style={styles.viewBtn}>
-            <Text style={styles.viewHistoryText}>View Report</Text>
-          </View>
+          {meeting.status === "Completed" && (
+            <View style={styles.viewBtn}>
+              <Text style={styles.viewHistoryText}>View Report</Text>
+            </View>
+          )}
         </View>
       </Pressable>
     </View>

@@ -104,13 +104,15 @@ export default function MeetingHistoryModal({ visible, onClose, meeting }) {
             </View>
 
             {/* GENERATE REPORT BUTTON */}
-            <Pressable 
-              style={styles.reportBtn} 
-              onPress={() => setReportVisible(true)}
-            >
-              <MaterialCommunityIcons name="file-document-outline" size={20} color="#002366" />
-              <Text style={styles.reportBtnText}>Generate Meeting Report</Text>
-            </Pressable>
+            {meeting.status === "Completed" && (
+              <Pressable 
+                style={styles.reportBtn} 
+                onPress={() => setReportVisible(true)}
+              >
+                <MaterialCommunityIcons name="file-document-outline" size={20} color="#002366" />
+                <Text style={styles.reportBtnText}>Generate Meeting Report</Text>
+              </Pressable>
+            )}
 
             <View style={{ height: 40 }} />
           </ScrollView>

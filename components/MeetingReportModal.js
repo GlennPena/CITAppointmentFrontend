@@ -30,7 +30,7 @@ export default function MeetingReportModal({ visible, onClose, data }) {
     prepareAsset();
   }, []);
 
-  if (!data) return null;
+  if (!data || data.status !== "Completed") return null;
 
   const rawBaseUrl = api.defaults.baseURL || "";
   const cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
