@@ -209,6 +209,80 @@ const ShineButton = ({ onPress, loading, styles }) => {
   );
 };
 
+const ShineGoogleButton = ({ onPress, loading, styles, renderGoogleButton }) => {
+  const [hovered, setHovered] = useState(false);
+  const shineAnim = useState(() => new Animated.Value(-1))[0];
+  const scale = useState(() => new Animated.Value(1))[0];
+
+  useEffect(() => {
+    if (hovered) {
+      Animated.spring(scale, { toValue: 1.05, useNativeDriver: Platform.OS !== 'web' }).start();
+      shineAnim.setValue(-1);
+      Animated.timing(shineAnim, {
+        toValue: 2,
+        duration: 450,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start();
+    } else {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web' }).start();
+      shineAnim.stopAnimation();
+      shineAnim.setValue(-1);
+    }
+  }, [hovered, shineAnim, scale]);
+
+  const translateX = shineAnim.interpolate({
+    inputRange: [-1, 2],
+    outputRange: [-150, 450],
+  });
+
+  const isWebGoogle = Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID;
+
+  return (
+    <AnimatedPressable
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      disabled={loading}
+      style={[
+        styles.googleButtonWrapper,
+        loading && { opacity: 0.7 },
+        { transform: [{ scale }] }
+      ]}
+    >
+      {isWebGoogle ? (
+        <View style={styles.googleWebContainer}>
+          <div ref={renderGoogleButton} style={{ width: '100%', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+        </View>
+      ) : (
+        <View style={styles.googleButtonInner}>
+          {loading ? (
+            <ActivityIndicator color="#002366" />
+          ) : (
+            <View style={styles.buttonInner}>
+              <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
+              <Text style={styles.googleButtonText}>Continue with UA Email</Text>
+            </View>
+          )}
+        </View>
+      )}
+      {hovered && (
+        <Animated.View style={{
+          position: 'absolute',
+          top: 0, left: 0, bottom: 0, width: 120,
+          pointerEvents: 'none',
+          transform: [{ translateX }, { skewX: '-25deg' }],
+        }}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', 'rgba(0,35,102,0.12)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      )}
+    </AnimatedPressable>
+  );
+};
+
 const TypingText = ({ text, texts, style, typingSpeed = 20, eraseSpeed = 10, pauseDelay = 3000, onTypingComplete }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [showCursor, setShowCursor] = useState(true);
@@ -629,27 +703,12 @@ export default function LoginScreen({ navigation }) {
                   <View style={styles.divider} />
                 </View>
 
-                {Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID ? (
-                  <View style={{ alignItems: 'center', marginVertical: 8 }}>
-                    <div ref={renderGoogleButton} style={{ width: '320px', height: '44px' }} />
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.googleButton}
-                    onPress={handleGoogleLogin}
-                    disabled={googleLoading}
-                    activeOpacity={0.85}
-                  >
-                    {googleLoading ? (
-                      <ActivityIndicator color="#444" />
-                    ) : (
-                      <View style={styles.googleContent}>
-                        <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
-                        <Text style={styles.googleButtonText}>Continue with UA Email</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                )}
+                <ShineGoogleButton
+                  onPress={handleGoogleLogin}
+                  loading={googleLoading}
+                  styles={styles}
+                  renderGoogleButton={renderGoogleButton}
+                />
 
                 {/* Footer */}
                 <View style={styles.footerRow}>
@@ -808,27 +867,12 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.divider} />
             </View>
 
-            {Platform.OS === 'web' && GOOGLE_WEB_CLIENT_ID ? (
-              <View style={{ alignItems: 'center', marginVertical: 8 }}>
-                <div ref={renderGoogleButton} style={{ width: '320px', height: '44px' }} />
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.googleButton}
-                onPress={handleGoogleLogin}
-                disabled={googleLoading}
-                activeOpacity={0.85}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator color="#444" />
-                ) : (
-                  <View style={styles.googleContent}>
-                    <Image source={require('../assets/google-logo.png')} style={{ width: 22, height: 22 }} />
-                    <Text style={styles.googleButtonText}>Continue with UA Email</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
+            <ShineGoogleButton
+              onPress={handleGoogleLogin}
+              loading={googleLoading}
+              styles={styles}
+              renderGoogleButton={renderGoogleButton}
+            />
 
             <View style={styles.footerRow}>
               <MaterialCommunityIcons name="shield-check-outline" size={13} color="#94A3B8" />
@@ -1207,32 +1251,39 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Roboto_400Regular',
   },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  googleButtonWrapper: {
+    width: '100%',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 22,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    paddingVertical: isMobile ? 14 : 16,
-    borderRadius: 14,
-    marginBottom: 22,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowColor: '#002366',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 4,
+    minHeight: isMobile ? 50 : 54,
+    justifyContent: 'center',
   },
-  googleContent: {
-    flexDirection: 'row',
+  googleWebContainer: {
+    width: '100%',
+    minHeight: isMobile ? 50 : 54,
+    justifyContent: 'center',
     alignItems: 'center',
   },
+  googleButtonInner: {
+    paddingVertical: isMobile ? 15 : 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   googleButtonText: {
+    fontFamily: 'Inter_700Bold',
+    color: '#002366',
+    fontSize: isMobile ? 15 : 16,
+    letterSpacing: 0.5,
     marginLeft: 10,
-    fontSize: isMobile ? 14 : 16,
-    color: '#334155',
-    fontFamily: 'Inter_500Medium',
-    fontWeight: '600',
   },
   footerRow: {
     flexDirection: 'row',
