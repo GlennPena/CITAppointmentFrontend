@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "myApp",
-    "slug": "myApp",
+    "name": "UACIT Appointment System",
+    "slug": "uacit-appointment-system",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
