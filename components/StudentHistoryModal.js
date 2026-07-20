@@ -149,6 +149,32 @@ export default function StudentHistoryModal({ visible, onClose, student, appoint
                     "{appt.consultation_notes || "No specific notes recorded."}"
                   </Text>
                 </View>
+
+                {appt.rating ? (
+                  <View style={{ marginTop: 8 }}>
+                    <Text style={styles.labelTiny}>STUDENT RATING</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <View style={{ flexDirection: 'row' }}>
+                        {[1, 2, 3, 4, 5].map(s => (
+                          <MaterialCommunityIcons
+                            key={s}
+                            name={s <= appt.rating ? "star" : "star-outline"}
+                            size={16}
+                            color={s <= appt.rating ? "#F59E0B" : "#CBD5E1"}
+                          />
+                        ))}
+                      </View>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#D97706' }}>
+                        {appt.rating} / 5
+                      </Text>
+                    </View>
+                    {!!appt.rating_feedback && (
+                      <Text style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic', marginTop: 2 }}>
+                        "{appt.rating_feedback}"
+                      </Text>
+                    )}
+                  </View>
+                ) : null}
                 
                 {/* CONSULTATION REPORT */}
                 {appt.status === "Completed" && (

@@ -93,6 +93,33 @@ const AppointmentCard = ({ item, children, userRole, onPress }) => {
         </View>
       )}
 
+      {(item.status === "Completed" && item.rating) && (
+        <View style={styles.historySection}>
+          <View style={styles.divider} />
+          <Text style={styles.labelTiny}>STUDENT RATING</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <View style={{ flexDirection: 'row' }}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <MaterialCommunityIcons
+                  key={star}
+                  name={star <= item.rating ? "star" : "star-outline"}
+                  size={18}
+                  color={star <= item.rating ? "#F59E0B" : "#CBD5E1"}
+                />
+              ))}
+            </View>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#D97706' }}>
+              {item.rating} / 5
+            </Text>
+          </View>
+          {!!item.rating_feedback && (
+            <Text style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic', marginTop: 2 }}>
+              "{item.rating_feedback}"
+            </Text>
+          )}
+        </View>
+      )}
+
       {item.status === "Rejected" && (
         <View style={[styles.conditionBox, { backgroundColor: '#FEF2F2' }]}>
           <View style={styles.noteLabelRow}>

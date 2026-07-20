@@ -45,6 +45,16 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
   const appointmentNotes = data.condition || "No appointment notes provided.";
   const consultationNotes = data.consultation_notes || "No consultation notes recorded.";
 
+  const RATING_LABELS = {
+    1: '1 / 5 ★☆☆☆☆ — Very Dissatisfied (Poor)',
+    2: '2 / 5 ★★☆☆☆ — Dissatisfied (Below Average)',
+    3: '3 / 5 ★★★☆☆ — Neutral',
+    4: '4 / 5 ★★★★☆ — Satisfied (Good)',
+    5: '5 / 5 ★★★★★ — Very Satisfied (Excellent)',
+  };
+
+  const ratingDisplay = data.rating ? RATING_LABELS[data.rating] : null;
+
   const getQRCodeBase64 = () => {
     return new Promise((resolve) => {
       if (qrRef.current) {
@@ -170,8 +180,8 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
           currentY += rowSpacing; 
         };
 
-        addPdfRow("Name", `${data.first_name} ${data.last_name}`);
-        addPdfRow("Course & Section", `${data.course} ${data.year || ''}-${data.section || ''}`);
+        addPdfRow("Name", `${data.first_name || data.student_name} ${data.last_name || ''}`);
+        addPdfRow("Course & Section", `${data.course || data.student_course || ''} ${data.year || data.student_year || ''}-${data.section || data.student_section || ''}`);
         addPdfRow("Date of Consultation", appointmentDate);
         addPdfRow("Time", appointmentTime);
         addPdfRow("Service", data.service || "General Consultation");
@@ -208,7 +218,37 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
         doc.setTextColor(...primaryBlack);
         const consultLines = doc.splitTextToSize(consultationNotes, endX - leftPadding);
         doc.text(consultLines, leftPadding, currentY);
-        currentY += (consultLines.length * 5) + 15;
+        currentY += (consultLines.length * 5) + 8;
+
+        // RATING & EVALUATION SECTION (If available)
+        if (ratingDisplay) {
+          currentY += 5;
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...accentBlue);
+          doc.text("STUDENT RATING & EVALUATION", leftPadding, currentY);
+          currentY += 2;
+          doc.line(leftPadding, currentY, endX, currentY);
+          currentY += rowSpacing;
+
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...primaryBlack);
+          doc.text(`Rating: ${ratingDisplay}`, leftPadding, currentY);
+          currentY += 6;
+
+          if (data.rating_feedback) {
+            doc.setFont("helvetica", "normal");
+            const feedbackText = `Feedback: ${data.rating_feedback}`;
+            const feedbackLines = doc.splitTextToSize(feedbackText, endX - leftPadding);
+            doc.text(feedbackLines, leftPadding, currentY);
+            currentY += (feedbackLines.length * 5) + 5;
+          } else {
+            currentY += 5;
+          }
+        }
+
+        currentY += 10;
 
         // QR + SIGNATURE FOOTER
         if (qrBase64) {
@@ -232,7 +272,7 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
         doc.setFont("helvetica", "normal");
         doc.text("Attending Faculty", sigXStart + 30, currentY + 27, { align: "center" });
 
-        doc.save(`UA_ConsultationReport_${data.last_name}.pdf`);
+        doc.save(`UA_ConsultationReport_${data.last_name || 'Report'}.pdf`);
 
       } else {
         // MOBILE: HTML-based PDF
@@ -268,8 +308,8 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
               <div class="title">CONSULTATION REPORT</div>
 
               <div class="section-title">STUDENT INFORMATION</div>
-              <div class="row"><div class="label">Name:</div><div class="value">${data.first_name} ${data.last_name}</div></div>
-              <div class="row"><div class="label">Course & Section:</div><div class="value">${data.course} ${data.year || ''}-${data.section || ''}</div></div>
+              <div class="row"><div class="label">Name:</div><div class="value">${data.first_name || data.student_name} ${data.last_name || ''}</div></div>
+              <div class="row"><div class="label">Course & Section:</div><div class="value">${data.course || data.student_course || ''} ${data.year || data.student_year || ''}-${data.section || data.student_section || ''}</div></div>
               <div class="row"><div class="label">Date of Consultation:</div><div class="value">${appointmentDate}</div></div>
               <div class="row"><div class="label">Time:</div><div class="value">${appointmentTime}</div></div>
               <div class="row"><div class="label">Service:</div><div class="value">${data.service || 'General Consultation'}</div></div>
@@ -279,6 +319,14 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
 
               <div class="section-title">CONSULTATION REPORT</div>
               <div class="notes-box">${consultationNotes}</div>
+
+              ${ratingDisplay ? `
+                <div class="section-title">STUDENT RATING & EVALUATION</div>
+                <div class="notes-box">
+                  <strong>Rating:</strong> ${ratingDisplay}
+                  ${data.rating_feedback ? `<br><strong>Feedback:</strong> ${data.rating_feedback}` : ''}
+                </div>
+              ` : ''}
 
               <div class="footer">
                 <div style="text-align: center;">
@@ -349,12 +397,12 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
 
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Name:</Text>
-                <Text style={styles.infoValue}>{data.first_name} {data.last_name}</Text>
+                <Text style={styles.infoValue}>{data.first_name || data.student_name} {data.last_name || ''}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Course & Section:</Text>
-                <Text style={styles.infoValue}>{data.course} {data.year || ''}-{data.section || ''}</Text>
+                <Text style={styles.infoValue}>{data.course || data.student_course || ''} {data.year || data.student_year || ''}-{data.section || data.student_section || ''}</Text>
               </View>
 
               <View style={styles.infoRow}>
@@ -396,6 +444,20 @@ export default function ConsultationReportModal({ visible, onClose, data }) {
               <View style={styles.notesBox}>
                 <Text style={styles.notesText}>{consultationNotes}</Text>
               </View>
+
+              {/* RATING & EVALUATION (Preview) */}
+              {ratingDisplay && (
+                <>
+                  <Text style={[styles.sectionHeading, { marginTop: 16 }]}>STUDENT RATING & EVALUATION</Text>
+                  <View style={styles.sectionDivider} />
+                  <View style={styles.notesBox}>
+                    <Text style={[styles.notesText, { fontWeight: '700', color: '#D97706' }]}>{ratingDisplay}</Text>
+                    {data.rating_feedback ? (
+                      <Text style={[styles.notesText, { marginTop: 4 }]}>Feedback: {data.rating_feedback}</Text>
+                    ) : null}
+                  </View>
+                </>
+              )}
 
               {/* FOOTER: QR + SIGNATURE */}
               <View style={styles.previewFooter}>

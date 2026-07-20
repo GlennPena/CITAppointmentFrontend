@@ -32,6 +32,8 @@ import { Toast } from "../components/Toast";
 import { ConfirmModal } from "../components/ConfirmModal";
 import AppFooter from "../components/AppFooter";
 import PrivacyPolicyModal from "../components/PrivacyPolicyModal";
+import RatingModal from "../components/RatingModal";
+import ConsultationReportModal from "../components/ConsultationReportModal";
 
 import { Typography } from "../styles/theme";
 import api from "../utils/api";
@@ -327,6 +329,11 @@ export default function StudentDashboard({ navigation }) {
 
   const [cancelModal, setCancelModal] = useState({ visible: false, id: null, reason: "" });
 
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [selectedRatingAppt, setSelectedRatingAppt] = useState(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [selectedReportAppt, setSelectedReportAppt] = useState(null);
+
   useEffect(() => { loadInitialData(); }, []);
 
   const triggerToast = useCallback((msg, type = 'success') => {
@@ -430,6 +437,16 @@ export default function StudentDashboard({ navigation }) {
     }
   };
 
+  const handleOpenRatingModal = (appt) => {
+    setSelectedRatingAppt(appt);
+    setRatingModalVisible(true);
+  };
+
+  const handleOpenReportModal = (appt) => {
+    setSelectedReportAppt(appt);
+    setReportModalVisible(true);
+  };
+
   const renderAppointment = ({ item }) => {
     const status = item.status;
 
@@ -449,8 +466,40 @@ export default function StudentDashboard({ navigation }) {
             />
           )}
 
-          {/* REJECTED / CANCELLED / COMPLETED / EXPIRED → Delete */}
-          {["Rejected", "Cancelled", "Completed", "Expired"].includes(status) && (
+          {/* COMPLETED → Rate Consultation, View Report, Delete */}
+          {status === "Completed" && (
+            <View style={{ flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              <AnimatedCancelButton
+                onPress={() => handleOpenRatingModal(item)}
+                text={item.rating ? "★ Edit Rating" : "Rate Consultation"}
+                baseColor={item.rating ? "#D97706" : "#059669"}
+                hoverColor={item.rating ? "#B45309" : "#047857"}
+                style={{ padding: 10, borderRadius: 8 }}
+                textStyle={{ fontFamily: Typography.label.fontFamily, color: '#FFF', textAlign: 'center', fontWeight: '700' }}
+              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <AnimatedCancelButton
+                  onPress={() => handleOpenReportModal(item)}
+                  text="View Report"
+                  baseColor="#002366"
+                  hoverColor="#001540"
+                  style={{ flex: 1, padding: 10, borderRadius: 8 }}
+                  textStyle={{ fontFamily: Typography.label.fontFamily, color: '#FFF', textAlign: 'center', fontWeight: '700' }}
+                />
+                <AnimatedCancelButton
+                  onPress={() => openDeleteConfirm(item.id)}
+                  text="Delete"
+                  baseColor="#64748B"
+                  hoverColor="#475569"
+                  style={{ flex: 1, padding: 10, borderRadius: 8 }}
+                  textStyle={{ fontFamily: Typography.label.fontFamily, color: '#FFF', textAlign: 'center', fontWeight: '700' }}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* REJECTED / CANCELLED / EXPIRED → Delete */}
+          {["Rejected", "Cancelled", "Expired"].includes(status) && (
             <AnimatedCancelButton
               onPress={() => openDeleteConfirm(item.id)}
               text="Delete"
@@ -627,6 +676,22 @@ export default function StudentDashboard({ navigation }) {
             onClose={() => setIsVisible(false)}
             facultyList={facultyList}
             onBookingSuccess={(msg) => { triggerToast(msg); loadInitialData(); }}
+          />
+
+          <RatingModal
+            visible={ratingModalVisible}
+            onClose={() => setRatingModalVisible(false)}
+            appointment={selectedRatingAppt}
+            onSuccess={(msg) => {
+              triggerToast(msg, 'success');
+              loadInitialData();
+            }}
+          />
+
+          <ConsultationReportModal
+            visible={reportModalVisible}
+            onClose={() => setReportModalVisible(false)}
+            data={selectedReportAppt}
           />
 
           <Toast
