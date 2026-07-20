@@ -42,12 +42,12 @@ export default function MeetingHistory({ navigation }) {
   const loadMeetings = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`appointments/?status=Completed`);
+      const res = await api.get(`appointments/`);
       // Filter ONLY internal faculty/dean meetings (student is null)
       const internalMeetings = res.data.filter(appt => appt.student === null);
       setAllMeetings(internalMeetings);
     } catch (err) {
-      console.error("Failed to load completed meetings:", err);
+      console.error("Failed to load meetings:", err);
     } finally {
       setLoading(false);
     }

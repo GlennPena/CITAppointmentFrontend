@@ -94,6 +94,7 @@ export default function StudentDetailModal({ visible, item, onClose, onAction })
                 <DetailItem label="Host / Organizer" value={item.faculty_name} styles={styles} />
                 <DetailItem label="Status" value={<StatusBadge status={item.status} />} styles={styles} />
                 <DetailItem label="Meeting Type" value={item.service} styles={styles} />
+                <DetailItem label="Date & Time" value={appointmentDate.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })} styles={styles} />
                 <DetailItem label="Agenda / Discussion" value={item.condition || "No agenda specified"} styles={styles} />
                 <DetailItem label="Participants Invited" value={participantsStr} styles={styles} />
               </>

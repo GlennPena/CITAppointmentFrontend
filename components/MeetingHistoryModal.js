@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Dimensions, useWi
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import MeetingReportModal from './MeetingReportModal';
+import StatusBadge from './StatusBadge';
 import { Typography } from "../styles/theme";
 
 const { height } = Dimensions.get('window');
@@ -59,6 +60,10 @@ export default function MeetingHistoryModal({ visible, onClose, meeting }) {
               <View style={styles.statBox}>
                 <Text style={styles.labelCaps}>TIME</Text>
                 <Text style={styles.statValue}>{meetingTime}</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text style={styles.labelCaps}>STATUS</Text>
+                <StatusBadge status={meeting.status} />
               </View>
             </View>
 

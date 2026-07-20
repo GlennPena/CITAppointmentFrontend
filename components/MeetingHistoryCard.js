@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Typography } from "../styles/theme";
+import StatusBadge from './StatusBadge';
 
 export default function MeetingHistoryCard({ meeting, onPress }) {
   const formattedDate = new Date(meeting.date_time).toLocaleDateString('en-US', {
@@ -32,6 +33,8 @@ export default function MeetingHistoryCard({ meeting, onPress }) {
               Hosted by {meeting.faculty_name}
             </Text>
           </View>
+
+          <StatusBadge status={meeting.status} />
         </View>
 
         <View style={styles.divider} />
@@ -41,11 +44,11 @@ export default function MeetingHistoryCard({ meeting, onPress }) {
             <MaterialCommunityIcons name="account-multiple-outline" size={16} color="#64748B" />
             <Text style={styles.detailText}>{participantCount} Invited</Text>
           </View>
-          {meeting.status === "Completed" && (
-            <View style={styles.viewBtn}>
-              <Text style={styles.viewHistoryText}>View Report</Text>
-            </View>
-          )}
+          <View style={styles.viewBtn}>
+            <Text style={styles.viewHistoryText}>
+              {meeting.status === "Completed" ? "View Report" : "View Details"}
+            </Text>
+          </View>
         </View>
       </Pressable>
     </View>
