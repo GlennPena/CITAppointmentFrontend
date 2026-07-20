@@ -217,7 +217,9 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
   useEffect(() => {
     if (currentUserId && selectedDate && isVisible) {
       setBookedSlots([]);
-      api.get(`appointments/busy-slots/${currentUserId}/?date=${selectedDate}`)
+      const allFacultyIds = [currentUserId, ...selectedParticipants];
+      const paramIds = allFacultyIds.join(',');
+      api.get(`appointments/busy-slots/${paramIds}/?date=${selectedDate}`)
         .then(res => {
           const booked = res.data.map(app => {
             const dt = new Date(app);
@@ -234,7 +236,7 @@ export default function MeetingBookingModal({ isVisible, onClose, onBookingSucce
           console.error("Error loading times:", err);
         });
     }
-  }, [currentUserId, selectedDate, isVisible]);
+  }, [currentUserId, selectedParticipants.join(','), selectedDate, isVisible]);
 
   const toggleParticipant = (id) => {
     if (selectedParticipants.includes(id)) {
