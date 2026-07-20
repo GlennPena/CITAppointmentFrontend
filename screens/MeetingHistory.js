@@ -8,6 +8,8 @@ import MeetingHistoryCard from "../components/MeetingHistoryCard";
 import MeetingHistoryModal from "../components/MeetingHistoryModal";
 import AppFooter from "../components/AppFooter";
 
+import PaginationControls from "../components/PaginationControls";
+
 export default function MeetingHistory({ navigation }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -21,6 +23,9 @@ export default function MeetingHistory({ navigation }) {
   const [allMeetings, setAllMeetings] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
 
@@ -29,6 +34,10 @@ export default function MeetingHistory({ navigation }) {
       loadMeetings();
     }
   }, [isFocused]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const loadMeetings = async () => {
     setLoading(true);
@@ -53,6 +62,13 @@ export default function MeetingHistory({ navigation }) {
       return title.includes(q) || host.includes(q);
     })
     : allMeetings;
+
+  const totalPages = Math.ceil(filteredMeetings.length / ITEMS_PER_PAGE);
+  const clampedPage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
+  const paginatedMeetings = filteredMeetings.slice(
+    (clampedPage - 1) * ITEMS_PER_PAGE,
+    clampedPage * ITEMS_PER_PAGE
+  );
 
   const handleOpenDetails = (meeting) => {
     setSelectedMeeting(meeting);
@@ -91,7 +107,7 @@ export default function MeetingHistory({ navigation }) {
             <ActivityIndicator size="large" color="#002366" style={{ marginTop: 40 }} />
           ) : (
             <FlatList
-              data={filteredMeetings}
+              data={paginatedMeetings}
               key={numColumns}
               numColumns={numColumns}
               keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
@@ -105,6 +121,13 @@ export default function MeetingHistory({ navigation }) {
                 </View>
               )}
               contentContainerStyle={{ paddingBottom: 30 }}
+              ListFooterComponent={
+                <PaginationControls
+                  currentPage={clampedPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              }
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <MaterialCommunityIcons name="calendar-blank-outline" size={48} color="#94A3B8" />

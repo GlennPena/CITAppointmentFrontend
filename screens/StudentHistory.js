@@ -8,6 +8,8 @@ import StudentHistoryCard from "../components/StudentHistoryCard";
 import StudentHistoryModal from "../components/StudentHistoryModal";
 import AppFooter from "../components/AppFooter";
 
+import PaginationControls from "../components/PaginationControls";
+
 export default function StudentHistory({ navigation }) {
 
   const { width } = useWindowDimensions();
@@ -21,6 +23,9 @@ export default function StudentHistory({ navigation }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   const [medicalModalVisible, setMedicalModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentAppointments, setStudentAppointments] = useState([]);
@@ -28,6 +33,17 @@ export default function StudentHistory({ navigation }) {
   useEffect(() => {
     loadStudents();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const totalPages = Math.ceil(students.length / ITEMS_PER_PAGE);
+  const clampedPage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
+  const paginatedStudents = students.slice(
+    (clampedPage - 1) * ITEMS_PER_PAGE,
+    clampedPage * ITEMS_PER_PAGE
+  );
 
   const loadStudents = async (query = "") => {
     setLoading(true);
@@ -114,7 +130,7 @@ export default function StudentHistory({ navigation }) {
             <ActivityIndicator size="large" color="#002366" style={{ marginTop: 40 }} />
           ) : (
             <FlatList
-              data={students}
+              data={paginatedStudents}
               key={numColumns}
               numColumns={numColumns}
               keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
@@ -128,6 +144,13 @@ export default function StudentHistory({ navigation }) {
                 </View>
               )}
               contentContainerStyle={{ paddingBottom: 30 }}
+              ListFooterComponent={
+                <PaginationControls
+                  currentPage={clampedPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              }
             />
           )}
 

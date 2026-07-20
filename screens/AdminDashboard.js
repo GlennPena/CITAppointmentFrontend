@@ -9,6 +9,7 @@ import InlineAlert from "../components/InlineAlert";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { Toast } from "../components/Toast";
 import { StatusFilter } from "../components/StatusFilter";
+import PaginationControls from "../components/PaginationControls";
 
 import api from "../utils/api";
 import { Typography } from "../styles/theme";
@@ -398,6 +399,39 @@ export default function AdminDashboard({ navigation }) {
     return matchesSearch && matchesRole;
   });
 
+  const RECORDS_PER_PAGE = 10;
+  const [overviewPage, setOverviewPage] = useState(1);
+  const [studentsPage, setStudentsPage] = useState(1);
+  const [personnelPage, setPersonnelPage] = useState(1);
+
+  useEffect(() => {
+    setOverviewPage(1);
+    setStudentsPage(1);
+    setPersonnelPage(1);
+  }, [searchQuery, activeFilter, accountFilter, sidebarSelection]);
+
+  const totalOverviewPages = Math.ceil(filteredAppointments.length / RECORDS_PER_PAGE);
+  const clampedOverviewPage = Math.min(Math.max(1, overviewPage), Math.max(1, totalOverviewPages));
+  const paginatedAppointments = filteredAppointments.slice(
+    (clampedOverviewPage - 1) * RECORDS_PER_PAGE,
+    clampedOverviewPage * RECORDS_PER_PAGE
+  );
+
+  const filteredStudentsList = students.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const totalStudentPages = Math.ceil(filteredStudentsList.length / RECORDS_PER_PAGE);
+  const clampedStudentPage = Math.min(Math.max(1, studentsPage), Math.max(1, totalStudentPages));
+  const paginatedStudents = filteredStudentsList.slice(
+    (clampedStudentPage - 1) * RECORDS_PER_PAGE,
+    clampedStudentPage * RECORDS_PER_PAGE
+  );
+
+  const totalPersonnelPages = Math.ceil(filteredPersonnel.length / RECORDS_PER_PAGE);
+  const clampedPersonnelPage = Math.min(Math.max(1, personnelPage), Math.max(1, totalPersonnelPages));
+  const paginatedPersonnel = filteredPersonnel.slice(
+    (clampedPersonnelPage - 1) * RECORDS_PER_PAGE,
+    clampedPersonnelPage * RECORDS_PER_PAGE
+  );
+
   if (loading) {
     return (
       <ActivityIndicator size="large" color="#0052FF" style={{ flex: 1 }} />
@@ -716,11 +750,18 @@ export default function AdminDashboard({ navigation }) {
 
             {sidebarSelection === 'Overview' ? (
               <FlatList
-                data={filteredAppointments}
+                data={paginatedAppointments}
                 keyExtractor={item => item.id.toString()}
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
                   <Text style={styles.emptyText}>No records found.</Text>
+                }
+                ListFooterComponent={
+                  <PaginationControls
+                    currentPage={clampedOverviewPage}
+                    totalPages={totalOverviewPages}
+                    onPageChange={setOverviewPage}
+                  />
                 }
                 ListHeaderComponent={
                   <>
@@ -792,11 +833,18 @@ export default function AdminDashboard({ navigation }) {
 
             ) : sidebarSelection === 'Students' ? (
               <FlatList
-                data={students.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))}
+                data={paginatedStudents}
                 keyExtractor={item => item.id.toString()}
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
                   <Text style={styles.emptyText}>No students found.</Text>
+                }
+                ListFooterComponent={
+                  <PaginationControls
+                    currentPage={clampedStudentPage}
+                    totalPages={totalStudentPages}
+                    onPageChange={setStudentsPage}
+                  />
                 }
                 ListHeaderComponent={
                   <>
@@ -842,11 +890,18 @@ export default function AdminDashboard({ navigation }) {
               />
             ) : sidebarSelection === 'Personnel' ? (
               <FlatList
-                data={filteredPersonnel}
+                data={paginatedPersonnel}
                 keyExtractor={item => item.id.toString()}
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
                   <Text style={styles.emptyText}>No personnel records found.</Text>
+                }
+                ListFooterComponent={
+                  <PaginationControls
+                    currentPage={clampedPersonnelPage}
+                    totalPages={totalPersonnelPages}
+                    onPageChange={setPersonnelPage}
+                  />
                 }
                 ListHeaderComponent={
                   <>

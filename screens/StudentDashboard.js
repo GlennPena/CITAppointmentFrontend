@@ -359,8 +359,8 @@ export default function StudentDashboard({ navigation }) {
     .filter(a => !['pending', 'approved'].includes(a.status.toLowerCase()))
     .filter(a => filter === "All" || a.status.toLowerCase() === filter.toLowerCase());
 
-  const UPCOMING_LIMIT = 2;
-  const HISTORY_LIMIT = 4;
+  const UPCOMING_LIMIT = 10;
+  const HISTORY_LIMIT = 10;
 
   const totalUpcomingPages = Math.ceil(upcoming.length / UPCOMING_LIMIT);
   const totalHistoryPages = Math.ceil(history.length / HISTORY_LIMIT);

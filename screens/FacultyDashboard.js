@@ -296,7 +296,7 @@ export default function FacultyDashboard({ navigation }) {
   const [detailsModal, setDetailsModal] = useState({ visible: false, appointment: null });
   const [isBookingVisible, setIsBookingVisible] = useState(false);
 
-  const ITEMS_PER_PAGE = 3;
+  const ITEMS_PER_PAGE = 10;
   const totalPendingPages = Math.ceil(pendingRequests.length / ITEMS_PER_PAGE);
   const clampedPendingPage = Math.min(Math.max(1, pendingPage), Math.max(1, totalPendingPages));
   const paginatedPending = pendingRequests.slice(

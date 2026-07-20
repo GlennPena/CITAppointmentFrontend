@@ -362,7 +362,7 @@ export default function FacultySchedule({ route }) {
     return activeTab === 'meetings' ? isMeeting : !isMeeting;
   });
 
-  const ITEMS_PER_PAGE = 5;
+  const ITEMS_PER_PAGE = 10;
   const totalPages = Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE) || 1;
   const paginatedAppointments = filteredAppointments.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
