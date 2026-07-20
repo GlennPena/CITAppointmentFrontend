@@ -132,13 +132,7 @@ export default function StudentDetailModal({ visible, item, onClose, onAction })
                   textStyle={styles.btnText}
                 />
               </View>
-            ) : (
-              <View style={{ padding: 10, alignItems: 'center' }}>
-                <Text style={{ color: '#0F172A', fontWeight: 'bold' }}>
-                  {isPast ? "" : ""}
-                </Text>
-              </View>
-            )}
+            ) : null}
           </View>
         </View>
       </View>
@@ -149,7 +143,7 @@ export default function StudentDetailModal({ visible, item, onClose, onAction })
 const DetailItem = ({ label, value, styles }) => (
   <View style={styles.detailBox}>
     <Text style={styles.label}>{label}</Text>
-    <View>{typeof value === 'string' ? <Text style={styles.value}>{value}</Text> : value}</View>
+    <View>{typeof value === 'string' || typeof value === 'number' ? <Text style={styles.value}>{value}</Text> : (value ?? null)}</View>
   </View>
 );
 

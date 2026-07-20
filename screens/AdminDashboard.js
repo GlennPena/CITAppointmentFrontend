@@ -300,9 +300,24 @@ export default function AdminDashboard({ navigation }) {
       loadPersonnel();
       setToast({ visible: true, message: "Account created successfully", type: "success" });
     } catch (error) {
+      const errData = error.response?.data;
+      let msg = "Failed to create account";
+      if (errData) {
+        if (typeof errData === "string") {
+          msg = errData;
+        } else if (errData.error) {
+          msg = errData.error;
+        } else if (typeof errData === "object") {
+          const firstKey = Object.keys(errData)[0];
+          if (firstKey) {
+            const val = errData[firstKey];
+            msg = Array.isArray(val) ? `${firstKey}: ${val[0]}` : `${firstKey}: ${val}`;
+          }
+        }
+      }
       setToast({
         visible: true,
-        message: error.response?.data?.username || "Failed to create account",
+        message: msg,
         type: "error"
       });
     }
@@ -893,7 +908,7 @@ export default function AdminDashboard({ navigation }) {
                     <View style={styles.personnelInfo}>
                       <Text style={styles.personnelName}>{item.first_name} {item.last_name}</Text>
                       <Text style={styles.personnelEmail}>{item.email}</Text>
-                      {item.contact_number && (
+                      {!!item.contact_number && (
                         <Text style={styles.personnelContact}>{item.contact_number}</Text>
                       )}
                     </View>
