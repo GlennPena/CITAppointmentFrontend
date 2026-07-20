@@ -181,6 +181,23 @@ export default function AdminDashboard({ navigation }) {
   const [resetPasswordForm, setResetPasswordForm] = useState({ password: "", confirmPassword: "" });
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
 
+  // Edit Account State
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [savingEditUser, setSavingEditUser] = useState(false);
+  const [editUserForm, setEditUserForm] = useState({
+    id: null,
+    username: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    contact: "",
+    role: "faculty",
+    course: "",
+    year: "",
+    section: "",
+  });
+
   useEffect(() => {
     loadData();
     loadPersonnel();
@@ -325,6 +342,71 @@ export default function AdminDashboard({ navigation }) {
       });
     } finally {
       setCreatingPersonnel(false);
+    }
+  };
+
+  const requestEditUser = (user) => {
+    setSelectedUserForEdit(user);
+    setEditUserForm({
+      id: user.id,
+      username: user.username || "",
+      firstName: user.first_name || "",
+      lastName: user.last_name || "",
+      email: user.email || "",
+      contact: user.contact_number || "",
+      role: user.role || "faculty",
+      course: user.course || "",
+      year: user.year || "",
+      section: user.section || "",
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleEditUser = async () => {
+    if (!editUserForm.username || !editUserForm.firstName || !editUserForm.lastName || !editUserForm.email) {
+      setToast({ visible: true, message: "Username, First Name, Last Name, and Email are required.", type: "error" });
+      return;
+    }
+
+    setSavingEditUser(true);
+    try {
+      const payload = {
+        username: editUserForm.username.trim(),
+        first_name: editUserForm.firstName.trim(),
+        last_name: editUserForm.lastName.trim(),
+        email: editUserForm.email.trim(),
+        contact_number: editUserForm.contact.trim(),
+        role: editUserForm.role.toLowerCase(),
+        course: editUserForm.course,
+        year: editUserForm.year,
+        section: editUserForm.section,
+      };
+
+      await api.patch(`users/${editUserForm.id}/`, payload);
+
+      setShowEditUserModal(false);
+      loadPersonnel();
+      loadData();
+      setToast({ visible: true, message: "Account updated successfully", type: "success" });
+    } catch (error) {
+      const errData = error.response?.data;
+      let msg = "Failed to update account";
+      if (errData) {
+        if (typeof errData === "string") {
+          msg = errData;
+        } else if (errData.error) {
+          msg = errData.error;
+        } else if (typeof errData === "object") {
+          const firstKey = Object.keys(errData)[0];
+          if (firstKey) {
+            const val = errData[firstKey];
+            msg = Array.isArray(val) ? `${firstKey}: ${val[0]}` : `${firstKey}: ${val}`;
+          }
+        }
+      }
+      setToast({ visible: true, message: msg, type: "error" });
+    } finally {
+      setSavingEditUser(false);
     }
   };
 
@@ -976,6 +1058,9 @@ export default function AdminDashboard({ navigation }) {
                         <Text style={styles.roleBadgeText}>{item.role || 'Staff'}</Text>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                        <Pressable onPress={() => requestEditUser(item)}>
+                          <MaterialCommunityIcons name="square-edit-outline" size={20} color="#002366" />
+                        </Pressable>
                         <Pressable onPress={() => requestPasswordReset(item)}>
                           <MaterialCommunityIcons name="key-variant" size={20} color="#0052FF" />
                         </Pressable>
@@ -1187,6 +1272,146 @@ export default function AdminDashboard({ navigation }) {
                   style={styles.confirmButton}
                 >
                   <Text style={styles.confirmButtonText}>Reset Password</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Edit Account Modal */}
+        {showEditUserModal && (
+          <View style={styles.modalOverlay}>
+            <View style={[
+              styles.modalContent,
+              isMobile && { width: '95%', maxHeight: '95%' }
+            ]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Account</Text>
+                <Pressable onPress={() => setShowEditUserModal(false)} disabled={savingEditUser}>
+                  <MaterialCommunityIcons name="close" size={24} color="#0F172A" />
+                </Pressable>
+              </View>
+
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 16 }}>
+                  Editing account for: <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>{selectedUserForEdit?.first_name} {selectedUserForEdit?.last_name}</Text>
+                </Text>
+
+                <Text style={styles.inputLabel}>Username *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter username"
+                  value={editUserForm.username}
+                  onChangeText={(text) => setEditUserForm({ ...editUserForm, username: text })}
+                />
+
+                <Text style={styles.inputLabel}>First Name *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter first name"
+                  value={editUserForm.firstName}
+                  onChangeText={(text) => setEditUserForm({ ...editUserForm, firstName: text })}
+                />
+
+                <Text style={styles.inputLabel}>Last Name *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter last name"
+                  value={editUserForm.lastName}
+                  onChangeText={(text) => setEditUserForm({ ...editUserForm, lastName: text })}
+                />
+
+                <Text style={styles.inputLabel}>Email *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter email"
+                  value={editUserForm.email}
+                  onChangeText={(text) => setEditUserForm({ ...editUserForm, email: text })}
+                  keyboardType="email-address"
+                />
+
+                <Text style={styles.inputLabel}>Contact Number</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter contact number"
+                  value={editUserForm.contact}
+                  onChangeText={(text) => setEditUserForm({ ...editUserForm, contact: text })}
+                  keyboardType="phone-pad"
+                />
+
+                <Text style={styles.inputLabel}>Role *</Text>
+                <View style={styles.roleSelector}>
+                  {['student', 'faculty', 'dean', 'admin'].map((role) => (
+                    <Pressable
+                      key={role}
+                      onPress={() => setEditUserForm({ ...editUserForm, role })}
+                      style={[
+                        styles.roleOption,
+                        editUserForm.role === role && styles.roleOptionActive
+                      ]}
+                    >
+                      <Text style={[
+                        styles.roleOptionText,
+                        editUserForm.role === role && styles.roleOptionTextActive
+                      ]}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {editUserForm.role === 'student' && (
+                  <>
+                    <Text style={styles.inputLabel}>Course</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="e.g. BSIT"
+                      value={editUserForm.course}
+                      onChangeText={(text) => setEditUserForm({ ...editUserForm, course: text })}
+                    />
+
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.inputLabel}>Year</Text>
+                        <TextInput
+                          style={styles.modalInput}
+                          placeholder="e.g. 3"
+                          value={editUserForm.year}
+                          onChangeText={(text) => setEditUserForm({ ...editUserForm, year: text })}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.inputLabel}>Section</Text>
+                        <TextInput
+                          style={styles.modalInput}
+                          placeholder="e.g. A"
+                          value={editUserForm.section}
+                          onChangeText={(text) => setEditUserForm({ ...editUserForm, section: text })}
+                        />
+                      </View>
+                    </View>
+                  </>
+                )}
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <Pressable
+                  onPress={() => setShowEditUserModal(false)}
+                  style={[styles.cancelButton, savingEditUser && { opacity: 0.6 }]}
+                  disabled={savingEditUser}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleEditUser}
+                  style={[styles.confirmButton, savingEditUser && { opacity: 0.7 }]}
+                  disabled={savingEditUser}
+                >
+                  {savingEditUser ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>Save Changes</Text>
+                  )}
                 </Pressable>
               </View>
             </View>
