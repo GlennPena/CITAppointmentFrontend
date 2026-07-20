@@ -158,6 +158,7 @@ export default function AdminDashboard({ navigation }) {
   // Personnel Management State
   const [personnel, setPersonnel] = useState([]);
   const [showAddPersonnelModal, setShowAddPersonnelModal] = useState(false);
+  const [creatingPersonnel, setCreatingPersonnel] = useState(false);
   const [personnelForm, setPersonnelForm] = useState({
     username: "",
     firstName: "",
@@ -273,6 +274,7 @@ export default function AdminDashboard({ navigation }) {
 
   // PERSONNEL MANAGEMENT
   const handleAddPersonnel = async () => {
+    setCreatingPersonnel(true);
     try {
       const payload = {
         username: personnelForm.username,
@@ -321,6 +323,8 @@ export default function AdminDashboard({ navigation }) {
         message: msg,
         type: "error"
       });
+    } finally {
+      setCreatingPersonnel(false);
     }
   };
 
@@ -1112,15 +1116,21 @@ export default function AdminDashboard({ navigation }) {
               <View style={styles.modalFooter}>
                 <Pressable
                   onPress={() => setShowAddPersonnelModal(false)}
-                  style={styles.cancelButton}
+                  style={[styles.cancelButton, creatingPersonnel && { opacity: 0.6 }]}
+                  disabled={creatingPersonnel}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleAddPersonnel}
-                  style={styles.confirmButton}
+                  style={[styles.confirmButton, creatingPersonnel && { opacity: 0.7 }]}
+                  disabled={creatingPersonnel}
                 >
-                  <Text style={styles.confirmButtonText}>Create Account</Text>
+                  {creatingPersonnel ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>Create Account</Text>
+                  )}
                 </Pressable>
               </View>
             </View>
