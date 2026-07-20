@@ -200,8 +200,24 @@ export default function AdminDashboard({ navigation }) {
   });
 
   useEffect(() => {
-    loadData();
-    loadPersonnel();
+    const fetchAllData = async () => {
+      try {
+        setError(null);
+        const [apptsRes, usersRes] = await Promise.all([
+          api.get("appointments/"),
+          api.get("users/")
+        ]);
+        setAppointments(apptsRes.data);
+        setPersonnel(usersRes.data);
+        updateStats(apptsRes.data);
+        extractStudents(apptsRes.data, usersRes.data);
+      } catch (err) {
+        setError("Failed to load records. Please check your connection.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllData();
   }, []);
 
   const loadData = async () => {
@@ -210,7 +226,7 @@ export default function AdminDashboard({ navigation }) {
       const res = await api.get("appointments/");
       setAppointments(res.data);
       updateStats(res.data);
-      extractStudents(res.data);
+      extractStudents(res.data, personnel);
     } catch (err) {
       setError("Failed to load appointment records. Please check your connection.");
     } finally {
@@ -224,7 +240,19 @@ export default function AdminDashboard({ navigation }) {
   const [studentHistoryAppts, setStudentHistoryAppts] = useState([]);
 
   const handleOpenStudentHistory = (studentItem) => {
-    const studentAppts = appointments.filter(a => a.student === studentItem.id || a.student_email === studentItem.email);
+    const sId = String(studentItem.id);
+    const sEmail = (studentItem.email || '').toLowerCase();
+
+    const studentAppts = appointments.filter(a => {
+      const isStudentMatch = (a.student && String(a.student) === sId) ||
+        (a.student_email && a.student_email.toLowerCase() === sEmail);
+
+      const isParticipantMatch = (Array.isArray(a.participants) && a.participants.some(p => String(p) === sId)) ||
+        (Array.isArray(a.participants_detail) && a.participants_detail.some(p => String(p.id) === sId || (p.email && p.email.toLowerCase() === sEmail)));
+
+      return isStudentMatch || isParticipantMatch;
+    });
+
     setSelectedStudentForHistory(studentItem);
     setStudentHistoryAppts(studentAppts);
     setStudentHistoryVisible(true);
@@ -236,10 +264,11 @@ export default function AdminDashboard({ navigation }) {
     // 1. Add student users from personnel list
     userList.filter(u => u.role === 'student').forEach(u => {
       const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username;
-      studentMap[u.id] = {
+      const key = String(u.id);
+      studentMap[key] = {
         id: u.id,
         name: name,
-        email: u.email || '',
+        email: (u.email || '').toLowerCase(),
         student_course: u.course ? `${u.course} ${u.year || ''}${u.section || ''}`.trim() : 'N/A',
         contact_number: u.contact_number || '',
         date_of_birth: u.date_of_birth || '',
@@ -251,19 +280,38 @@ export default function AdminDashboard({ navigation }) {
 
     // 2. Aggregate counts & add missing students from appointments
     appointmentData.forEach(appt => {
-      const studentId = appt.student;
-      if (studentId) {
-        if (!studentMap[studentId]) {
-          studentMap[studentId] = {
-            id: studentId,
-            name: appt.student_name || `Student #${studentId}`,
-            email: appt.student_email || '',
-            student_course: appt.student_course || 'N/A',
-            contact_number: '',
-            appointmentCount: 0
-          };
-        }
-        studentMap[studentId].appointmentCount += 1;
+      const apptStudentId = appt.student ? String(appt.student) : null;
+      const apptStudentEmail = (appt.student_email || '').toLowerCase();
+
+      let foundKey = null;
+      if (apptStudentId && studentMap[apptStudentId]) {
+        foundKey = apptStudentId;
+      } else if (apptStudentEmail) {
+        foundKey = Object.keys(studentMap).find(k => studentMap[k].email === apptStudentEmail);
+      }
+
+      if (foundKey) {
+        studentMap[foundKey].appointmentCount += 1;
+      } else if (apptStudentId || apptStudentEmail) {
+        const key = apptStudentId || apptStudentEmail;
+        studentMap[key] = {
+          id: appt.student || key,
+          name: appt.student_name || `Student`,
+          email: apptStudentEmail,
+          student_course: appt.student_course || 'N/A',
+          contact_number: '',
+          appointmentCount: 1
+        };
+      }
+
+      // Also check participants for meetings
+      if (Array.isArray(appt.participants)) {
+        appt.participants.forEach(pid => {
+          const pKey = String(pid);
+          if (studentMap[pKey] && pKey !== foundKey) {
+            studentMap[pKey].appointmentCount += 1;
+          }
+        });
       }
     });
 
