@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -368,8 +368,10 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const renderGoogleButton = (el) => {
+  const renderGoogleButton = useCallback((el) => {
     if (!el || Platform.OS !== 'web' || !GOOGLE_WEB_CLIENT_ID) return;
+
+    if (el.dataset.rendered === "true") return;
 
     const runRender = () => {
       if (!window.google) {
@@ -386,17 +388,20 @@ export default function LoginScreen({ navigation }) {
         isGoogleInitialized = true;
       }
 
-      el.innerHTML = ""; // Clear old iframe and contents
-      window.google.accounts.id.renderButton(el, {
-        theme: "outline",
-        size: "large",
-        text: "continue_with",
-        width: 320,
-      });
+      if (el.dataset.rendered !== "true") {
+        el.innerHTML = ""; // Clear old iframe and contents
+        window.google.accounts.id.renderButton(el, {
+          theme: "outline",
+          size: "large",
+          text: "continue_with",
+          width: 320,
+        });
+        el.dataset.rendered = "true";
+      }
     };
 
     runRender();
-  };
+  }, []);
 
   async function handleWebGoogleResponse(response) {
     setGoogleLoading(true);
