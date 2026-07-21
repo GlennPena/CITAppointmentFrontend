@@ -9,22 +9,40 @@ import { useWindowDimensions } from 'react-native';
 import { useState, useEffect } from 'react';
 
 const AnimatedNumber = ({ value, style }) => {
-  const [displayValue, setDisplayValue] = useState(0);
+  const [displayValue, setDisplayValue] = useState(() => (typeof value === 'number' || !isNaN(parseFloat(value)) ? '0' : value));
 
   useEffect(() => {
+    if (value == null) {
+      setDisplayValue('0');
+      return;
+    }
+
+    const strVal = String(value);
+    const numericMatch = strVal.match(/^([+-]?\d*(?:\.\d+)?)(.*)$/);
+
+    if (!numericMatch || isNaN(parseFloat(numericMatch[1])) || numericMatch[1] === '') {
+      setDisplayValue(strVal);
+      return;
+    }
+
+    const targetNum = parseFloat(numericMatch[1]);
+    const suffix = numericMatch[2] || '';
+    const isFloat = numericMatch[1].includes('.');
+
     let startValue = 0;
-    const duration = 1500;
+    const duration = 1200;
     const frames = 30;
     const stepTime = Math.abs(Math.floor(duration / frames));
-    const increment = value / frames;
+    const increment = targetNum / frames;
 
     const timer = setInterval(() => {
       startValue += increment;
-      if (startValue >= value) {
-        setDisplayValue(value);
+      if ((increment >= 0 && startValue >= targetNum) || (increment < 0 && startValue <= targetNum)) {
+        setDisplayValue(`${isFloat ? targetNum.toFixed(1) : targetNum}${suffix}`);
         clearInterval(timer);
       } else {
-        setDisplayValue(Math.ceil(startValue));
+        const formatted = isFloat ? startValue.toFixed(1) : Math.ceil(startValue);
+        setDisplayValue(`${formatted}${suffix}`);
       }
     }, stepTime);
 

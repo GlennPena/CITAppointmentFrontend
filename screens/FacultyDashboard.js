@@ -243,33 +243,44 @@ export default function FacultyDashboard({ navigation }) {
   };
 
   const AnimatedNumber = ({ value, style }) => {
-    const [displayValue, setDisplayValue] = useState(0);
+    const [displayValue, setDisplayValue] = useState(() => (typeof value === 'number' || !isNaN(parseFloat(value)) ? '0' : value));
 
     useEffect(() => {
-      if (!value || value === 0) {
-        setDisplayValue(0);
+      if (value == null) {
+        setDisplayValue('0');
         return;
       }
 
-      let startTime = Date.now();
-      const tickDuration = 200; // 200ms per tick (adjust speed here)
-      let animationFrame;
+      const strVal = String(value);
+      const numericMatch = strVal.match(/^([+-]?\d*(?:\.\d+)?)(.*)$/);
 
-      const animate = () => {
-        const now = Date.now();
-        const elapsed = now - startTime;
-        const currentTick = Math.floor(elapsed / tickDuration);
+      if (!numericMatch || isNaN(parseFloat(numericMatch[1])) || numericMatch[1] === '') {
+        setDisplayValue(strVal);
+        return;
+      }
 
-        if (currentTick < value) {
-          setDisplayValue(currentTick);
-          animationFrame = requestAnimationFrame(animate);
+      const targetNum = parseFloat(numericMatch[1]);
+      const suffix = numericMatch[2] || '';
+      const isFloat = numericMatch[1].includes('.');
+
+      let startValue = 0;
+      const duration = 1200;
+      const frames = 30;
+      const stepTime = Math.abs(Math.floor(duration / frames));
+      const increment = targetNum / frames;
+
+      const timer = setInterval(() => {
+        startValue += increment;
+        if ((increment >= 0 && startValue >= targetNum) || (increment < 0 && startValue <= targetNum)) {
+          setDisplayValue(`${isFloat ? targetNum.toFixed(1) : targetNum}${suffix}`);
+          clearInterval(timer);
         } else {
-          setDisplayValue(value); // ensure exact finish
+          const formatted = isFloat ? startValue.toFixed(1) : Math.ceil(startValue);
+          setDisplayValue(`${formatted}${suffix}`);
         }
-      };
+      }, stepTime);
 
-      animationFrame = requestAnimationFrame(animate);
-      return () => cancelAnimationFrame(animationFrame);
+      return () => clearInterval(timer);
     }, [value]);
 
     return <Text style={style}>{displayValue}</Text>;
