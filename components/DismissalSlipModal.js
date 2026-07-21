@@ -37,12 +37,11 @@ export default function DismissalSlipModal({ visible, onClose, data }) {
 
   if (!data) return null;
 
-  const rawBaseUrl = api.defaults.baseURL || "";
-  let cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-  if (!cleanBaseUrl || cleanBaseUrl.includes('appointment.ua-cit.com')) {
-    cleanBaseUrl = "https://citappointmentbackend.onrender.com";
+  let domain = "https://appointment.ua-cit.com";
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.origin) {
+    domain = window.location.origin;
   }
-  const verificationUrl = `${cleanBaseUrl}/verify-slip/${data.id}/`;
+  const verificationUrl = `${domain}/verify-slip/${data.id}/`;
 
   const getQRCodeBase64 = () => {
     return new Promise((resolve) => {

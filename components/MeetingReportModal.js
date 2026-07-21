@@ -32,12 +32,11 @@ export default function MeetingReportModal({ visible, onClose, data }) {
 
   if (!data || data.status !== "Completed") return null;
 
-  const rawBaseUrl = api.defaults.baseURL || "";
-  let cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-  if (!cleanBaseUrl || cleanBaseUrl.includes('appointment.ua-cit.com')) {
-    cleanBaseUrl = "https://citappointmentbackend.onrender.com";
+  let domain = "https://appointment.ua-cit.com";
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.origin) {
+    domain = window.location.origin;
   }
-  const verificationUrl = `${cleanBaseUrl}/verify-meeting-report/${data.id}/`;
+  const verificationUrl = `${domain}/verify-meeting-report/${data.id}/`;
 
   const agendaText = data.condition || "No agenda details provided.";
   const participantsList = data.participants_attendance || [];
