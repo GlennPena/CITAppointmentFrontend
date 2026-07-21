@@ -18,6 +18,7 @@ import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import StudentDashboard from "./screens/StudentDashboard";
 import AdminDashboard from "./screens/AdminDashboard";
 import FacultyNavigation from "./screens/FacultyNavigation";
+import VerificationScreen from "./screens/VerificationScreen";
 import api from "./utils/api";
 
 
@@ -101,15 +102,7 @@ export default function App() {
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           const pathname = window.location.pathname;
           if (pathname.includes('/verify-slip/') || pathname.includes('/verify-meeting-report/')) {
-            const rawBaseUrl = api.defaults.baseURL || "";
-            let cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-            if (!cleanBaseUrl || cleanBaseUrl.startsWith('/') || cleanBaseUrl.includes('localhost') || cleanBaseUrl.includes('127.0.0.1')) {
-              cleanBaseUrl = window.location.origin;
-            }
-            const targetUrl = `${cleanBaseUrl}${pathname}${window.location.search}`;
-            if (window.location.href !== targetUrl) {
-              window.location.href = targetUrl;
-            }
+            setInitialRoute("Verification");
             return;
           }
         }
@@ -148,6 +141,7 @@ export default function App() {
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Register" component={RegistrationScreen} options={{ headerShown: false }} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Verification" component={VerificationScreen} options={{ headerShown: false }} />
 
         <Stack.Screen
           name="AdminDashboard"
