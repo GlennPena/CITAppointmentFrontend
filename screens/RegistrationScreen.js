@@ -260,8 +260,10 @@ const TypingText = ({ text, texts, style, typingSpeed = 20, eraseSpeed = 10, pau
 // --- Main Screen ---
 export default function RegistrationScreen({ navigation, route }) {
   const { width } = useWindowDimensions();
-  const isMobile = width < 768;
-  const styles = getStyles(isMobile, width);
+  const isMobile = width < 1000;
+  const isMediumScreen = width < 1250;
+  const isLargeDesktop = width >= 1650;
+  const styles = getStyles(isMobile, width, isMediumScreen, isLargeDesktop);
 
   const entryAnim = useState(() => new Animated.Value(0))[0];
 
@@ -811,7 +813,7 @@ export default function RegistrationScreen({ navigation, route }) {
   );
 }
 
-const getStyles = (isMobile, width) => StyleSheet.create({
+const getStyles = (isMobile, width, isMediumScreen, isLargeDesktop) => StyleSheet.create({
   // Shared
   row: { flexDirection: "row", alignItems: 'flex-end', gap: 15 },
   flex: { flex: 1 },
@@ -840,7 +842,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     backgroundColor: '#F5F7FA',
   },
   leftPanelWrapper: {
-    width: '48%',
+    width: isMediumScreen ? '42%' : '48%',
     borderTopRightRadius: 50,
     borderBottomRightRadius: 50,
     overflow: 'hidden',
@@ -855,7 +857,7 @@ const getStyles = (isMobile, width) => StyleSheet.create({
     flex: 1,
     minHeight: '100%',
     justifyContent: 'space-between',
-    padding: 85,
+    padding: isMediumScreen ? 45 : 85,
     paddingVertical: 60
   },
   leftContent: {
@@ -878,15 +880,15 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   },
   leftTitle: {
     fontFamily: 'Inter_900Black',
-    fontSize: 63,
+    fontSize: isMediumScreen ? 48 : 63,
     color: '#FFFFFF',
     letterSpacing: 0.5,
-    lineHeight: 70,
+    lineHeight: isMediumScreen ? 54 : 70,
     marginBottom: 14,
   },
   leftSubtitle: {
     fontFamily: 'Inter_700Bold',
-    fontSize: 18,
+    fontSize: isMediumScreen ? 14 : 18,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: 2,
     textTransform: 'uppercase',
@@ -894,9 +896,9 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   },
   leftBody: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 18,
+    fontSize: isMediumScreen ? 15 : 18,
     color: 'rgba(255,255,255,0.72)',
-    lineHeight: 27,
+    lineHeight: isMediumScreen ? 23 : 27,
     maxWidth: 380,
     marginBottom: 35,
   },
@@ -959,16 +961,16 @@ const getStyles = (isMobile, width) => StyleSheet.create({
   },
   formTitle: {
     fontFamily: 'Inter_900Black',
-    fontSize: 56,
+    fontSize: isMediumScreen ? 44 : 56,
     color: '#002c6e',
     letterSpacing: -0.8,
     marginBottom: 2,
   },
   formSubtitle: {
     fontFamily: 'Roboto_400Regular',
-    fontSize: 16,
+    fontSize: isMediumScreen ? 14 : 16,
     color: '#002c6e',
-    marginBottom: 50,
+    marginBottom: isMediumScreen ? 30 : 50,
   },
   formSubHeading: {
     fontFamily: 'Inter_900Black',

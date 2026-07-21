@@ -99,7 +99,8 @@ export default function FacultyDashboard({ navigation }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isDesktop = width >= 1200;
-  const styles = getStyles(isMobile, isDesktop);
+  const isLargeDesktop = width >= 1650;
+  const styles = getStyles(isMobile, isDesktop, isLargeDesktop);
 
   const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -756,7 +757,7 @@ export default function FacultyDashboard({ navigation }) {
   );
 }
 
-const getStyles = (isMobile, isDesktop) => StyleSheet.create({
+const getStyles = (isMobile, isDesktop, isLargeDesktop) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
   },
@@ -831,13 +832,13 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: isDesktop ? 'flex-start' : 'space-between',
-    gap: isDesktop ? 24 : isMobile ? 10 : 16,
+    justifyContent: isLargeDesktop ? 'flex-start' : 'space-between',
+    gap: isLargeDesktop ? 24 : isMobile ? 10 : 16,
     paddingHorizontal: isDesktop ? 60 : isMobile ? 0 : 16,
     marginBottom: 20
   },
   statCard: {
-    width: isDesktop ? undefined : '48%',
+    width: isLargeDesktop ? undefined : '48%',
     flex: isMobile ? undefined : 1,
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -847,7 +848,7 @@ const getStyles = (isMobile, isDesktop) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: isDesktop ? 26 : isMobile ? 14 : 18,
-    minWidth: isDesktop ? 160 : '45%',
+    minWidth: isLargeDesktop ? 160 : '45%',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
