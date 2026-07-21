@@ -103,11 +103,13 @@ export default function App() {
           if (pathname.includes('/verify-slip/') || pathname.includes('/verify-meeting-report/')) {
             const rawBaseUrl = api.defaults.baseURL || "https://citappointmentbackend.onrender.com/api/";
             let cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-            if (!cleanBaseUrl || cleanBaseUrl === window.location.origin || cleanBaseUrl.includes('appointment.ua-cit.com')) {
+            if (!cleanBaseUrl) {
               cleanBaseUrl = "https://citappointmentbackend.onrender.com";
             }
-            window.location.href = `${cleanBaseUrl}${pathname}${window.location.search}`;
-            return;
+            if (cleanBaseUrl !== window.location.origin) {
+              window.location.href = `${cleanBaseUrl}${pathname}${window.location.search}`;
+              return;
+            }
           }
         }
 
