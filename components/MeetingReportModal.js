@@ -1,9 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable, ScrollView, Platform, Image, useWindowDimensions } from 'react-native';
 import { jsPDF } from "jspdf";
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import QRCode from 'react-native-qrcode-svg';
 
 import { Typography } from '../styles/theme';
 import { Asset } from 'expo-asset';
@@ -14,7 +13,6 @@ export default function MeetingReportModal({ visible, onClose, data }) {
   const isMobile = width < 768;
   const styles = getStyles(isMobile);
 
-  const qrRef = useRef();
   const [logoUri, setLogoUri] = useState(null);
 
   useEffect(() => {
@@ -32,30 +30,11 @@ export default function MeetingReportModal({ visible, onClose, data }) {
 
   if (!data || data.status !== "Completed") return null;
 
-  let domain = "https://appointment.ua-cit.com";
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.origin) {
-    domain = window.location.origin;
-  }
-  const verificationUrl = `${domain}/verify-meeting-report/${data.id}/`;
-
   const agendaText = data.condition || "No agenda details provided.";
   const participantsList = data.participants_attendance || [];
 
-  const getQRCodeBase64 = () => {
-    return new Promise((resolve) => {
-      if (qrRef.current) {
-        qrRef.current.toDataURL((base64Data) => {
-          resolve(`data:image/png;base64,${base64Data}`);
-        });
-      } else {
-        resolve(null);
-      }
-    });
-  };
-
   const handleDownload = async () => {
     try {
-      const qrBase64 = await getQRCodeBase64();
       const meetingDateObj = data.date_time ? new Date(data.date_time) : null;
 
       const meetingDate = meetingDateObj
@@ -177,12 +156,7 @@ export default function MeetingReportModal({ visible, onClose, data }) {
 
         // QR / Footer
         currentY += 10;
-        if (qrBase64) {
-          doc.addImage(qrBase64, 'PNG', leftPadding, currentY, 20, 20);
-          doc.setFontSize(7);
-          doc.setTextColor(...subLabelGray);
-          doc.text("Scan to verify", leftPadding + 10, currentY + 24, { align: "center" });
-        }
+
 
         // Host Signature
         const sigX = 130;
@@ -267,10 +241,7 @@ export default function MeetingReportModal({ visible, onClose, data }) {
               </table>
 
               <div class="footer">
-                <div style="text-align: center;">
-                  <img src="${qrBase64}" style="width: 70px; height: 70px;" />
-                  <p style="font-size: 9px; color: #64748B; margin: 2px 0 0;">Scan to verify</p>
-                </div>
+                <div></div>
                 <div class="signature-box">
                   <p style="font-weight: bold; margin: 0;">${data.faculty_name || ''}</p>
                   <div class="sig-line"></div>
@@ -293,17 +264,6 @@ export default function MeetingReportModal({ visible, onClose, data }) {
     <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          {data?.id && (
-            <View style={{ position: 'absolute', opacity: 0, left: -1000 }} pointerEvents="none">
-              <QRCode
-                key={data.id}
-                value={verificationUrl}
-                getRef={qrRef}
-                size={200}
-              />
-            </View>
-          )}
-
           <Text style={styles.modalTitle}>Meeting Report Preview</Text>
 
           <ScrollView style={styles.previewScroll} showsVerticalScrollIndicator={false}>
@@ -382,10 +342,6 @@ export default function MeetingReportModal({ visible, onClose, data }) {
 
               {/* FOOTER */}
               <View style={styles.previewFooter}>
-                <View style={styles.qrSide}>
-                  <QRCode value={verificationUrl} size={50} />
-                  <Text style={styles.qrLabel}>Scan to verify</Text>
-                </View>
                 <View style={styles.signatureSide}>
                   <Text style={styles.facultyName}>{data.faculty_name || ''}</Text>
                   <View style={styles.signatureLine} />
@@ -556,18 +512,10 @@ const getStyles = (isMobile) => StyleSheet.create({
   },
   previewFooter: {
     flexDirection: isMobile ? 'column' : 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: isMobile ? 'center' : 'flex-end',
     marginTop: 20,
     gap: isMobile ? 24 : 0,
-  },
-  qrSide: {
-    alignItems: 'center',
-  },
-  qrLabel: {
-    fontSize: 8,
-    color: '#64748B',
-    marginTop: 2,
   },
   signatureSide: {
     alignItems: 'center',
