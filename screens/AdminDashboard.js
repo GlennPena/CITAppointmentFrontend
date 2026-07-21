@@ -173,6 +173,7 @@ export default function AdminDashboard({ navigation }) {
   const [distributionY, setDistributionY] = useState(1000);
   const { height: screenHeight } = useWindowDimensions();
   const isDistributionVisible = analyticsScrollY + screenHeight > distributionY + 100;
+  const [analyticsSubTab, setAnalyticsSubTab] = useState("Overview");
 
   // Personnel Management State
   const [personnel, setPersonnel] = useState([]);
@@ -739,277 +740,339 @@ export default function AdminDashboard({ navigation }) {
           </Text>
         </View>
 
-        {/* METRICS ROW */}
-        <View style={[styles.statsRow, isMobile && { gap: 10 }]}>
-          <StatBox label="Total Consultations" value={totalAppointments} color="#0F172A" icon="file-document-outline" />
-          <StatBox label="Completed" value={completedCount} color="#10B981" icon="check-circle-outline" />
-          <StatBox label="Pending" value={pendingCount} color="#F59E0B" icon="clock-outline" />
-          <StatBox label="Cancelled/Rejected" value={cancelledOrRejectedCount} color="#EF4444" icon="close-circle-outline" />
+        {/* ANALYTICS SUB-TAB NAVIGATION */}
+        <View style={{
+          flexDirection: 'row',
+          backgroundColor: '#FFFFFF',
+          padding: 5,
+          borderRadius: 16,
+          marginVertical: 16,
+          borderWidth: 1,
+          borderColor: '#E2E8F0',
+          gap: 6,
+          alignSelf: isMobile ? 'stretch' : 'flex-start',
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 8,
+          elevation: 2,
+        }}>
+          {[
+            { id: 'Overview', label: 'Consultation Overview', icon: 'chart-box-outline' },
+            { id: 'Leaderboards', label: 'Leaderboards', icon: 'trophy-outline' },
+            { id: 'Ratings', label: 'Ratings & Feedback', icon: 'star-outline' },
+          ].map(tab => (
+            <Pressable
+              key={tab.id}
+              onPress={() => setAnalyticsSubTab(tab.id)}
+              style={({ pressed }) => [{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: isMobile ? 10 : 16,
+                paddingVertical: 10,
+                borderRadius: 12,
+                backgroundColor: analyticsSubTab === tab.id ? '#002366' : 'transparent',
+                flex: isMobile ? 1 : undefined,
+                justifyContent: 'center',
+              }, pressed && { opacity: 0.8 }]}
+            >
+              <MaterialCommunityIcons
+                name={tab.icon}
+                size={18}
+                color={analyticsSubTab === tab.id ? '#FFFFFF' : '#64748B'}
+              />
+              <Text style={{
+                fontSize: isMobile ? 11 : 13,
+                fontWeight: '700',
+                color: analyticsSubTab === tab.id ? '#FFFFFF' : '#475569',
+              }}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
-        {/* LEADERBOARDS SIDE-BY-SIDE */}
-        <View style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }]}>
-          {/* TOP FACULTY */}
-          <View style={[styles.analyticsCard, { flex: 1 }]}>
-            <View style={styles.analyticsCardHeader}>
-              <MaterialCommunityIcons name="trophy-outline" size={20} color="#F59E0B" />
-              <Text style={styles.analyticsCardTitle}>Top Faculty (Most Consultations)</Text>
+        {/* TAB 1: CONSULTATION OVERVIEW */}
+        {analyticsSubTab === 'Overview' && (
+          <>
+            {/* METRICS ROW */}
+            <View style={[styles.statsRow, isMobile && { gap: 10 }]}>
+              <StatBox label="Total Consultations" value={totalAppointments} color="#0F172A" icon="file-document-outline" />
+              <StatBox label="Completed" value={completedCount} color="#10B981" icon="check-circle-outline" />
+              <StatBox label="Pending" value={pendingCount} color="#F59E0B" icon="clock-outline" />
+              <StatBox label="Cancelled/Rejected" value={cancelledOrRejectedCount} color="#EF4444" icon="close-circle-outline" />
             </View>
-            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-              <View style={styles.analyticsCardBody}>
-                {topFaculty.length === 0 ? (
-                  <Text style={styles.emptyText}>No consultation data available.</Text>
-                ) : (
-                  topFaculty.map((item, index) => (
-                    <View key={item.name} style={styles.leaderboardRow}>
-                      <View style={styles.leaderboardRankContainer}>
-                        <Text style={styles.leaderboardRankText}>#{index + 1}</Text>
-                      </View>
-                      <View style={styles.leaderboardInfo}>
-                        <Text style={styles.leaderboardName}>{item.name}</Text>
-                        <Text style={styles.leaderboardSub}>Completed: {item.completed} / Total: {item.total}</Text>
-                      </View>
-                      <AnimatedNumber value={item.total} style={styles.leaderboardCount} />
-                    </View>
-                  ))
-                )}
-              </View>
-            </ScrollView>
-          </View>
 
-          {/* TOP STUDENTS */}
-          <View style={[styles.analyticsCard, { flex: 1 }]}>
-            <View style={styles.analyticsCardHeader}>
-              <MaterialCommunityIcons name="account-star-outline" size={20} color="#0052FF" />
-              <Text style={styles.analyticsCardTitle}>Top Students (Most Consultations)</Text>
-            </View>
-            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-              <View style={styles.analyticsCardBody}>
-                {topStudents.length === 0 ? (
-                  <Text style={styles.emptyText}>No student data available.</Text>
-                ) : (
-                  topStudents.map((item, index) => (
-                    <View key={item.name} style={styles.leaderboardRow}>
-                      <View style={[styles.leaderboardRankContainer, { backgroundColor: '#E0F2FE' }]}>
-                        <Text style={[styles.leaderboardRankText, { color: '#0369A1' }]}>#{index + 1}</Text>
-                      </View>
-                      <View style={styles.leaderboardInfo}>
-                        <Text style={styles.leaderboardName}>{item.name}</Text>
-                        <Text style={styles.leaderboardSub}>{item.email}</Text>
-                      </View>
-                      <AnimatedNumber value={item.total} style={styles.leaderboardCount} />
-                    </View>
-                  ))
-                )}
+            {/* SERVICE AND STATUS BREAKDOWNS */}
+            <View 
+              style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }, { marginTop: 20 }]}
+              onLayout={(e) => setDistributionY(e.nativeEvent.layout.y)}
+            >
+              {/* SERVICE BREAKDOWN */}
+              <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
+                <View style={styles.analyticsCardHeader}>
+                  <MaterialCommunityIcons name="medical-bag" size={20} color="#10B981" />
+                  <Text style={styles.analyticsCardTitle}>Service Distribution</Text>
+                </View>
+                <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                  <View style={styles.analyticsCardBody}>
+                    {topServices.length === 0 ? (
+                      <Text style={styles.emptyText}>No services logged.</Text>
+                    ) : (
+                      topServices.map((item) => {
+                        const percentage = totalAppointments > 0 ? ((item.count / totalAppointments) * 100).toFixed(0) : 0;
+                        return (
+                          <View key={item.service} style={styles.distributionRow}>
+                            <View style={styles.distributionLabelRow}>
+                              <Text style={styles.distributionLabel}>{item.service}</Text>
+                              <Text style={[Typography.bodySmall, styles.distributionValue]}>
+                                <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({percentage}%)
+                              </Text>
+                            </View>
+                            <AnimatedBar percentage={percentage} color="#10B981" startAnimation={isDistributionVisible} />
+                          </View>
+                        );
+                      })
+                    )}
+                  </View>
+                </ScrollView>
               </View>
-            </ScrollView>
-          </View>
-        </View>
 
-        {/* SERVICE AND STATUS BREAKDOWNS */}
-        <View 
-          style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }, { marginTop: 20 }]}
-          onLayout={(e) => setDistributionY(e.nativeEvent.layout.y)}
-        >
-          {/* SERVICE BREAKDOWN */}
-          <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
-            <View style={styles.analyticsCardHeader}>
-              <MaterialCommunityIcons name="medical-bag" size={20} color="#10B981" />
-              <Text style={styles.analyticsCardTitle}>Service Distribution</Text>
-            </View>
-            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-              <View style={styles.analyticsCardBody}>
-                {topServices.length === 0 ? (
-                  <Text style={styles.emptyText}>No services logged.</Text>
-                ) : (
-                  topServices.map((item) => {
-                    const percentage = totalAppointments > 0 ? ((item.count / totalAppointments) * 100).toFixed(0) : 0;
+              {/* STATUS DISTRIBUTION */}
+              <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
+                <View style={styles.analyticsCardHeader}>
+                  <MaterialCommunityIcons name="chart-pie" size={20} color="#7C3AED" />
+                  <Text style={styles.analyticsCardTitle}>Status Breakdown</Text>
+                </View>
+                <View style={styles.analyticsCardBody}>
+                  {statusStats.map(item => {
+                    let barColor = '#64748B';
+                    if (item.status === 'Completed') barColor = '#10B981';
+                    else if (item.status === 'Approved') barColor = '#059669';
+                    else if (item.status === 'Pending') barColor = '#F59E0B';
+                    else if (item.status === 'Cancelled' || item.status === 'Rejected') barColor = '#EF4444';
+                    else if (item.status === 'Expired') barColor = '#94A3B8';
+
                     return (
-                      <View key={item.service} style={styles.distributionRow}>
+                      <View key={item.status} style={styles.distributionRow}>
                         <View style={styles.distributionLabelRow}>
-                          <Text style={styles.distributionLabel}>{item.service}</Text>
+                          <Text style={[Typography.bodyMedium, styles.distributionLabel]}>{item.status}</Text>
                           <Text style={[Typography.bodySmall, styles.distributionValue]}>
-                            <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({percentage}%)
+                            <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({item.percentage}%)
                           </Text>
                         </View>
-                        <AnimatedBar percentage={percentage} color="#10B981" startAnimation={isDistributionVisible} />
+                        <AnimatedBar percentage={item.percentage} color={barColor} startAnimation={isDistributionVisible} />
                       </View>
                     );
-                  })
-                )}
-              </View>
-            </ScrollView>
-          </View>
-
-          {/* STATUS DISTRIBUTION */}
-          <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
-            <View style={styles.analyticsCardHeader}>
-              <MaterialCommunityIcons name="chart-pie" size={20} color="#7C3AED" />
-              <Text style={styles.analyticsCardTitle}>Status Breakdown</Text>
-            </View>
-            <View style={styles.analyticsCardBody}>
-              {statusStats.map(item => {
-                let barColor = '#64748B'; // Default
-                if (item.status === 'Completed') barColor = '#10B981';
-                else if (item.status === 'Approved') barColor = '#059669';
-                else if (item.status === 'Pending') barColor = '#F59E0B';
-                else if (item.status === 'Cancelled' || item.status === 'Rejected') barColor = '#EF4444';
-                else if (item.status === 'Expired') barColor = '#94A3B8';
-
-                return (
-                  <View key={item.status} style={styles.distributionRow}>
-                    <View style={styles.distributionLabelRow}>
-                      <Text style={[Typography.bodyMedium, styles.distributionLabel]}>{item.status}</Text>
-                      <Text style={[Typography.bodySmall, styles.distributionValue]}>
-                        <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({item.percentage}%)
-                      </Text>
-                    </View>
-                    <AnimatedBar percentage={item.percentage} color={barColor} startAnimation={isDistributionVisible} />
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-
-        {/* RATINGS & SATISFACTION SECTION */}
-        <View style={{ marginTop: 10, marginBottom: 10 }}>
-          <Text style={[styles.title, { fontSize: isMobile ? 18 : 20, color: '#1E293B', marginBottom: 14 }]}>
-            Student Satisfaction & Rating Analytics
-          </Text>
-
-          {/* RATINGS STATS ROW */}
-          <View style={[styles.statsRow, isMobile && { gap: 10 }]}>
-            <StatBox label="Average Rating" value={`${avgRating} ★`} color="#D97706" icon="star" />
-            <StatBox label="Satisfaction Rate" value={`${satisfactionRate}%`} color="#059669" icon="emoticon-happy-outline" />
-            <StatBox label="Total Rated" value={totalRatedCount} color="#3B82F6" icon="star-box-multiple-outline" />
-            <StatBox label="With Comments" value={appointments.filter(a => a.rating_feedback).length} color="#8B5CF6" icon="comment-text-outline" />
-          </View>
-
-          {/* RATINGS ANALYTICS ROW */}
-          <View style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }, { marginTop: 20 }]}>
-            {/* STAR RATING BREAKDOWN */}
-            <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
-              <View style={styles.analyticsCardHeader}>
-                <MaterialCommunityIcons name="star-half-full" size={20} color="#D97706" />
-                <Text style={styles.analyticsCardTitle}>Rating Distribution</Text>
-              </View>
-              <View style={styles.analyticsCardBody}>
-                {starCounts.map(item => {
-                  const colors = { 5: '#10B981', 4: '#3B82F6', 3: '#F59E0B', 2: '#F97316', 1: '#EF4444' };
-                  return (
-                    <View key={item.stars} style={styles.distributionRow}>
-                      <View style={styles.distributionLabelRow}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <Text style={[Typography.bodyMedium, styles.distributionLabel]}>{item.stars} Stars</Text>
-                          <MaterialCommunityIcons name="star" size={14} color="#D97706" />
-                        </View>
-                        <Text style={[Typography.bodySmall, styles.distributionValue]}>
-                          <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({item.percentage}%)
-                        </Text>
-                      </View>
-                      <AnimatedBar percentage={item.percentage} color={colors[item.stars]} startAnimation={isDistributionVisible} />
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* TOP RATED FACULTY */}
-            <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
-              <View style={styles.analyticsCardHeader}>
-                <MaterialCommunityIcons name="star-circle-outline" size={20} color="#059669" />
-                <Text style={styles.analyticsCardTitle}>Highest Rated Faculty</Text>
-              </View>
-              <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-                <View style={styles.analyticsCardBody}>
-                  {topRatedFaculty.length === 0 ? (
-                    <Text style={styles.emptyText}>No ratings recorded yet.</Text>
-                  ) : (
-                    topRatedFaculty.map((item, index) => (
-                      <View key={item.name} style={styles.leaderboardRow}>
-                        <View style={[styles.leaderboardRankContainer, { backgroundColor: '#ECFDF5' }]}>
-                          <Text style={[styles.leaderboardRankText, { color: '#059669' }]}>#{index + 1}</Text>
-                        </View>
-                        <View style={styles.leaderboardInfo}>
-                          <Text style={styles.leaderboardName}>{item.name}</Text>
-                          <Text style={styles.leaderboardSub}>{item.totalRatings} rated consultation{item.totalRatings > 1 ? 's' : ''}</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <Text style={[styles.leaderboardCount, { color: '#D97706', fontSize: 16 }]}>{item.avg}</Text>
-                          <MaterialCommunityIcons name="star" size={16} color="#D97706" />
-                        </View>
-                      </View>
-                    ))
-                  )}
+                  })}
                 </View>
-              </ScrollView>
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* TAB 2: LEADERBOARDS */}
+        {analyticsSubTab === 'Leaderboards' && (
+          <View style={{ gap: 20 }}>
+            {/* LEADERBOARDS ROW 1 */}
+            <View style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }]}>
+              {/* TOP FACULTY BY CONSULTATIONS */}
+              <View style={[styles.analyticsCard, { flex: 1 }]}>
+                <View style={styles.analyticsCardHeader}>
+                  <MaterialCommunityIcons name="trophy-outline" size={20} color="#F59E0B" />
+                  <Text style={styles.analyticsCardTitle}>Top Faculty (Most Consultations)</Text>
+                </View>
+                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                  <View style={styles.analyticsCardBody}>
+                    {topFaculty.length === 0 ? (
+                      <Text style={styles.emptyText}>No consultation data available.</Text>
+                    ) : (
+                      topFaculty.map((item, index) => (
+                        <View key={item.name} style={styles.leaderboardRow}>
+                          <View style={styles.leaderboardRankContainer}>
+                            <Text style={styles.leaderboardRankText}>#{index + 1}</Text>
+                          </View>
+                          <View style={styles.leaderboardInfo}>
+                            <Text style={styles.leaderboardName}>{item.name}</Text>
+                            <Text style={styles.leaderboardSub}>Completed: {item.completed} / Total: {item.total}</Text>
+                          </View>
+                          <AnimatedNumber value={item.total} style={styles.leaderboardCount} />
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* HIGHEST RATED FACULTY */}
+              <View style={[styles.analyticsCard, { flex: 1 }]}>
+                <View style={styles.analyticsCardHeader}>
+                  <MaterialCommunityIcons name="star-circle-outline" size={20} color="#059669" />
+                  <Text style={styles.analyticsCardTitle}>Highest Rated Faculty</Text>
+                </View>
+                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                  <View style={styles.analyticsCardBody}>
+                    {topRatedFaculty.length === 0 ? (
+                      <Text style={styles.emptyText}>No ratings recorded yet.</Text>
+                    ) : (
+                      topRatedFaculty.map((item, index) => (
+                        <View key={item.name} style={styles.leaderboardRow}>
+                          <View style={[styles.leaderboardRankContainer, { backgroundColor: '#ECFDF5' }]}>
+                            <Text style={[styles.leaderboardRankText, { color: '#059669' }]}>#{index + 1}</Text>
+                          </View>
+                          <View style={styles.leaderboardInfo}>
+                            <Text style={styles.leaderboardName}>{item.name}</Text>
+                            <Text style={styles.leaderboardSub}>{item.totalRatings} rated consultation{item.totalRatings > 1 ? 's' : ''}</Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Text style={[styles.leaderboardCount, { color: '#D97706', fontSize: 16 }]}>{item.avg}</Text>
+                            <MaterialCommunityIcons name="star" size={16} color="#D97706" />
+                          </View>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+
+            {/* TOP STUDENTS ROW */}
+            <View style={styles.analyticsRow}>
+              <View style={[styles.analyticsCard, { width: '100%' }]}>
+                <View style={styles.analyticsCardHeader}>
+                  <MaterialCommunityIcons name="account-star-outline" size={20} color="#0052FF" />
+                  <Text style={styles.analyticsCardTitle}>Top Students (Most Consultations)</Text>
+                </View>
+                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                  <View style={styles.analyticsCardBody}>
+                    {topStudents.length === 0 ? (
+                      <Text style={styles.emptyText}>No student data available.</Text>
+                    ) : (
+                      topStudents.map((item, index) => (
+                        <View key={item.name} style={styles.leaderboardRow}>
+                          <View style={[styles.leaderboardRankContainer, { backgroundColor: '#E0F2FE' }]}>
+                            <Text style={[styles.leaderboardRankText, { color: '#0369A1' }]}>#{index + 1}</Text>
+                          </View>
+                          <View style={styles.leaderboardInfo}>
+                            <Text style={styles.leaderboardName}>{item.name}</Text>
+                            <Text style={styles.leaderboardSub}>{item.email}</Text>
+                          </View>
+                          <AnimatedNumber value={item.total} style={styles.leaderboardCount} />
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </ScrollView>
+              </View>
             </View>
           </View>
+        )}
 
-          {/* RECENT REVIEWS FEED CARD */}
-          <View style={[styles.analyticsRow, { marginTop: 10 }]}>
-            <View style={[styles.analyticsCard, { width: '100%' }]}>
-              <View style={styles.analyticsCardHeader}>
-                <MaterialCommunityIcons name="comment-quote-outline" size={20} color="#8B5CF6" />
-                <Text style={styles.analyticsCardTitle}>Recent Student Feedback & Reviews</Text>
-              </View>
-              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+        {/* TAB 3: RATINGS & FEEDBACK */}
+        {analyticsSubTab === 'Ratings' && (
+          <>
+            {/* RATINGS STATS ROW */}
+            <View style={[styles.statsRow, isMobile && { gap: 10 }]}>
+              <StatBox label="Average Rating" value={`${avgRating} ★`} color="#D97706" icon="star" />
+              <StatBox label="Satisfaction Rate" value={`${satisfactionRate}%`} color="#059669" icon="emoticon-happy-outline" />
+              <StatBox label="Total Rated" value={totalRatedCount} color="#3B82F6" icon="star-box-multiple-outline" />
+              <StatBox label="With Comments" value={appointments.filter(a => a.rating_feedback).length} color="#8B5CF6" icon="comment-text-outline" />
+            </View>
+
+            {/* STAR RATING BREAKDOWN CARD */}
+            <View style={[styles.analyticsRow, { marginTop: 20 }]}>
+              <View style={[styles.analyticsCard, { width: '100%' }]}>
+                <View style={styles.analyticsCardHeader}>
+                  <MaterialCommunityIcons name="star-half-full" size={20} color="#D97706" />
+                  <Text style={styles.analyticsCardTitle}>Rating Distribution</Text>
+                </View>
                 <View style={styles.analyticsCardBody}>
-                  {studentFeedbacks.length === 0 ? (
-                    <Text style={styles.emptyText}>No ratings or feedback received yet.</Text>
-                  ) : (
-                    studentFeedbacks.map((item) => (
-                      <View key={item.id} style={{
-                        padding: 12,
-                        backgroundColor: '#F8FAFC',
-                        borderRadius: 12,
-                        borderWidth: 1,
-                        borderColor: '#E2E8F0',
-                        marginBottom: 10,
-                      }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text style={{ fontWeight: '700', color: '#0F172A', fontSize: 14 }}>
-                              {item.student_name || 'Student'}
-                            </Text>
-                            <Text style={{ color: '#64748B', fontSize: 12 }}>
-                              → {item.faculty_name || 'Faculty'}
-                            </Text>
-                          </View>
-                          <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            backgroundColor: '#FEF3C7',
-                            paddingHorizontal: 8,
-                            paddingVertical: 2,
-                            borderRadius: 8,
-                            gap: 4
-                          }}>
-                            <Text style={{ fontWeight: '800', color: '#D97706', fontSize: 13 }}>{item.rating}</Text>
+                  {starCounts.map(item => {
+                    const colors = { 5: '#10B981', 4: '#3B82F6', 3: '#F59E0B', 2: '#F97316', 1: '#EF4444' };
+                    return (
+                      <View key={item.stars} style={styles.distributionRow}>
+                        <View style={styles.distributionLabelRow}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Text style={[Typography.bodyMedium, styles.distributionLabel]}>{item.stars} Stars</Text>
                             <MaterialCommunityIcons name="star" size={14} color="#D97706" />
                           </View>
+                          <Text style={[Typography.bodySmall, styles.distributionValue]}>
+                            <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({item.percentage}%)
+                          </Text>
                         </View>
-                        {item.rating_feedback ? (
-                          <Text style={{ color: '#334155', fontSize: 13, lineHeight: 18, fontStyle: 'italic' }}>
-                            "{item.rating_feedback}"
-                          </Text>
-                        ) : (
-                          <Text style={{ color: '#94A3B8', fontSize: 12, fontStyle: 'italic' }}>
-                            No text feedback provided.
-                          </Text>
-                        )}
-                        <Text style={{ color: '#94A3B8', fontSize: 11, marginTop: 6, textAlign: 'right' }}>
-                          {item.date_time ? new Date(item.date_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
-                        </Text>
+                        <AnimatedBar percentage={item.percentage} color={colors[item.stars]} startAnimation={isDistributionVisible} />
                       </View>
-                    ))
-                  )}
+                    );
+                  })}
                 </View>
-              </ScrollView>
+              </View>
             </View>
-          </View>
-        </View>
+
+            {/* RECENT REVIEWS FEED CARD */}
+            <View style={[styles.analyticsRow, { marginTop: 10 }]}>
+              <View style={[styles.analyticsCard, { width: '100%' }]}>
+                <View style={styles.analyticsCardHeader}>
+                  <MaterialCommunityIcons name="comment-quote-outline" size={20} color="#8B5CF6" />
+                  <Text style={styles.analyticsCardTitle}>Recent Student Feedback & Reviews</Text>
+                </View>
+                <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+                  <View style={styles.analyticsCardBody}>
+                    {studentFeedbacks.length === 0 ? (
+                      <Text style={styles.emptyText}>No ratings or feedback received yet.</Text>
+                    ) : (
+                      studentFeedbacks.map((item) => (
+                        <View key={item.id} style={{
+                          padding: 12,
+                          backgroundColor: '#F8FAFC',
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: '#E2E8F0',
+                          marginBottom: 10,
+                        }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <Text style={{ fontWeight: '700', color: '#0F172A', fontSize: 14 }}>
+                                {item.student_name || 'Student'}
+                              </Text>
+                              <Text style={{ color: '#64748B', fontSize: 12 }}>
+                                → {item.faculty_name || 'Faculty'}
+                              </Text>
+                            </View>
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              backgroundColor: '#FEF3C7',
+                              paddingHorizontal: 8,
+                              paddingVertical: 2,
+                              borderRadius: 8,
+                              gap: 4
+                            }}>
+                              <Text style={{ fontWeight: '800', color: '#D97706', fontSize: 13 }}>{item.rating}</Text>
+                              <MaterialCommunityIcons name="star" size={14} color="#D97706" />
+                            </View>
+                          </View>
+                          {item.rating_feedback ? (
+                            <Text style={{ color: '#334155', fontSize: 13, lineHeight: 18, fontStyle: 'italic' }}>
+                              "{item.rating_feedback}"
+                            </Text>
+                          ) : (
+                            <Text style={{ color: '#94A3B8', fontSize: 12, fontStyle: 'italic' }}>
+                              No text feedback provided.
+                            </Text>
+                          )}
+                          <Text style={{ color: '#94A3B8', fontSize: 11, marginTop: 6, textAlign: 'right' }}>
+                            {item.date_time ? new Date(item.date_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                          </Text>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
     );
   };
