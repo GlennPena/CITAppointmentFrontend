@@ -663,6 +663,44 @@ export default function AdminDashboard({ navigation }) {
       return { status, count, percentage };
     });
 
+    // Ratings Analytics Calculations
+    const ratedAppointments = appointments.filter(a => a.rating && Number(a.rating) >= 1 && Number(a.rating) <= 5);
+    const totalRatedCount = ratedAppointments.length;
+    const ratingSum = ratedAppointments.reduce((sum, a) => sum + Number(a.rating), 0);
+    const avgRating = totalRatedCount > 0 ? (ratingSum / totalRatedCount).toFixed(1) : "0.0";
+
+    const satisfiedCount = ratedAppointments.filter(a => Number(a.rating) >= 4).length;
+    const satisfactionRate = totalRatedCount > 0 ? ((satisfiedCount / totalRatedCount) * 100).toFixed(0) : 0;
+
+    const starCounts = [5, 4, 3, 2, 1].map(stars => {
+      const count = ratedAppointments.filter(a => Number(a.rating) === stars).length;
+      const percentage = totalRatedCount > 0 ? Number(((count / totalRatedCount) * 100).toFixed(0)) : 0;
+      return { stars, count, percentage };
+    });
+
+    const facultyRatingsMap = {};
+    appointments.forEach(a => {
+      if (a.faculty_name && a.rating) {
+        if (!facultyRatingsMap[a.faculty_name]) {
+          facultyRatingsMap[a.faculty_name] = { name: a.faculty_name, totalRatings: 0, sumRatings: 0 };
+        }
+        facultyRatingsMap[a.faculty_name].totalRatings += 1;
+        facultyRatingsMap[a.faculty_name].sumRatings += Number(a.rating);
+      }
+    });
+    const topRatedFaculty = Object.values(facultyRatingsMap)
+      .map(f => ({
+        ...f,
+        avg: (f.sumRatings / f.totalRatings).toFixed(1)
+      }))
+      .sort((a, b) => Number(b.avg) - Number(a.avg) || b.totalRatings - a.totalRatings)
+      .slice(0, 5);
+
+    const studentFeedbacks = appointments
+      .filter(a => a.rating)
+      .sort((a, b) => new Date(b.date_time || 0) - new Date(a.date_time || 0))
+      .slice(0, 8);
+
     return (
       <ScrollView
         style={{ flex: 1 }}
@@ -812,6 +850,145 @@ export default function AdminDashboard({ navigation }) {
                   </View>
                 );
               })}
+            </View>
+          </View>
+        </View>
+
+        {/* RATINGS & SATISFACTION SECTION */}
+        <View style={{ marginTop: 10, marginBottom: 10 }}>
+          <Text style={[styles.title, { fontSize: isMobile ? 18 : 20, color: '#1E293B', marginBottom: 14 }]}>
+            Student Satisfaction & Rating Analytics
+          </Text>
+
+          {/* RATINGS STATS ROW */}
+          <View style={[styles.statsRow, isMobile && { gap: 10 }]}>
+            <StatBox label="Average Rating" value={`${avgRating} ★`} color="#D97706" icon="star" />
+            <StatBox label="Satisfaction Rate" value={`${satisfactionRate}%`} color="#059669" icon="emoticon-happy-outline" />
+            <StatBox label="Total Rated" value={totalRatedCount} color="#3B82F6" icon="star-box-multiple-outline" />
+            <StatBox label="With Comments" value={appointments.filter(a => a.rating_feedback).length} color="#8B5CF6" icon="comment-text-outline" />
+          </View>
+
+          {/* RATINGS ANALYTICS ROW */}
+          <View style={[styles.analyticsRow, isMobile && { flexDirection: 'column' }, { marginTop: 20 }]}>
+            {/* STAR RATING BREAKDOWN */}
+            <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
+              <View style={styles.analyticsCardHeader}>
+                <MaterialCommunityIcons name="star-half-full" size={20} color="#D97706" />
+                <Text style={styles.analyticsCardTitle}>Rating Distribution</Text>
+              </View>
+              <View style={styles.analyticsCardBody}>
+                {starCounts.map(item => {
+                  const colors = { 5: '#10B981', 4: '#3B82F6', 3: '#F59E0B', 2: '#F97316', 1: '#EF4444' };
+                  return (
+                    <View key={item.stars} style={styles.distributionRow}>
+                      <View style={styles.distributionLabelRow}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Text style={[Typography.bodyMedium, styles.distributionLabel]}>{item.stars} Stars</Text>
+                          <MaterialCommunityIcons name="star" size={14} color="#D97706" />
+                        </View>
+                        <Text style={[Typography.bodySmall, styles.distributionValue]}>
+                          <AnimatedNumber value={item.count} startAnimation={isDistributionVisible} /> ({item.percentage}%)
+                        </Text>
+                      </View>
+                      <AnimatedBar percentage={item.percentage} color={colors[item.stars]} startAnimation={isDistributionVisible} />
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* TOP RATED FACULTY */}
+            <View style={[styles.analyticsCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
+              <View style={styles.analyticsCardHeader}>
+                <MaterialCommunityIcons name="star-circle-outline" size={20} color="#059669" />
+                <Text style={styles.analyticsCardTitle}>Highest Rated Faculty</Text>
+              </View>
+              <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.analyticsCardBody}>
+                  {topRatedFaculty.length === 0 ? (
+                    <Text style={styles.emptyText}>No ratings recorded yet.</Text>
+                  ) : (
+                    topRatedFaculty.map((item, index) => (
+                      <View key={item.name} style={styles.leaderboardRow}>
+                        <View style={[styles.leaderboardRankContainer, { backgroundColor: '#ECFDF5' }]}>
+                          <Text style={[styles.leaderboardRankText, { color: '#059669' }]}>#{index + 1}</Text>
+                        </View>
+                        <View style={styles.leaderboardInfo}>
+                          <Text style={styles.leaderboardName}>{item.name}</Text>
+                          <Text style={styles.leaderboardSub}>{item.totalRatings} rated consultation{item.totalRatings > 1 ? 's' : ''}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Text style={[styles.leaderboardCount, { color: '#D97706', fontSize: 16 }]}>{item.avg}</Text>
+                          <MaterialCommunityIcons name="star" size={16} color="#D97706" />
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+
+          {/* RECENT REVIEWS FEED CARD */}
+          <View style={[styles.analyticsRow, { marginTop: 10 }]}>
+            <View style={[styles.analyticsCard, { width: '100%' }]}>
+              <View style={styles.analyticsCardHeader}>
+                <MaterialCommunityIcons name="comment-quote-outline" size={20} color="#8B5CF6" />
+                <Text style={styles.analyticsCardTitle}>Recent Student Feedback & Reviews</Text>
+              </View>
+              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.analyticsCardBody}>
+                  {studentFeedbacks.length === 0 ? (
+                    <Text style={styles.emptyText}>No ratings or feedback received yet.</Text>
+                  ) : (
+                    studentFeedbacks.map((item) => (
+                      <View key={item.id} style={{
+                        padding: 12,
+                        backgroundColor: '#F8FAFC',
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: '#E2E8F0',
+                        marginBottom: 10,
+                      }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ fontWeight: '700', color: '#0F172A', fontSize: 14 }}>
+                              {item.student_name || 'Student'}
+                            </Text>
+                            <Text style={{ color: '#64748B', fontSize: 12 }}>
+                              → {item.faculty_name || 'Faculty'}
+                            </Text>
+                          </View>
+                          <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: '#FEF3C7',
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                            borderRadius: 8,
+                            gap: 4
+                          }}>
+                            <Text style={{ fontWeight: '800', color: '#D97706', fontSize: 13 }}>{item.rating}</Text>
+                            <MaterialCommunityIcons name="star" size={14} color="#D97706" />
+                          </View>
+                        </View>
+                        {item.rating_feedback ? (
+                          <Text style={{ color: '#334155', fontSize: 13, lineHeight: 18, fontStyle: 'italic' }}>
+                            "{item.rating_feedback}"
+                          </Text>
+                        ) : (
+                          <Text style={{ color: '#94A3B8', fontSize: 12, fontStyle: 'italic' }}>
+                            No text feedback provided.
+                          </Text>
+                        )}
+                        <Text style={{ color: '#94A3B8', fontSize: 11, marginTop: 6, textAlign: 'right' }}>
+                          {item.date_time ? new Date(item.date_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                        </Text>
+                      </View>
+                    ))
+                  )}
+                </View>
+              </ScrollView>
             </View>
           </View>
         </View>
