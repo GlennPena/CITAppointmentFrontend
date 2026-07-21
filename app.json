@@ -23,7 +23,7 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/ua-clinic-favicon.png"
+      "favicon": "./assets/cit-logo.png"
     },
     "plugins": [
       "@react-native-community/datetimepicker",
