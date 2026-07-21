@@ -8,9 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "421692598259-bifnnf8faeoau6ck5idf515slfakg0pv.apps.googleusercontent.com";
 
-let rawApiUrl = process.env.EXPO_PUBLIC_API_URL || "https://citappointmentbackend.onrender.com/api/";
-// Remove accidental -6obi if present in env variable
-rawApiUrl = rawApiUrl.replace("-6obi.onrender.com", ".onrender.com");
+let rawApiUrl = process.env.EXPO_PUBLIC_API_URL || "https://appointment.ua-cit.com/api/";
+if (typeof window !== 'undefined' && window.location && window.location.origin && !process.env.EXPO_PUBLIC_API_URL) {
+  rawApiUrl = `${window.location.origin}/api/`;
+}
 
 if (!rawApiUrl.endsWith('/api/') && !rawApiUrl.endsWith('/api')) {
   rawApiUrl = rawApiUrl.replace(/\/$/, '') + '/api/';

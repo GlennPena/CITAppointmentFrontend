@@ -101,15 +101,16 @@ export default function App() {
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           const pathname = window.location.pathname;
           if (pathname.includes('/verify-slip/') || pathname.includes('/verify-meeting-report/')) {
-            const rawBaseUrl = api.defaults.baseURL || "https://citappointmentbackend.onrender.com/api/";
+            const rawBaseUrl = api.defaults.baseURL || "";
             let cleanBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-            if (!cleanBaseUrl) {
-              cleanBaseUrl = "https://citappointmentbackend.onrender.com";
+            if (!cleanBaseUrl || cleanBaseUrl.startsWith('/') || cleanBaseUrl.includes('localhost') || cleanBaseUrl.includes('127.0.0.1')) {
+              cleanBaseUrl = window.location.origin;
             }
-            if (cleanBaseUrl !== window.location.origin) {
-              window.location.href = `${cleanBaseUrl}${pathname}${window.location.search}`;
-              return;
+            const targetUrl = `${cleanBaseUrl}${pathname}${window.location.search}`;
+            if (window.location.href !== targetUrl) {
+              window.location.href = targetUrl;
             }
+            return;
           }
         }
 
